@@ -11,7 +11,7 @@ export { cleanTelegramFormattingForMobile } from "./mobileFormatting";
 export { confirmMobileAction } from "./mobileConfirmation";
 import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from "@google/generative-ai";
 import prisma from "@/lib/prisma";
-import { TOOLS, getPrunedGeminiDeclarations } from "@/lib/telegram/tools";
+import { TOOLS, getGeminiFunctionDeclarations, getPrunedGeminiDeclarations } from "@/lib/telegram/tools";
 import { ToolContext } from "@/lib/telegram/tools/readTools";
 import { getCachedKnowledge, setCachedKnowledge } from "@/lib/telegram/agent";
 import { buildMobileHniaSystemInstruction } from "./hniaPrompt";
@@ -77,14 +77,33 @@ export function getMobileDeclarations(userMessage: string): any[] {
   const msg = (userMessage || "").trim();
   const msgLower = msg.toLowerCase();
 
-  const CHITCHAT_REGEX = /^(bonjour|salut|ahla|salam|coucou|hello|hi|merci|chokran|merci beaucoup|qui es-tu|qui est hnia|tu peux faire quoi|présente-toi|aide-moi|tu sers à quoi|bye|au revoir|bonne soirée|bonne journée)[\s!?.]*$/i;
+  const CHITCHAT_REGEX = /^(bonjour|salut|ahla(?: bik)?|aslema|salam|coucou|hello|hi|merci|chokran|merci beaucoup|qui es-tu|qui est hnia|tu peux faire quoi|présente-toi|aide-moi|tu sers à quoi|chnwa esm(?:e)?k(?: enti)?|chneya esm(?:e)?k|bye|au revoir|bonne soirée|bonne journée)[\s!?.]*$/i;
   if (CHITCHAT_REGEX.test(msgLower)) {
     return [];
   }
 
-  const declarations = getPrunedGeminiDeclarations(msg);
+  const derjaHints = [
+    /(?:masrouf|sraf|chrina|chrit)/i.test(msg) ? "dépense" : "",
+    /(?:khles|5las|flous|madakhil)/i.test(msg) ? "paiement finance" : "",
+    /(?:mou3alem|m3alem)/i.test(msg) ? "enseignant" : "",
+    /(?:talm|tlem|ya9raw|9esm)/i.test(msg) ? "élève classe" : "",
+    /(?:8yeb|ghyeb)/i.test(msg) ? "absence" : "",
+  ].filter(Boolean).join(" ");
+  const declarations = getPrunedGeminiDeclarations(`${msg} ${derjaHints}`.trim());
+  if (declarations.length <= 40) return declarations;
 
-  return declarations;
+  // Unclassified mobile questions should not ship the full 100+ tool schema.
+  // Keep the fallback read-only; mutation tools are exposed only when a clear
+  // domain above is detected and still require an explicit confirmation card.
+  const schoolIntent = /(?:écol|school|madr|mader|talm|tlem|ya9raw|9esm|classe|parent|weli|mou3alem|m3alem|prof|enseign|flous|caisse|khles|5las|paiement|absence|8yeb|planning|emploi)/i.test(msgLower);
+  if (!schoolIntent) return [];
+  const fallbackNames = new Set([
+    "query_school_records", "get_school_stats", "get_morning_briefing",
+    "get_students", "get_parents", "get_classes", "get_teachers",
+    "get_attendance", "get_payments", "get_financial_summary",
+    "get_incomes", "get_expenses", "get_daily_caisse",
+  ]);
+  return getGeminiFunctionDeclarations().filter((declaration) => fallbackNames.has(declaration.name));
 }
 
 /**

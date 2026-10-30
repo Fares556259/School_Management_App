@@ -15,7 +15,12 @@ export async function POST(request: NextRequest) {
     const ip = request.headers.get("x-forwarded-for") || "unknown_ip";
     const rateLimited = checkRateLimit(userId || ip, "chat");
     if (!rateLimited.success) {
-      return NextResponse.json({ error: 'Trop de requêtes. Veuillez patienter.' }, { status: 429 });
+      return NextResponse.json({
+        success: false,
+        error: 'RATE_LIMITED',
+        message: 'Hnia reçoit plusieurs demandes à la fois. Patientez quelques secondes puis continuez.',
+        retryAfterSeconds: rateLimited.retryAfterSeconds,
+      }, { status: 429, headers: { 'Retry-After': String(rateLimited.retryAfterSeconds || 10) } });
     }
 
     if (userType !== "admin") {

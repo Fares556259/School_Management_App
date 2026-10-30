@@ -14,6 +14,7 @@ export interface ActionCardData {
   status: "PENDING" | "EXECUTING" | "EXECUTED" | "REJECTED" | "FAILED" | "EXPIRED";
   reference?: string;
   resultMessage?: string;
+  completedAt?: string;
   arguments?: Record<string, any>;
 }
 

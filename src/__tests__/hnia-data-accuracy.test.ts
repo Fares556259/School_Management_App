@@ -91,6 +91,10 @@ async function main() {
   // Tool pruning must preserve the specialised data domains; exact shortcuts must not steal scope.
   assert(getMobileDeclarations('notes et examens des élèves de la classe 1A').some(tool=>tool.name==='get_student_grades'));
   assert(getMobileDeclarations('demande parent et notification').some(tool=>tool.name==='query_school_records'));
+  assert.equal(getMobileDeclarations('Aslema').length,0,'Tunisian greetings use the lightweight chat path');
+  assert.equal(getMobileDeclarations('Chnwa esmk enti').length,0,'Tunisian identity questions do not ship school tools');
+  const derjaTeachers=getMobileDeclarations('9adeh 3ana mn mou3alem fl ecole');assert(derjaTeachers.some(tool=>tool.name==='get_teachers'));assert(derjaTeachers.length<40);
+  const fallback=getMobileDeclarations('chneya rayek fel school');assert(fallback.length>0&&fallback.length<20);assert(fallback.every(tool=>!TOOLS[tool.name]?.requiresConfirmation),'Unclassified fallback stays read-only');
   assert.equal(getExactSchoolRead('revenus septembre 2025'),null);assert.equal(getExactSchoolRead('impayés classe 1A'),null);assert.equal(getExactSchoolRead('caisse hier'),null);
   assert.deepEqual(getExactSchoolRead('Chkoun ya9raw 1a'),{name:'get_students',args:{className:'1A',limit:100,offset:0}});
   assert(isVerificationFollowup('U sure'));assert(isVerificationFollowup('Khw hedhom eli ya9raw'));

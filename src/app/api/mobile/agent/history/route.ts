@@ -143,7 +143,7 @@ export async function GET(request: NextRequest) {
     const actionCards = new Map<string, any>(conversation.toolCalls.filter((tc: any) => tc.requiresConfirm).map((tc: any) => {
       const status = tc.status === "PENDING" && isActionExpired(tc.createdAt) ? "EXPIRED" : tc.status;
       const card = buildActionCardMetadata(tc.id, tc.toolName, tc.arguments || {}, "Vérifiez les détails puis confirmez cette action.");
-      return [tc.id, { ...card, status, reference: status === "EXECUTED" ? `ACT-${tc.id}` : undefined, resultMessage: tc.result?.message, undoExpenseId: status === 'EXECUTED' && tc.toolName === 'add_expense' && Number.isInteger(tc.result?.data?.expenseId) ? tc.result.data.expenseId : undefined }];
+      return [tc.id, { ...card, status, reference: status === "EXECUTED" ? `ACT-${tc.id}` : undefined, completedAt: tc.executedAt?.toISOString(), undoExpenseId: status === 'EXECUTED' && tc.toolName === 'add_expense' && Number.isInteger(tc.result?.data?.expenseId) ? tc.result.data.expenseId : undefined }];
     }));
 
     return NextResponse.json({
