@@ -13,33 +13,23 @@ const globalForPrisma = globalThis as unknown as {
   prisma: any | undefined;
 };
 
-function getOptimizedDatabaseUrl(): string | undefined {
+export function getOptimizedDatabaseUrl(): string | undefined {
   let url = process.env.DATABASE_URL;
   if (!url) return undefined;
 
   // Crucial for Serverless (Vercel) + Supabase Supavisor/PgBouncer:
-  // Forcing connection_limit=10 on serverless causes fast pool exhaustion on Supabase,
-  // triggering fatal ECHECKOUTTIMEOUT errors!
-  // A lean connection_limit (2-3) allows dozens of serverless instances to operate concurrently.
-  if (url.includes("connection_limit=10")) {
-    url = url.replace("connection_limit=10", "connection_limit=3");
-  } else if (url.includes("connection_limit=1&") || url.endsWith("connection_limit=1")) {
-    url = url.replace("connection_limit=1", "connection_limit=3");
-  } else if (!url.includes("connection_limit=")) {
-    url = url + (url.includes("?") ? "&" : "?") + "connection_limit=3";
-  }
-
-  // Ensure pool_timeout is bounded (20 seconds max wait instead of freezing for 60s)
-  if (!url.includes("pool_timeout=")) {
-    url = url + "&pool_timeout=20";
-  }
+  // Every warm Vercel function owns a separate Prisma pool. Keep one connection per
+  // instance so horizontal scaling cannot exhaust Supabase's shared database pool.
+  const parsed = new URL(url);
+  parsed.searchParams.set("connection_limit", "1");
+  parsed.searchParams.set("pool_timeout", "20");
 
   // Ensure pgbouncer flag is active for pooled transactions
-  if (url.includes(":6543") && !url.includes("pgbouncer=true")) {
-    url = url + "&pgbouncer=true";
+  if (parsed.port === "6543") {
+    parsed.searchParams.set("pgbouncer", "true");
   }
 
-  return url;
+  return parsed.toString();
 }
 
 const basePrisma =

@@ -4,8 +4,8 @@ import prisma from "@/lib/prisma";
 import { authenticateMobileRequest } from "@/lib/mobileAuth";
 import { flushAccessNotifications } from "@/lib/parentAccessNotifications";
 import { waitUntil } from "@vercel/functions";
-import { Expo } from "expo-server-sdk";
 import { parseStoredExpoPushTokens, storeExpoPushToken } from "@/lib/expoPushTokens";
+import { isExpoPushToken } from "@/lib/expoPushApi";
 
 export async function POST(request: NextRequest) {
   const auth = await authenticateMobileRequest(request, { allowPendingParent: true });
@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
     if (targetId !== userId) {
       return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
-    if (pushToken && !Expo.isExpoPushToken(pushToken)) {
+    if (pushToken && !isExpoPushToken(pushToken)) {
       return NextResponse.json({ success: false, error: "Invalid push token" }, { status: 400 });
     }
 

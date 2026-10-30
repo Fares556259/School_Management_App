@@ -1,12 +1,10 @@
 import prisma from "./prisma";
-import { Expo } from "expo-server-sdk";
+import { sendExpoPushMessages } from "./expoPushApi";
 import {
   expandStoredExpoPushDevices,
   parseStoredExpoPushDevices,
   type ExpoPushDevice,
 } from "./expoPushTokens";
-
-const expo = new Expo();
 
 /**
  * Canonical notification channel resolver.
@@ -178,46 +176,15 @@ export async function sendPushBatch(
 
     console.log(`[PUSH-BATCH] Sending ${uniqueMessages.length} unique push(es) via direct HTTP to Expo API`);
 
-    // Use direct HTTP fetch to Expo Push API instead of SDK for reliability on serverless
     let sentCount = 0;
     try {
-      const response = await fetch('https://exp.host/--/api/v2/push/send', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: JSON.stringify(uniqueMessages),
-      });
-      const result = await response.json();
-      console.log(`[PUSH-BATCH] Expo API response:`, JSON.stringify(result));
-
-      if (result.data) {
-        const tickets = Array.isArray(result.data) ? result.data : [result.data];
-        for (const t of tickets) {
-          if (t.status === 'ok') {
-            sentCount++;
-          } else {
-            console.error('[PUSH-BATCH-TICKET-ERROR]', t.message, t.details);
-          }
-        }
+      const tickets = await sendExpoPushMessages(uniqueMessages);
+      for (const ticket of tickets) {
+        if (ticket.status === 'ok') sentCount++;
+        else console.error('[PUSH-BATCH-TICKET-ERROR]', ticket.message, ticket.details);
       }
     } catch (fetchErr) {
       console.error('[PUSH-BATCH-FETCH-ERROR] Direct HTTP to Expo failed:', fetchErr);
-      // Fallback to Expo SDK if direct HTTP fails
-      try {
-        console.log('[PUSH-BATCH] Falling back to Expo SDK...');
-        const chunks = expo.chunkPushNotifications(uniqueMessages);
-        for (const chunk of chunks) {
-          const tickets = await expo.sendPushNotificationsAsync(chunk);
-          for (const t of tickets) {
-            if (t.status === 'ok') sentCount++;
-            else console.error('[PUSH-BATCH-TICKET-ERROR]', t.message, (t as any).details);
-          }
-        }
-      } catch (sdkErr) {
-        console.error('[PUSH-BATCH-SDK-ERROR]', sdkErr);
-      }
     }
 
     console.log(`[PUSH-BATCH] Sent ${sentCount}/${uniqueMessages.length} notifications: ${title}`);
@@ -254,12 +221,8 @@ async function sendPushIndividualBatch(
 
     if (messages.length === 0) return { tokensCount: 0, sentCount: 0 };
 
-    const chunks = expo.chunkPushNotifications(messages);
-    let sentCount = 0;
-    for (const chunk of chunks) {
-      const tickets = await expo.sendPushNotificationsAsync(chunk);
-      sentCount += tickets.filter((ticket) => ticket.status === 'ok').length;
-    }
+    const tickets = await sendExpoPushMessages(messages);
+    const sentCount = tickets.filter((ticket) => ticket.status === 'ok').length;
     console.log(`[PUSH-BATCH] Expo accepted ${sentCount}/${messages.length} individualized notifications`);
     return { tokensCount: messages.length, sentCount };
   } catch (error) {
@@ -294,31 +257,11 @@ export async function sendDirectPushTokens(
     )
   );
 
-  const chunks = expo.chunkPushNotifications(messages);
   const tickets: any[] = [];
-  for (const chunk of chunks) {
-    try {
-      // Use direct HTTP for reliability on Vercel serverless
-      const response = await fetch('https://exp.host/--/api/v2/push/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-        body: JSON.stringify(chunk),
-      });
-      const result = await response.json();
-      if (result.data) {
-        const data = Array.isArray(result.data) ? result.data : [result.data];
-        tickets.push(...data);
-      }
-      console.log(`[sendDirectPushTokens] Expo API response: ${JSON.stringify(result)}`);
-    } catch (err) {
-      console.error("[sendDirectPushTokens] Direct HTTP failed, trying SDK:", err);
-      try {
-        const res = await expo.sendPushNotificationsAsync(chunk);
-        tickets.push(...res);
-      } catch (sdkErr) {
-        console.error("[sendDirectPushTokens] SDK also failed:", sdkErr);
-      }
-    }
+  try {
+    tickets.push(...await sendExpoPushMessages(messages));
+  } catch (error) {
+    console.error("[sendDirectPushTokens] Expo push failed:", error);
   }
 
   const sentCount = tickets.filter((t) => t.status === "ok").length;

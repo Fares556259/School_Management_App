@@ -1,4 +1,4 @@
-import { Expo } from "expo-server-sdk";
+import { isExpoPushToken } from "./expoPushApi";
 
 const MAX_TOKENS_PER_ACCOUNT = 8;
 
@@ -12,7 +12,7 @@ export function parseStoredExpoPushDevices(value: string | null | undefined): Ex
   if (!value) return [];
 
   const trimmed = value.trim();
-  if (Expo.isExpoPushToken(trimmed)) return [{ token: trimmed, channelVersion: 2 }];
+  if (isExpoPushToken(trimmed)) return [{ token: trimmed, channelVersion: 2 }];
 
   try {
     const parsed = JSON.parse(trimmed);
@@ -20,13 +20,13 @@ export function parseStoredExpoPushDevices(value: string | null | undefined): Ex
 
     const devices = new Map<string, ExpoPushDevice>();
     for (const item of parsed) {
-      if (typeof item === "string" && Expo.isExpoPushToken(item)) {
+      if (typeof item === "string" && isExpoPushToken(item)) {
         devices.set(item, { token: item, channelVersion: 2 });
       } else if (
         item &&
         typeof item === "object" &&
         typeof item.token === "string" &&
-        Expo.isExpoPushToken(item.token)
+        isExpoPushToken(item.token)
       ) {
         const device: ExpoPushDevice = {
           token: item.token,
