@@ -1132,6 +1132,7 @@ export async function getDailyCaisseTool(
 export async function voidExpenseTool(
   args: {
     expenseId?: number;
+    expectedExpenseVersion?: string;
     query?: string;
     amount?: number;
   },
@@ -1165,10 +1166,14 @@ export async function voidExpenseTool(
     };
   }
 
+  if (args.expectedExpenseVersion) {
+    const { expenseReviewVersion } = await import('@/lib/agent/expenseReversal');
+    if (expenseReviewVersion(targetExpense) !== args.expectedExpenseVersion) return { success: false, message: 'La dépense a changé depuis sa présentation. Préparez une nouvelle confirmation.', summary: 'Dépense modifiée depuis la confirmation' };
+  }
+
   await prisma.$transaction(async (tx) => {
-    await tx.expense.delete({
-      where: { id: targetExpense.id },
-    });
+    const removed = await tx.expense.deleteMany({ where: { id: targetExpense.id, schoolId: context.schoolId, title: targetExpense.title, amount: targetExpense.amount, category: targetExpense.category, date: targetExpense.date } });
+    if (removed.count !== 1) throw new Error('La dépense a changé. Aucune annulation effectuée.');
 
     await tx.auditLog.create({
       data: {
@@ -1184,7 +1189,8 @@ export async function voidExpenseTool(
     });
   });
 
-  invalidateTenantTags(context.schoolId, "finance", "dashboard");
+  try { invalidateTenantTags(context.schoolId, "finance", "dashboard"); }
+  catch (error) { console.warn('[voidExpenseTool] Cache invalidation unavailable after successful cancellation'); }
 
   return {
     success: true,

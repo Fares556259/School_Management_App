@@ -2220,6 +2220,7 @@ Confirmer l'enregistrement de cette dépense ?`;
         type: SchemaType.OBJECT,
         properties: {
           expenseId: { type: SchemaType.NUMBER, description: "Identifiant numérique de la dépense si connu." },
+          expectedExpenseVersion: { type: SchemaType.STRING, description: 'Version de la dépense présentée à la confirmation, fournie par le serveur.' },
           query: { type: SchemaType.STRING, description: "Titre ou enseigne de la dépense (ex: 'Monoprix', 'Facture STEG')." },
           amount: { type: SchemaType.NUMBER, description: "Montant de la dépense en Dinars Tunisiens (DT)." },
         },

@@ -3,6 +3,7 @@ import { buildReadPresentation } from './readPresentation';
 import { buildMobileImageMessage, explicitCurrencyAmounts, getPurchaseDraft } from './purchaseDraft';
 import { getNamedPaymentDraft, PAYMENT_WORDS } from './paymentDraft';
 import { outputText, outputLanguageInstruction, proposalMessage, claimsUnbackedAction } from './outputLanguage';
+import { prepareExpenseReversal } from './expenseReversal';
 import { prepareConfirmedArguments, freezeMobileActionArguments } from './actionPolicy';
 import { isVerificationFollowup, isNextPage, needsFreshSchoolData } from "./dataAccuracy";
 import { READ_ONLY_ACTIONS } from "./actionPolicy";
@@ -35,6 +36,7 @@ export interface MobileAgentInput {
   conversationId?: string;
   newConversation?: boolean;
   refreshReadId?: string;
+  prepareExpenseReversalId?: number;
   nextReadPage?: boolean;
   language?: string;
   audioBase64?: string;
@@ -491,6 +493,20 @@ export async function runMobileAgent(input: MobileAgentInput): Promise<MobileAge
     language: input.language || "fr",
   };
 
+  if (input.prepareExpenseReversalId !== undefined) {
+    const prepared = await prepareExpenseReversal({ expenseId: input.prepareExpenseReversalId }, context);
+    const message = prepared
+      ? outputText(input.language, 'Vérifiez la dépense ci-dessous avant de confirmer son annulation.', 'Review this expense before confirming its cancellation.', 'يرجى مراجعة المصروف أدناه قبل تأكيد إلغائه.')
+      : outputText(input.language, 'Cette dépense est introuvable ou ne peut plus être annulée. Aucune modification effectuée.', 'This expense was not found or can no longer be cancelled. No data was changed.', 'تعذّر العثور على هذا المصروف أو لم يعد قابلاً للإلغاء. لم تُعدَّل أي بيانات.');
+    let card: ActionCardData | undefined;
+    if (prepared) {
+      const record = await prisma.aIToolCall.create({ data: { conversationId, toolName: 'void_expense', arguments: prepared.args, result: { proposalDisplay: prepared.display }, requiresConfirm: true, status: 'PENDING' } });
+      card = buildActionCardMetadata(record.id, 'void_expense', prepared.args, message, prepared.display);
+    }
+    await prisma.aIMessage.create({ data: { conversationId, role: 'assistant', content: message, ...(card ? { toolCallId: card.toolCallId } : {}) } });
+    return { success: true, conversationId, message, pendingConfirmation: card || null, widget: card ? { type: 'action_card', data: card } : null, followUpSuggestions: [] };
+  }
+
   const paymentDraft = await getNamedPaymentDraft(intentMessage, context);
   if (paymentDraft) {
     let message = paymentDraft.clarification;
@@ -792,9 +808,12 @@ export async function runMobileAgent(input: MobileAgentInput): Promise<MobileAge
           let pendingConfirmations: ActionCardData[] = [];
           for (const c of functionCalls) {
             const tName = c.name;
-            const tArgs = proposalArgs(tName, (c.args || {}) as Record<string, any>);
+            let tArgs = proposalArgs(tName, (c.args || {}) as Record<string, any>);
             const tDef = TOOLS[tName];
             if (tDef && requiresActionConfirmation(tName, tDef)) {
+              const reversal = tName === 'void_expense' ? await prepareExpenseReversal(tArgs, context) : null;
+              if (tName === 'void_expense' && !reversal) return { success: true, conversationId, message: outputText(input.language, 'Précisez la dépense à annuler. Aucun changement effectué.', 'Specify the expense to cancel. No data was changed.', 'يرجى تحديد المصروف المطلوب إلغاؤه. لم تُعدَّل أي بيانات.') };
+              if (reversal) tArgs = reversal.args;
               const toolCallRecord = await prisma.aIToolCall.create({
                 data: {
                   conversationId,
@@ -802,6 +821,7 @@ export async function runMobileAgent(input: MobileAgentInput): Promise<MobileAge
                   arguments: tArgs,
                   status: "PENDING",
                   requiresConfirm: true,
+                  ...(reversal ? { result: { proposalDisplay: reversal.display } } : {}),
                 },
               });
 
@@ -810,7 +830,7 @@ export async function runMobileAgent(input: MobileAgentInput): Promise<MobileAge
                 : `❓ Souhaitez-vous confirmer l'exécution de l'action **${tName}** ?`;
               const confirmText = cleanTelegramFormattingForMobile(rawConfirmText);
 
-              const actionCard = buildActionCardMetadata(toolCallRecord.id, tName, tArgs, confirmText);
+              const actionCard = buildActionCardMetadata(toolCallRecord.id, tName, tArgs, confirmText, reversal?.display);
               pendingConfirmations.push(actionCard);
               await prisma.aIMessage.create({ data: {
                 conversationId, role: "assistant", toolCallId: toolCallRecord.id,
@@ -965,7 +985,7 @@ export async function runMobileAgent(input: MobileAgentInput): Promise<MobileAge
               const toolName = parsed.action;
               const payload = parsed.payload || {};
 
-              const toolArgs: Record<string, any> = proposalArgs(toolName, { ...payload });
+              let toolArgs: Record<string, any> = proposalArgs(toolName, { ...payload });
               if (payload.first_name && !toolArgs.name) toolArgs.name = payload.first_name;
               if (payload.last_name && !toolArgs.surname) toolArgs.surname = payload.last_name;
               if (payload.class_name && !toolArgs.className) toolArgs.className = payload.class_name;
@@ -974,6 +994,9 @@ export async function runMobileAgent(input: MobileAgentInput): Promise<MobileAge
 
               const toolDef = TOOLS[toolName];
               if (toolDef && permittedToolNames.has(toolName) && requiresActionConfirmation(toolName, toolDef)) {
+                const reversal = toolName === 'void_expense' ? await prepareExpenseReversal(toolArgs, context) : null;
+                if (toolName === 'void_expense' && !reversal) return { success: true, conversationId, message: outputText(input.language, 'Précisez la dépense à annuler. Aucun changement effectué.', 'Specify the expense to cancel. No data was changed.', 'يرجى تحديد المصروف المطلوب إلغاؤه. لم تُعدَّل أي بيانات.') };
+                if (reversal) toolArgs = reversal.args;
                 const toolCallRecord = await prisma.aIToolCall.create({
                   data: {
                     conversationId,
@@ -981,6 +1004,7 @@ export async function runMobileAgent(input: MobileAgentInput): Promise<MobileAge
                     arguments: toolArgs,
                     status: "PENDING",
                     requiresConfirm: true,
+                    ...(reversal ? { result: { proposalDisplay: reversal.display } } : {}),
                   },
                 });
 
@@ -989,7 +1013,7 @@ export async function runMobileAgent(input: MobileAgentInput): Promise<MobileAge
                   : `❓ Souhaitez-vous confirmer l'exécution de l'action **${toolName}** ?`;
                 const confirmText = cleanTelegramFormattingForMobile(rawConfirmText);
 
-                const actionCard = buildActionCardMetadata(toolCallRecord.id, toolName, toolArgs, confirmText);
+                const actionCard = buildActionCardMetadata(toolCallRecord.id, toolName, toolArgs, confirmText, reversal?.display);
                 pendingConfirmation = actionCard;
                 detectedWidget = {
                   type: "action_card",

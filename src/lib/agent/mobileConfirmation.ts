@@ -7,6 +7,7 @@ import { prepareConfirmedArguments, isActionExpired, requiresActionConfirmation 
 import { actionReviewFingerprint, sameActionArguments } from './actionReview';
 import { buildActionCardMetadata } from './actionCards';
 import { outputText } from './outputLanguage';
+import { prepareExpenseReversal } from './expenseReversal';
 
 type ActionStatus = "PENDING" | "EXECUTING" | "EXECUTED" | "REJECTED" | "FAILED" | "EXPIRED";
 
@@ -81,6 +82,18 @@ export async function confirmMobileAction(params: {
     message: outputText(language, message, 'Review the updated details, then press Confirm again. No action has been executed.', 'يرجى مراجعة التفاصيل المحدّثة ثم الضغط على «تأكيد» مجدداً. لم تُنفَّذ أي عملية بعد.'),
     proposal: buildActionCardMetadata(toolCall.id, toolCall.toolName, reviewedArgs, outputText(language, message, 'Review the updated details before confirming.', 'يرجى مراجعة التفاصيل المحدّثة قبل التأكيد.'), display || undefined),
   });
+  if (toolCall.toolName === 'void_expense') {
+    const prepared = await prepareExpenseReversal(args, { schoolId, adminId, adminName: 'Admin', language });
+    if (!prepared) {
+      await prisma.aIToolCall.updateMany({ where: { id: toolCallId, status: 'PENDING', ...ownership }, data: { status: 'FAILED' } });
+      return resultFor('FAILED', 'Cette dépense est introuvable ou a déjà été annulée. Aucune nouvelle annulation effectuée.');
+    }
+    if (!sameActionArguments(args, prepared.args) || !sameActionArguments((toolCall.result as any)?.proposalDisplay?.expense, prepared.display.expense)) {
+      const revised = await prisma.aIToolCall.updateMany({ where: { id: toolCallId, status: 'PENDING', arguments: { equals: toolCall.arguments as Prisma.InputJsonValue }, ...ownership }, data: { arguments: prepared.args, result: { proposalDisplay: prepared.display } } });
+      if (!revised.count) return { success: false, actionStatus: 'PENDING' as ActionStatus, message: 'La proposition a changé. Actualisez la discussion.' };
+      return review('Vérifiez les détails actuels de la dépense, puis confirmez son annulation. Aucune modification effectuée.', prepared.args, prepared.display);
+    }
+  }
   if (reviewFingerprint !== actionReviewFingerprint(toolCall.id, toolCall.toolName, toolCall.arguments)) {
     return review('Vérifiez cette version de la proposition puis confirmez à nouveau. Si nécessaire, mettez votre application à jour.');
   }

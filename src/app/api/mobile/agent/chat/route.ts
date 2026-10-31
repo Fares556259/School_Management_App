@@ -31,6 +31,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
+    if (body.prepareExpenseReversalId !== undefined && (!Number.isInteger(body.prepareExpenseReversalId) || body.prepareExpenseReversalId <= 0)) return NextResponse.json({ success: false, error: 'Invalid expense selection' }, { status: 400 });
     if (body.transcribeOnly === true) {
       if (typeof body.audioBase64 !== 'string' || !body.audioBase64 || body.audioBase64.length > 12_000_000) return NextResponse.json({ success: false, error: 'Invalid audio' }, { status: 400 });
       const transcription = await transcribeMobileAudio(body.audioBase64, body.audioMimeType, request.signal);
@@ -74,6 +75,7 @@ export async function POST(request: NextRequest) {
             newConversation: body.newConversation === true,
             nextReadPage: body.nextReadPage === true,
             refreshReadId: typeof body.refreshReadId === 'string' ? body.refreshReadId : undefined,
+            prepareExpenseReversalId: body.prepareExpenseReversalId,
             language: ['fr', 'en', 'ar'].includes(body.language) ? body.language : 'fr',
             audioBase64: body.audioBase64,
             audioMimeType: body.audioMimeType,
@@ -143,6 +145,7 @@ export async function POST(request: NextRequest) {
       newConversation: body.newConversation === true,
       nextReadPage: body.nextReadPage === true,
       refreshReadId: typeof body.refreshReadId === 'string' ? body.refreshReadId : undefined,
+      prepareExpenseReversalId: body.prepareExpenseReversalId,
       language: ['fr', 'en', 'ar'].includes(body.language) ? body.language : 'fr',
       audioBase64: body.audioBase64,
       audioMimeType: body.audioMimeType,

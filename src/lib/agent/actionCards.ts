@@ -1,4 +1,5 @@
 import { actionReviewFingerprint } from './actionReview';
+import type { ExpenseReviewDisplay } from './expenseReversal';
 
 export interface ActionCardField {
   label: string;
@@ -21,9 +22,13 @@ export interface ActionCardData {
   arguments?: Record<string, any>;
 }
 
-export function buildActionCardMetadata(toolCallId: string, toolName: string, args: Record<string, any>, confirmText: string, display?: { beneficiary?: string }): ActionCardData {
+export function buildActionCardMetadata(toolCallId: string, toolName: string, args: Record<string, any>, confirmText: string, display?: ExpenseReviewDisplay): ActionCardData {
   const card = buildActionCardContent(toolCallId, toolName, args, confirmText);
   if (display?.beneficiary) card.fields = card.fields.map(field => field.label === 'Bénéficiaire' ? { ...field, value: display.beneficiary! } : field);
+  if (toolName === 'void_expense' && display?.expense) card.fields = [
+    { label: 'Description', value: display.expense.title }, { label: 'Montant', value: `${display.expense.amount} DT` },
+    { label: 'Catégorie', value: display.expense.category }, { label: 'Date', value: display.expense.date.slice(0, 10) },
+  ];
   return { ...card, reviewFingerprint: actionReviewFingerprint(toolCallId, toolName, args) };
 }
 
@@ -38,6 +43,11 @@ function buildActionCardContent(
     month: "long",
     year: "numeric",
   });
+
+  if (toolName === 'void_expense') return {
+    toolCallId, toolName, actionTitle: 'Annuler une dépense', actionType: 'generic', confirmText, status: 'PENDING', arguments: args,
+    fields: [{ label: 'Description', value: args.query || 'Dépense sélectionnée' }, { label: 'Montant', value: args.amount > 0 ? `${args.amount} DT` : 'À vérifier' }],
+  };
 
   if (toolName === "add_expense") {
     return {

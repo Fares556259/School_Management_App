@@ -140,9 +140,12 @@ export async function GET(request: NextRequest) {
     const visibleReadIds = sortedMessages.map((message: any) => message.toolCallId).filter(Boolean);
     const visibleReads = visibleReadIds.length ? await prisma.aIToolCall.findMany({ where: { id: { in: visibleReadIds }, conversationId: conversation.id, requiresConfirm: false, status: 'EXECUTED' }, select: { id: true, toolName: true, arguments: true, result: true, executedAt: true } }) : [];
     const readCalls = new Map<string, any>(visibleReads.map((tc: any) => [tc.id, tc]));
+    const legacyExpenseIds = conversation.toolCalls.filter((tc: any) => tc.toolName === 'void_expense' && ['PENDING', 'EXECUTING'].includes(tc.status) && !tc.result?.proposalDisplay?.expense).map((tc: any) => tc.arguments?.expenseId).filter((id: any) => Number.isInteger(id) && id > 0);
+    const legacyExpenses = legacyExpenseIds.length ? await prisma.expense.findMany({ where: { schoolId, id: { in: legacyExpenseIds } }, select: { id: true, title: true, amount: true, category: true, date: true } }) : [];
+    const expenseDisplays = new Map(legacyExpenses.map(expense => [expense.id, { expense: { title: expense.title, amount: expense.amount, category: expense.category, date: expense.date.toISOString() } }]));
     const actionCards = new Map<string, any>(conversation.toolCalls.filter((tc: any) => tc.requiresConfirm).map((tc: any) => {
       const status = tc.status === "PENDING" && isActionExpired(tc.createdAt) ? "EXPIRED" : tc.status;
-      const card = buildActionCardMetadata(tc.id, tc.toolName, tc.arguments || {}, "Vérifiez les détails puis confirmez cette action.", tc.result?.proposalDisplay);
+      const card = buildActionCardMetadata(tc.id, tc.toolName, tc.arguments || {}, "Vérifiez les détails puis confirmez cette action.", tc.result?.proposalDisplay || (tc.toolName === 'void_expense' ? expenseDisplays.get(tc.arguments?.expenseId) : undefined));
       return [tc.id, { ...card, status, reference: status === "EXECUTED" ? `ACT-${tc.id}` : undefined, completedAt: tc.executedAt?.toISOString(), undoExpenseId: status === 'EXECUTED' && tc.toolName === 'add_expense' && Number.isInteger(tc.result?.data?.expenseId) ? tc.result.data.expenseId : undefined }];
     }));
 
