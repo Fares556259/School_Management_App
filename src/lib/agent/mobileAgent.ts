@@ -1,7 +1,7 @@
 import { executeFreshSchoolRead, formatSchoolRead, getExactSchoolRead } from "./schoolRead";
 import { buildReadPresentation } from './readPresentation';
 import { buildMobileImageMessage, explicitCurrencyAmounts, getPurchaseDraft } from './purchaseDraft';
-import { prepareConfirmedArguments } from './actionPolicy';
+import { prepareConfirmedArguments, freezeMobileActionArguments } from './actionPolicy';
 import { isVerificationFollowup, isNextPage, needsFreshSchoolData } from "./dataAccuracy";
 import { READ_ONLY_ACTIONS } from "./actionPolicy";
 import { ActionCardData, buildActionCardMetadata } from "./actionCards";
@@ -15,7 +15,6 @@ import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from "@google/ge
 import prisma from "@/lib/prisma";
 import { TOOLS, getGeminiFunctionDeclarations, getPrunedGeminiDeclarations } from "@/lib/telegram/tools";
 import { ToolContext } from "@/lib/telegram/tools/readTools";
-import { getCachedKnowledge, setCachedKnowledge } from "@/lib/telegram/agent";
 import { buildMobileHniaSystemInstruction } from "./hniaPrompt";
 import { analyzeTelegramImage, uploadTelegramPhotoToStorage } from "@/lib/telegram/vision";
 import {
@@ -79,7 +78,7 @@ export function getMobileDeclarations(userMessage: string): any[] {
   const msg = (userMessage || "").trim();
   const msgLower = msg.toLowerCase();
 
-  const CHITCHAT_REGEX = /^(bonjour|salut|ahla(?: bik)?|aslema|salam|coucou|hello|hi|merci|chokran|merci beaucoup|qui es-tu|qui est hnia|tu peux faire quoi|présente-toi|aide-moi|tu sers à quoi|chnwa esm(?:e)?k(?: enti)?|chneya esm(?:e)?k|bye|au revoir|bonne soirée|bonne journée)[\s!?.]*$/i;
+  const CHITCHAT_REGEX = /^(bonjour|salut|ahla(?: bik)?|aslema|salam|coucou|hello|hi|merci|chokran|merci beaucoup|qui es-tu|who are you|what(?:'s| is) your name|qui est hnia|tu peux faire quoi|présente-toi|aide-moi|tu sers à quoi|chnwa esm(?:e)?k(?: enti)?|chneya esm(?:e)?k|bye|au revoir|bonne soirée|bonne journée)[\s!?.]*$/i;
   if (CHITCHAT_REGEX.test(msgLower)) {
     return [];
   }
@@ -408,6 +407,8 @@ export async function runMobileAgent(input: MobileAgentInput): Promise<MobileAge
     };
   }
 
+  const intentMessage = input.imageBase64 ? [originalUserText, transcription].filter(Boolean).join('\n') : effectiveUserMessage;
+
   // 4. Resolve conversation (already fetched concurrently during parallel startup)
   let conversation: any = conversationLookup;
 
@@ -528,7 +529,7 @@ export async function runMobileAgent(input: MobileAgentInput): Promise<MobileAge
   }
 
   // Only exact, unambiguous shortcuts may bypass model parsing. Scoped questions use native tool arguments.
-  let exactRead = getExactSchoolRead(effectiveUserMessage);
+  let exactRead = getExactSchoolRead(intentMessage);
   if (input.refreshReadId) {
     const previous = await prisma.aIToolCall.findFirst({ where: { id: input.refreshReadId, conversationId, status: 'EXECUTED', requiresConfirm: false, toolName: { in: [...READ_ONLY_ACTIONS] } } });
     if (!previous) return { success: false, conversationId, message: 'Cette consultation ne peut pas être actualisée.', error: 'READ_NOT_FOUND' };
@@ -540,15 +541,15 @@ export async function runMobileAgent(input: MobileAgentInput): Promise<MobileAge
       exactRead.args = { ...exactRead.args, offset: result.nextOffset };
     }
   }
-  const verifying = isVerificationFollowup(effectiveUserMessage);
-  if (!input.refreshReadId && (verifying || isNextPage(effectiveUserMessage))) {
+  const verifying = isVerificationFollowup(intentMessage);
+  if (!input.refreshReadId && (verifying || isNextPage(intentMessage))) {
     const previous = await prisma.aIToolCall.findFirst({
       where: { conversationId, status: "EXECUTED", requiresConfirm: false, toolName: { in: [...READ_ONLY_ACTIONS] } },
       orderBy: { createdAt: "desc" },
     });
     if (previous) {
       const args = { ...((previous.arguments as Record<string, any>) || {}) };
-      if (isNextPage(effectiveUserMessage)) {
+      if (isNextPage(intentMessage)) {
         const result = previous.result as any;
         if (result?.nextOffset === null || result?.hasMore === false) {
           const message = "La liste vérifiée est déjà complète pour ce filtre. Dites-moi si vous souhaitez consulter une autre classe.";
@@ -575,33 +576,18 @@ export async function runMobileAgent(input: MobileAgentInput): Promise<MobileAge
     return { success: true, conversationId, message, transcription, executedTool: exactRead.name, ...presentation, followUpSuggestions: [] };
   }
 
-  // 7. Resolve school knowledge / teachings
-  const schoolTeachingsPromise = (async () => {
-    const cached = getCachedKnowledge(input.schoolId);
-    if (cached) return cached;
-    const teachings = await prisma.aIKnowledge.findMany({
-      where: { schoolId: input.schoolId, isActive: true },
-      orderBy: { createdAt: "desc" },
-      take: 40,
-    });
-    setCachedKnowledge(input.schoolId, teachings);
-    return teachings;
-  })();
+  // School notes are retrieved with citations when requested, never loaded as system instructions.
   const realClassNamesPromise = prisma.class.findMany({
     where: { schoolId: input.schoolId },
     select: { name: true },
     orderBy: { name: "asc" },
     take: 15,
   }).then((classes) => classes.map((item) => item.name)).catch(() => [] as string[]);
-  const [schoolTeachings, realClassNames] = await Promise.all([
-    schoolTeachingsPromise,
-    realClassNamesPromise,
-  ]);
+  const realClassNames = await realClassNamesPromise;
 
   const systemInstruction = buildMobileHniaSystemInstruction({
     schoolName,
     adminName,
-    schoolTeachings,
     classNames: realClassNames,
   }) + `\nLANGUE DE CETTE CONVERSATION : ${input.language === 'ar' ? 'arabe tunisien clair' : input.language === 'en' ? 'English' : 'français'}. Respecte ce choix même si le message mélange plusieurs langues. Les montants, dates et confirmations restent explicites et professionnels.`;
 
@@ -644,11 +630,11 @@ export async function runMobileAgent(input: MobileAgentInput): Promise<MobileAge
 
   const genAI = new GoogleGenerativeAI(apiKey);
   // Tool selection is based on the user's intent, never the vocabulary injected by vision.
-  const declarations = getMobileDeclarations(input.imageBase64 ? originalUserText || transcription || '' : effectiveUserMessage);
+  const declarations = getMobileDeclarations(intentMessage);
   const permittedToolNames = new Set(declarations.map(tool => tool.name));
   const typedAmounts = explicitCurrencyAmounts(originalUserText || transcription || '');
-  const proposalArgs = (name: string, args: Record<string, any>) => name === 'add_expense' && typedAmounts.length === 1
-    ? { ...args, amount: typedAmounts[0] } : args;
+  const proposalArgs = (name: string, args: Record<string, any>) => freezeMobileActionArguments(name, name === 'add_expense' && typedAmounts.length === 1
+    ? { ...args, amount: typedAmounts[0] } : args);
   const mayProposeAction = declarations.some(tool => requiresActionConfirmation(tool.name, TOOLS[tool.name]));
   const modelTimeoutMs = getHniaModelTimeoutMs();
   const candidateModels = getAvailableModels(getMobileHniaModels());
@@ -693,7 +679,7 @@ export async function runMobileAgent(input: MobileAgentInput): Promise<MobileAge
         const streamed = await chat.sendMessageStream(parts, requestOptions);
         for await (const chunk of streamed.stream) {
           const delta = chunk.text();
-          if (delta && !mayProposeAction && !needsFreshSchoolData(effectiveUserMessage)) {
+          if (delta && !mayProposeAction && !needsFreshSchoolData(intentMessage)) {
             streamedAnyToken = true;
             await input.onTokenDelta(delta);
           }
@@ -704,7 +690,7 @@ export async function runMobileAgent(input: MobileAgentInput): Promise<MobileAge
       let candidate = response.response;
 
       let functionCalls = candidate.functionCalls();
-      if (needsFreshSchoolData(effectiveUserMessage) && !functionCalls?.length) {
+      if (needsFreshSchoolData(intentMessage) && !functionCalls?.length) {
         const grounded = await sendMessage([{ text: "Cette question demande des données actuelles de l'école. Consulte obligatoirement un outil autorisé, en conservant la classe, les dates et les personnes demandées. Si le filtre est ambigu, demande une précision sans annoncer de chiffres." }]);
         candidate = grounded.response;
         functionCalls = candidate.functionCalls();
@@ -930,7 +916,7 @@ export async function runMobileAgent(input: MobileAgentInput): Promise<MobileAge
         break;
       }
 
-    if (!finalReply && needsFreshSchoolData(effectiveUserMessage)) {
+    if (!finalReply && needsFreshSchoolData(intentMessage)) {
         finalReply = "Je n’ai pas obtenu de données vérifiées pour cette demande. Précisez le filtre ou réessayez la consultation.";
       }
 

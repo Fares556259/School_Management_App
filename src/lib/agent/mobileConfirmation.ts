@@ -1,8 +1,11 @@
 import prisma from "@/lib/prisma";
+import type { Prisma } from '@prisma/client';
 import { TOOLS } from "@/lib/telegram/tools";
 import { ToolContext } from "@/lib/telegram/tools/readTools";
 import { cleanTelegramFormattingForMobile } from "./mobileFormatting";
 import { prepareConfirmedArguments, isActionExpired, requiresActionConfirmation } from "./actionPolicy";
+import { actionReviewFingerprint, sameActionArguments } from './actionReview';
+import { buildActionCardMetadata } from './actionCards';
 
 type ActionStatus = "PENDING" | "EXECUTING" | "EXECUTED" | "REJECTED" | "FAILED" | "EXPIRED";
 
@@ -13,8 +16,9 @@ export async function confirmMobileAction(params: {
   adminId: string;
   schoolId: string;
   updatedArgs?: Record<string, any>;
+  reviewFingerprint?: string;
 }) {
-  const { toolCallId, action, adminId, schoolId, updatedArgs } = params;
+  const { toolCallId, action, adminId, schoolId, updatedArgs, reviewFingerprint } = params;
   if (action !== "confirm" && action !== "cancel") return { success: false, message: "Décision invalide." };
   const toolCall = await prisma.aIToolCall.findUnique({
     where: { id: toolCallId },
@@ -68,12 +72,34 @@ export async function confirmMobileAction(params: {
   try { args = prepareConfirmedArguments(tool, toolCall.arguments, updatedArgs); }
   catch (error: any) { return { success: false, message: error.message, actionStatus: "PENDING" as ActionStatus }; }
 
+  const review = (message: string, reviewedArgs = toolCall.arguments as Record<string, any>) => ({
+    success: false, actionStatus: 'PENDING' as ActionStatus, reviewRequired: true, message,
+    proposal: buildActionCardMetadata(toolCall.id, toolCall.toolName, reviewedArgs, message),
+  });
+  if (reviewFingerprint !== actionReviewFingerprint(toolCall.id, toolCall.toolName, toolCall.arguments)) {
+    return review('Vérifiez cette version de la proposition puis confirmez à nouveau. Si nécessaire, mettez votre application à jour.');
+  }
+  // Editing and executing are distinct decisions. The next card reflects saved, validated edits.
+  if (!sameActionArguments(args, toolCall.arguments)) {
+    const revised = await prisma.aIToolCall.updateMany({
+      where: { id: toolCallId, status: 'PENDING', arguments: { equals: toolCall.arguments as Prisma.InputJsonValue }, ...ownership },
+      data: { arguments: args },
+    });
+    if (!revised.count) return { success: false, actionStatus: 'PENDING' as ActionStatus, message: 'Cette proposition a changé sur un autre appareil. Actualisez la discussion.' };
+    return review('Modifications préparées. Vérifiez les nouveaux détails puis appuyez sur Confirmer. Aucune action exécutée.', args);
+  }
+
   // Only one explicit button request can claim the proposal, even across concurrent taps/devices.
   const claimed = await prisma.aIToolCall.updateMany({
-    where: { id: toolCallId, status: "PENDING", requiresConfirm: true, ...ownership },
+    where: { id: toolCallId, status: "PENDING", requiresConfirm: true, arguments: { equals: toolCall.arguments as Prisma.InputJsonValue }, ...ownership },
     data: { status: "EXECUTING", confirmedAt: new Date(), arguments: args },
   });
-  if (!claimed.count) return resultFor("EXECUTING", "Cette action a déjà été prise en charge. Actualisez la discussion.");
+  if (!claimed.count) {
+    const latest = await prisma.aIToolCall.findUnique({ where: { id: toolCallId }, include: { conversation: { include: { admin: true } } } });
+    if (!latest || latest.conversation.adminId !== adminId || latest.conversation.admin?.schoolId !== schoolId || latest.conversation.status === 'DELETED') return { success: false, message: 'Cette action n’est plus accessible à votre compte.' };
+    if (latest?.status === 'PENDING') return review('La proposition a changé. Vérifiez ces détails avant de confirmer.', latest.arguments as Record<string, any>);
+    return resultFor((latest?.status || 'EXECUTING') as ActionStatus, 'La décision a changé. Actualisez la discussion pour vérifier son résultat.', latest?.result);
+  }
 
   const admin = toolCall.conversation.admin!;
   const context: ToolContext = { schoolId, adminId, language: "fr", adminName: [admin.name, admin.surname].filter(Boolean).join(" ") || admin.username || "Admin" };

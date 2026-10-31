@@ -18,9 +18,9 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { toolCallId, action, updatedArgs } = body;
+    const { toolCallId, action, updatedArgs, reviewFingerprint } = body;
 
-    if (typeof toolCallId !== "string" || !toolCallId || toolCallId.length > 128 || !["confirm", "cancel"].includes(action) || (updatedArgs !== undefined && (!updatedArgs || typeof updatedArgs !== "object" || Array.isArray(updatedArgs)))) {
+    if (typeof toolCallId !== "string" || !toolCallId || toolCallId.length > 128 || !["confirm", "cancel"].includes(action) || (reviewFingerprint !== undefined && (typeof reviewFingerprint !== 'string' || !/^[a-f0-9]{64}$/.test(reviewFingerprint))) || (updatedArgs !== undefined && (!updatedArgs || typeof updatedArgs !== "object" || Array.isArray(updatedArgs)))) {
       return NextResponse.json(
         { success: false, error: "Paramètres manquants ou invalides (toolCallId et action requis)." },
         { status: 400 }
@@ -33,6 +33,7 @@ export async function POST(request: NextRequest) {
       adminId: userId,
       schoolId,
       updatedArgs,
+      reviewFingerprint,
     });
 
     return NextResponse.json(result);

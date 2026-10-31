@@ -1,3 +1,5 @@
+import { actionReviewFingerprint } from './actionReview';
+
 export interface ActionCardField {
   label: string;
   value: string;
@@ -7,6 +9,7 @@ export interface ActionCardField {
 export interface ActionCardData {
   toolCallId: string;
   toolName: string;
+  reviewFingerprint: string;
   actionTitle: string;
   actionType: "expense" | "income" | "payment" | "student" | "class" | "attendance" | "announcement" | "generic";
   confirmText: string;
@@ -18,12 +21,16 @@ export interface ActionCardData {
   arguments?: Record<string, any>;
 }
 
-export function buildActionCardMetadata(
+export function buildActionCardMetadata(toolCallId: string, toolName: string, args: Record<string, any>, confirmText: string): ActionCardData {
+  return { ...buildActionCardContent(toolCallId, toolName, args, confirmText), reviewFingerprint: actionReviewFingerprint(toolCallId, toolName, args) };
+}
+
+function buildActionCardContent(
   toolCallId: string,
   toolName: string,
   args: Record<string, any>,
   confirmText: string
-): ActionCardData {
+): Omit<ActionCardData, 'reviewFingerprint'> {
   const today = new Date().toLocaleDateString("fr-FR", {
     day: "numeric",
     month: "long",

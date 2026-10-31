@@ -10,7 +10,7 @@ export function getPurchaseDraft(message: string, document?: any, imageUrl?: str
   { args: Record<string, any>; clarification?: never } | { clarification: string; args?: never } | null {
   const amounts = explicitCurrencyAmounts(message);
   if (/^\s*(?:combien|montre|affiche|liste|consulte|show|list|how much|quel est|quelle est)/i.test(message)) return null;
-  const purchase = /(?:\b(?:chrina|chrit|chraw|achet[ée]|acheté|bought|purchased)\b|شرينا|شريت)/i.test(message);
+  const purchase = /(?:(?:^|\s)(?:chrina|chrit|chraw|achet[ée]|acheté|bought|purchased)(?=\s|$)|شرينا|شريت)/i.test(message);
   const priceCaption = hasImage && /^\s*(?:b|ب|pour|à)?\s*-?\d+(?:[.,]\d+)?\s*(?:dt|tnd|dinars?|دينار|د\.?ت)\s*[.!]?\s*$/i.test(message);
   const receiptOnly = hasImage && !message.trim() && document?.documentType === 'EXPENSE_RECEIPT';
   if (!purchase && !priceCaption && !receiptOnly) return null;

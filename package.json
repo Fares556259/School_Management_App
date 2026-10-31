@@ -17,6 +17,7 @@
     "test:all": "npm test && npm run test:audit && npm run test:business && npm run test:deep",
     "test-portal": "tsx scripts/mockPortalServer.ts",
     "benchmark:hnia": "tsx scripts/benchmarkHniaSpeed.ts",
+    "benchmark:hnia:reliability": "node --import tsx scripts/benchmarkHniaReliability.ts",
     "benchmark:web": "tsx scripts/benchmarkWebSpeed.ts",
     "benchmark:all": "npm run benchmark:hnia && npm run benchmark:web",
     "test:security": "node --import tsx src/__tests__/mobile-security.test.ts",

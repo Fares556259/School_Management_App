@@ -132,6 +132,7 @@ import {
 } from "./taskTools";
 
 // Suite 8: School Knowledge & Admin Teaching
+import { searchSchoolKnowledge } from '@/lib/agent/schoolKnowledge';
 import {
   teachHniaTool,
   getHniaTeachingsTool,
@@ -2734,6 +2735,13 @@ Confirmer l'enregistrement de cette dépense ?`;
   },
 
   // ── SUITE 8: SCHOOL KNOWLEDGE & ADMIN TEACHING ────────────────────────────
+  search_school_knowledge: {
+    name: 'search_school_knowledge',
+    description: 'Rechercher les notes, règles et procédures enregistrées par cette école avec leurs sources et versions.',
+    requiresConfirmation: false,
+    declaration: { name: 'search_school_knowledge', description: 'Consulter les notes de cette école. Ne pas inventer une règle absente.', parameters: { type: SchemaType.OBJECT, required: ['query'], properties: { query: { type: SchemaType.STRING, description: 'Question sur une règle ou une procédure de l’école.' } } } },
+    execute: searchSchoolKnowledge,
+  },
   teach_hnia: {
     name: "teach_hnia",
     description: "Mémoriser et enregistrer une nouvelle consigne, fait, règle de fonctionnement, contact utile (chauffeur bus, etc.), tarif ou correction pour l'école.",
@@ -3692,7 +3700,7 @@ const DOMAIN_TOOLS: Record<string, string[]> = {
     "add_resource", "get_resources",
   ],
   reminder: ["schedule_reminder", "get_reminders", "cancel_reminder"],
-  knowledge: ["teach_hnia", "get_hnia_teachings", "forget_hnia_teaching"],
+  knowledge: ["teach_hnia", "get_hnia_teachings", "search_school_knowledge", "forget_hnia_teaching"],
   announcement: [
     "get_announcements", "post_announcement", "create_announcement",
     "delete_announcement", "send_parent_message", "send_push_notification", "send_test_push"

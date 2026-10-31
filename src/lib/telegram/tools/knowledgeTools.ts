@@ -77,7 +77,7 @@ export async function teachHniaTool(args: TeachHniaArgs, context: ToolContext) {
 👤 <b>Auteur :</b> ${context.adminName || "Administrateur"}
 📅 <b>Date :</b> <code>${todayStr}</code>
 
-<blockquote>💡 <b>Hnia :</b> C'est bien noté ! J'ai enregistré cette directive et je l'appliquerai automatiquement pour toutes les opérations de l'école.</blockquote>`;
+<blockquote>💡 <b>Hnia :</b> Cette note est enregistrée et pourra être consultée avec sa source. Toute action reste soumise à votre confirmation.</blockquote>`;
 
   return {
     success: true,

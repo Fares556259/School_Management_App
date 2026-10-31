@@ -3,9 +3,11 @@ import { TOOLS } from '@/lib/telegram/tools';
 import type { ToolContext } from '@/lib/telegram/tools/readTools';
 import { READ_ONLY_ACTIONS, requiresActionConfirmation } from './actionPolicy';
 import { cleanTelegramFormattingForMobile } from './mobileFormatting';
+import { isSchoolKnowledgeQuestion } from './schoolKnowledge';
 
 export function getExactSchoolRead(message: string): { name: string; args: Record<string, any> } | null {
   const text=message.trim().replace(/[?!.]+$/,'').trim();
+  if (isSchoolKnowledgeQuestion(text)) return { name: 'search_school_knowledge', args: { query: text } };
   const classList=text.match(/^(?:(?:chkoun|chkoune|chkon)\s+ya[9q]raw\s+(?:fi\s+)?|(?:liste\s+(?:des\s+)?)?[ée]l[èe]ves\s+(?:de\s+)?(?:la\s+)?(?:classe\s+)?)(\d+\s*[a-z])$/i);
   if(classList) return {name:'get_students',args:{className:classList[1].replace(/\s/g,'').toUpperCase(),limit:100,offset:0}};
   if(/^(?:caisse(?: du jour)?|point de caisse|كاسة)$/i.test(text)) return {name:'get_daily_caisse',args:{date:'today'}};

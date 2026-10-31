@@ -2,6 +2,9 @@
 export function buildReadPresentation(name: string, args: Record<string, any>, output: any, scope: { schoolId: string; schoolName?: string }, toolCallId: string) {
   if (!output || output.error || output.success === false) return { evidence: null, widget: null };
   if (output.scopeSchoolId && output.scopeSchoolId !== scope.schoolId) return { evidence: null, widget: null };
+  if (name === 'search_school_knowledge') return {
+    evidence: { source: 'school_knowledge', schoolId: scope.schoolId, schoolName: scope.schoolName, toolCallId, fetchedAt: output.fetchedAt, sources: output.sources || [], total: output.count || 0, verified: false, filters: { query: args.query || '' } as Record<string, string | number>, returned: output.sources?.length || 0, hasMore: false }, widget: null,
+  };
   const rows = Array.isArray(output.students) ? output.students : Array.isArray(output.records) ? output.records : null;
   const total = [output.total, output.count, output.summary?.selectedCount, output.summary?.filteredPeriodCount, name === 'get_payments' ? rows?.length : undefined, output.unpaidCount].find(value => Number.isInteger(value) && value >= 0);
   const filters: Record<string, string | number> = {};
@@ -10,7 +13,7 @@ export function buildReadPresentation(name: string, args: Record<string, any>, o
     if (typeof merged[key] === 'string' || typeof merged[key] === 'number') filters[key] = merged[key];
   }
   if (output.period || output.periodFrench) filters.period = String(output.periodFrench || output.period);
-  const evidence = { source: 'school_database', fetchedAt: output.fetchedAt, schoolId: scope.schoolId, schoolName: scope.schoolName, toolCallId, filters, total: total ?? null, returned: rows?.length ?? null, hasMore: output.hasMore === true };
+  const evidence = { source: 'school_database', fetchedAt: output.fetchedAt, schoolId: scope.schoolId, schoolName: scope.schoolName, toolCallId, filters, total: total ?? null, returned: rows?.length ?? null, hasMore: output.hasMore === true, verified: true, sources: [] };
   if (name === 'get_daily_caisse' && output.summary) {
     const amount = (value: any) => Number.parseFloat(String(value).replace(/[^0-9.-]/g, '')) || 0;
     return { evidence, widget: { type: 'caisse' as const, data: { date: output.date, totalIncomes: amount(output.summary.totalIncomes), totalExpenses: amount(output.summary.totalExpenses), netCashBalance: amount(output.summary.netCashBalance), paymentsCount: output.summary.paymentsCount, expensesCount: output.summary.expensesCount } } };

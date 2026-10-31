@@ -1,4 +1,15 @@
 import type { ToolDefinition } from "@/lib/telegram/tools";
+import { schoolDate, schoolMonth } from './dataAccuracy';
+
+/** Resolve time-sensitive defaults before the proposal is displayed and fingerprinted. */
+export function freezeMobileActionArguments(name: string, args: Record<string, any>) {
+  if (['add_expense', 'add_income'].includes(name)) return { ...args, date: args.date || schoolDate() };
+  if (['record_payment', 'record_parent_payment'].includes(name)) {
+    const period = schoolMonth(args.month, args.year);
+    return { ...args, month: period.month, year: period.year };
+  }
+  return args;
+}
 
 // Only reviewed query tools may run while composing a reply. New tools fail closed.
 export const READ_ONLY_ACTIONS = new Set([
@@ -9,7 +20,7 @@ export const READ_ONLY_ACTIONS = new Set([
   "get_incomes", "get_expenses", "get_class_timetable", "find_available_teachers",
   "get_teacher_timetable", "get_timetable_conflicts", "suggest_best_timetable_slot",
   "get_announcements", "get_assignments", "get_assignment_details", "get_resources",
-  "get_daily_caisse", "get_morning_briefing", "get_audit_log", "get_hnia_teachings", "get_reminders",
+  "get_daily_caisse", "get_morning_briefing", "get_audit_log", "get_hnia_teachings", "search_school_knowledge", "get_reminders",
   "get_payment_receipt", "get_salary_payslip", "get_daily_cash_pdf", "search_external_student",
   "get_external_student", "list_external_documents", "get_admin_profile", "get_school_settings",
 ]);

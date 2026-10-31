@@ -11,6 +11,7 @@ import { GET as history } from '../app/api/mobile/agent/history/route';
 import { POST as confirmRoute } from '../app/api/mobile/agent/confirm/route';
 import { generateToken } from '../lib/mobileAuth';
 import { NextRequest } from 'next/server';
+import { actionReviewFingerprint } from '../lib/agent/actionReview';
 
 async function main() {
   const restores: (() => void)[] = [];
@@ -23,7 +24,7 @@ async function main() {
   const admin = { id: 'admin-a', schoolId: 'school-a', name: 'Admin', surname: 'Test', username: 'test', School: { name: 'Test School' } };
   const fresh = () => ({ id: 'proposal-a', conversationId: 'conversation-a', createdAt: new Date(), executedAt: null, status: 'PENDING', requiresConfirm: true, toolName: 'add_expense', arguments: { amount: 12.5, title: 'Paper', category: 'Fournitures' }, conversation: { adminId: 'admin-a', admin, status: 'ACTIVE' } });
   let record: any = fresh();
-  const request = (extra = {}) => confirmMobileAction({ toolCallId: record.id, action: 'confirm', adminId: 'admin-a', schoolId: 'school-a', ...extra });
+  const request = (extra = {}) => confirmMobileAction({ toolCallId: record.id, action: 'confirm', adminId: 'admin-a', schoolId: 'school-a', reviewFingerprint: actionReviewFingerprint(record.id, record.toolName, record.arguments), ...extra });
   replace(prisma.aIToolCall, 'findUnique', async () => structuredClone(record));
   replace(prisma.aIToolCall, 'updateMany', async ({ where, data }: any) => {
     assert.equal(where.conversation.adminId, 'admin-a'); assert.equal(where.conversation.admin.schoolId, 'school-a');
@@ -58,6 +59,13 @@ async function main() {
     record = fresh(); assert.equal((await request({ action: 'cancel' })).actionStatus, 'REJECTED');
     assert.equal((await request()).success, false); assert.equal(calls, 0);
     record = fresh(); assert.equal((await request({ updatedArgs: { amount: -7 } })).success, false); assert.equal(record.status, 'PENDING'); assert.equal(calls, 0);
+    // A stale/missing review cannot execute; editing is saved for a second explicit review.
+    record = fresh(); assert.equal((await request({ reviewFingerprint: undefined })).actionStatus, 'PENDING'); assert.equal(calls, 0);
+    const oldReview = actionReviewFingerprint(record.id, record.toolName, record.arguments);
+    const revision = await request({ updatedArgs: { amount: '7,50' } });
+    assert.equal(revision.actionStatus, 'PENDING'); assert.equal((revision as any).proposal.arguments.amount, 7.5); assert.equal(calls, 0);
+    assert.equal((await request({ reviewFingerprint: oldReview })).actionStatus, 'PENDING'); assert.equal(calls, 0);
+    record = fresh();
     // Racing taps and retries execute exactly once, returning the real terminal status.
     record = fresh(); const pair = await Promise.all([request(), request()]);
     assert.equal(calls, 1); assert.equal(record.status, 'EXECUTED');

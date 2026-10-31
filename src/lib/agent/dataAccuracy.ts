@@ -32,6 +32,8 @@ export function isNextPage(message: string) {
   return /^(?:la suite|suite|suivant(?:e)?|page suivante|next(?: page)?|continue la liste|كمل|البقية)[\s?!.]*$/i.test(message.trim());
 }
 export function needsFreshSchoolData(message: string) {
+  if (/^(?:who are you|what(?:'s| is) your name|qui es[- ]tu|chnwa esm(?:e)?k(?: enti)?)[\s?!.]*$/i.test(message.trim())) return false;
+  if (/(?:9ad+eh|kadeh|ch7al|قداش)/i.test(message)) return true;
   if (/^(?:comment |how to |how do |kifech )/i.test(message.trim())) return false;
   return /(?:combien|liste|effectif|qui |who |how many|how much|chkoun|chkoune|chkon|ya[9q]raw|شكون|قداش|payment|paiement|payé|impayé|recettes|revenus|dépenses|caisse|attendance|absences|students|élèves|statistique|emploi du temps|planning|moyenne|notes|classe|enseignant|parent|statut|salaire|paie|devoir|résultat|donn[ée]es)/i.test(message);
 }
