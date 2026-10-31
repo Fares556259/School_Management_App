@@ -19,6 +19,7 @@ async function main() {
  const cls={id:1,name:'1A',schoolId:'school-a',levelId:1,capacity:100,supervisorId:null};
  let genericQueries=0;
  try {
+  replace(prisma.institution,'findUnique',async ({where}:any)=>{assert.equal(where.schoolId,'school-a');return {halfBoundaryMonths:false};});
   // All business datasets are queried through allowlisted fields and a mandatory tenant predicate.
   for(const [entity,definition] of Object.entries(SCHOOL_RECORDS)) {
    const model=Prisma.dmmf.datamodel.models.find(model=>model.name.toLowerCase()===definition.model.toLowerCase())!;

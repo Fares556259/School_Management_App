@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { tuitionFactorSql } from '@/lib/serverTuition';
 import { authenticateMobileRequest } from "@/lib/mobileAuth";
 
 export const dynamic = "force-dynamic";
@@ -65,7 +66,7 @@ export async function GET(request: NextRequest) {
           (SELECT COALESCE(SUM(amount), 0) FROM "Payment"
             WHERE "schoolId" = ${schoolId} AND LOWER("userType") = 'student'
               AND status IN ('PAID', 'PARTIAL') AND month = ${activeMonth} AND year = ${activeYear})::float AS "collectedTuition",
-          (SELECT COALESCE(SUM(COALESCE(s."customTuition", l."tuitionFee", 450)), 0)
+          (SELECT COALESCE(SUM(ROUND((COALESCE(s."customTuition", l."tuitionFee", 450) * ${tuitionFactorSql(schoolId, activeMonth)})::numeric, 3)), 0)
             FROM "Student" s LEFT JOIN "Level" l ON s."levelId" = l.id
             WHERE s."schoolId" = ${schoolId})::float AS "expectedTuition",
           (SELECT COUNT(*) FROM "Attendance"
@@ -78,7 +79,7 @@ export async function GET(request: NextRequest) {
         SELECT 
           s.id, s.name, s.surname, 
           p.name as "pName", p.surname as "pSurname", p.phone as "parentPhone",
-          COALESCE(s."customTuition", l."tuitionFee", 450)::float as "tuitionFee",
+          ROUND((COALESCE(s."customTuition", l."tuitionFee", 450) * ${tuitionFactorSql(schoolId, activeMonth)})::numeric, 3)::float as "tuitionFee",
           c.name as "className",
           pay.status as "paymentStatus", 
           COALESCE(pay.amount, 0)::float as "paidAmount", 

@@ -27,6 +27,13 @@ export async function executeAICommand(command: AICommand) {
 
         const m = parseInt(month);
         const y = parseInt(year);
+        if (studentId) {
+          const student = await prisma.student.findFirst({ where: { id: studentId, schoolId }, select: { name: true, surname: true } });
+          if (!student) throw new Error('Student not found in this school.');
+          const { receiveStudentPayment } = await import('@/app/(dashboard)/list/students/actions');
+          const result = await receiveStudentPayment(studentId, `${student.name} ${student.surname}`, 0, `${MONTHS[m - 1]} ${y}`, paidAmount === undefined ? undefined : Number(paidAmount), deferredUntil);
+          return { ...result, message: result.success ? 'Paiement enregistré.' : result.error || 'Paiement non enregistré.' };
+        }
 
         // 1. Try to find the existing pending payment
         let payment = await prisma.payment.findFirst({

@@ -57,6 +57,7 @@ export interface StudentBundle {
 }
 
 interface StudentProfileClientProps {
+  halfBoundaryMonths?: boolean;
   initialStudentId?: string;
   initialBundlesMap?: Record<string, StudentBundle>;
   student: any;
@@ -84,6 +85,7 @@ export default function StudentProfileClient({
   studentFullName: initialStudentFullName,
   totalWeeklyHours: initialTotalWeeklyHours = 0,
   levelTuitionFee,
+  halfBoundaryMonths = false,
   gradeLevel,
   isAdmin,
   classmates = [],
@@ -812,6 +814,7 @@ export default function StudentProfileClient({
             gradeLevel={currentGradeLevel}
             customTuition={student.customTuition}
             levelTuitionFee={currentLevelTuitionFee}
+            halfBoundaryMonths={halfBoundaryMonths}
             payments={payments}
             isAdmin={isAdmin}
             onPaymentsChange={(updatedPayments) => {

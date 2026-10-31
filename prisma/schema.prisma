@@ -355,6 +355,7 @@ model Institution {
   address         String   @default("123 Education Ave, Tunis")
   academicYear    String   @default("2025-2026")
   currentSemester Int      @default(2)
+  halfBoundaryMonths Boolean @default(false)
   sessions        Json?    @default("[{\"id\": 1, \"time\": \"08:00 - 10:00\", \"label\": \"Session 1\"}, {\"id\": 2, \"time\": \"10:00 - 12:00\", \"label\": \"Session 2\"}, {\"id\": 3, \"time\": \"12:00 - 14:00\", \"label\": \"Session 3\"}]")
   holidays        Json?    @default("[]")
   dayStartTime    String   @default("08:00")

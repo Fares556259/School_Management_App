@@ -1,4 +1,5 @@
 import prisma from "@/lib/prisma";
+import { tuitionFactorSql } from '@/lib/serverTuition';
 import OperationsSnapshot from "./components/OperationsSnapshot";
 import QuickActionBar from "./components/QuickActionBar";
 import FinancialKpiSection from "./components/FinancialKpiSection";
@@ -104,7 +105,7 @@ const AdminPage = async (
               AND year = ${targetYear}
           )::float as monthly_collected_tuition,
           (
-            SELECT COALESCE(SUM(COALESCE(s."customTuition", l."tuitionFee", 450)), 0) 
+            SELECT COALESCE(SUM(ROUND((COALESCE(s."customTuition", l."tuitionFee", 450) * ${tuitionFactorSql(schoolId, targetMonth)})::numeric, 3)), 0)
             FROM "Student" s 
             LEFT JOIN "Level" l ON s."levelId" = l.id 
             WHERE s."schoolId" = ${schoolId}
@@ -123,7 +124,7 @@ const AdminPage = async (
               CASE 
                 WHEN pay.status = 'PARTIAL' THEN COALESCE(pay."deferredAmount", GREATEST(0, COALESCE(s."customTuition", l."tuitionFee", 450) - pay.amount))
                 WHEN pay.status = 'PENDING' THEN COALESCE(pay.amount, COALESCE(s."customTuition", l."tuitionFee", 450))
-                ELSE COALESCE(s."customTuition", l."tuitionFee", 450)
+                ELSE ROUND((COALESCE(s."customTuition", l."tuitionFee", 450) * ${tuitionFactorSql(schoolId, now.getMonth() + 1)})::numeric, 3)
               END
             ), 0)
             FROM "Student" s

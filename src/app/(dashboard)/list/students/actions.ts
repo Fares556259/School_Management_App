@@ -4,6 +4,9 @@ import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { createAuditLog } from "@/lib/audit";
 import { parseMonthYear } from "@/lib/dateUtils";
+import { getHalfBoundaryMonths } from '@/lib/serverTuition';
+import { tuitionForMonth } from '@/lib/tuitionPolicy';
+import { getStudentAdminSchool } from '@/lib/studentProfile';
 
 export const receiveStudentPayment = async (
   studentId: string,
@@ -20,33 +23,32 @@ export const receiveStudentPayment = async (
   
   console.log(`📡 [PAYMENT_ACTION] Initiating for ${studentName} (${studentId}) - Period: ${standardMonthYear}`);
 
-  const actualPaid = paidAmount !== undefined ? paidAmount : fullAmount;
-  const isPartial = actualPaid < fullAmount;
-  const gap = fullAmount - actualPaid;
-  const finalStatus = isPartial ? "PARTIAL" : "PAID";
-
   try {
     const { getSchoolId } = await import("@/lib/school");
-    const [adminSchoolId, student, existing] = await Promise.all([
-      getSchoolId(),
+    const [adminSchoolId, student] = await Promise.all([
+      getStudentAdminSchool(),
       prisma.student.findUnique({
         where: { id: studentId },
-        select: { schoolId: true }
+        select: { schoolId: true, customTuition: true, level: { select: { tuitionFee: true } } }
       }),
-      prisma.payment.findUnique({
-        where: {
-          studentId_month_year: { studentId, month: monthIdx, year: yearVal }
-        }
-      })
     ]);
-    const schoolId = student?.schoolId || adminSchoolId;
-
-    const previousAmount = existing?.amount || 0;
-    const newMoneyCollected = actualPaid - previousAmount;
-
-    console.log(`🔍 [PAYMENT_LOG] Existing Record: ${existing ? 'Found' : 'New'}, New Money: ${newMoneyCollected}`);
+    if (!student || student.schoolId !== adminSchoolId) throw new Error('Student not found in this school.');
+    const schoolId = adminSchoolId;
+    const expectedFee = tuitionForMonth(student.customTuition ?? student.level?.tuitionFee ?? 450, monthIdx, await getHalfBoundaryMonths(schoolId));
+    const actualPaid = paidAmount ?? expectedFee;
+    if (!Number.isFinite(actualPaid) || actualPaid <= 0 || actualPaid > expectedFee) throw new Error('Invalid payment amount for this month.');
+    const gap = Math.round((expectedFee - actualPaid) * 1000) / 1000;
+    const isPartial = gap > 0;
+    const finalStatus = isPartial ? 'PARTIAL' : 'PAID';
+    let existing: any;
+    let newMoneyCollected = 0;
 
     const result = await prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM "Student" WHERE id = ${studentId} AND "schoolId" = ${schoolId} FOR UPDATE`;
+      existing = await tx.payment.findUnique({ where: { studentId_month_year: { studentId, month: monthIdx, year: yearVal } } });
+      const previousAmount = existing && ['PAID', 'PARTIAL'].includes(existing.status) ? existing.amount : 0;
+      if (actualPaid < previousAmount) throw new Error('Payment has changed. Refresh before collecting.');
+      newMoneyCollected = actualPaid - previousAmount;
       // 1. Upsert the payment
       const p = await tx.payment.upsert({
         where: {
@@ -156,22 +158,30 @@ export const receiveMultipleStudentPayments = async (
 ) => {
   try {
     const { getSchoolId } = await import("@/lib/school");
-    const adminSchoolId = await getSchoolId();
+    const adminSchoolId = await getStudentAdminSchool();
 
     const student = await prisma.student.findUnique({
       where: { id: studentId },
-      select: { schoolId: true }
+      select: { schoolId: true, customTuition: true, level: { select: { tuitionFee: true } } }
     });
-    const schoolId = student?.schoolId || adminSchoolId;
+    if (!student || student.schoolId !== adminSchoolId) throw new Error('Student not found in this school.');
+    const schoolId = adminSchoolId;
+    const halfBoundaryMonths = await getHalfBoundaryMonths(schoolId);
+    if (!paymentsToProcess.length || paymentsToProcess.length > 12 || new Set(paymentsToProcess.map(p => parseMonthYear(p.monthYear).monthKey)).size !== paymentsToProcess.length) throw new Error('Invalid payment periods.');
 
     let totalNewMoneyCollected = 0;
     const upsertedPayments: any[] = [];
 
     const result = await prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM "Student" WHERE id = ${studentId} AND "schoolId" = ${schoolId} FOR UPDATE`;
       for (const pmt of paymentsToProcess) {
         const parsed = parseMonthYear(pmt.monthYear);
         const monthIdx = parsed.month;
         const yearVal = parsed.year;
+        const fee = tuitionForMonth(student.customTuition ?? student.level?.tuitionFee ?? 450, monthIdx, halfBoundaryMonths);
+        if (!Number.isFinite(pmt.amount) || pmt.amount <= 0 || pmt.amount > fee) throw new Error('Invalid payment amount for this month.');
+        pmt.gap = Math.round((fee - pmt.amount) * 1000) / 1000;
+        pmt.isPartial = pmt.gap > 0;
         const finalStatus = pmt.isPartial ? "PARTIAL" : "PAID";
 
         const existing = await tx.payment.findUnique({
@@ -180,7 +190,8 @@ export const receiveMultipleStudentPayments = async (
           }
         });
 
-        const previousAmount = existing?.amount || 0;
+        const previousAmount = existing && ['PAID', 'PARTIAL'].includes(existing.status) ? existing.amount : 0;
+        if (pmt.amount < previousAmount) throw new Error('Payment has changed. Refresh before collecting.');
         const newMoney = pmt.amount - previousAmount;
         if (newMoney > 0) totalNewMoneyCollected += newMoney;
         if (existing && newMoney > 0) pmt.isRecovery = true;

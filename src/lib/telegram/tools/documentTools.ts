@@ -1,4 +1,6 @@
 import prisma from "@/lib/prisma";
+import { tuitionForMonth } from '@/lib/tuitionPolicy';
+import { getHalfBoundaryMonths } from '@/lib/serverTuition';
 import { MONTHS, formatMonthFrench } from "@/lib/dateUtils";
 import {
   generateTuitionReceiptPdf,
@@ -60,10 +62,10 @@ export async function deliverTuitionReceipt(params: {
       },
     });
 
-    const tuitionFee = student.customTuition || student.level?.tuitionFee || 450;
+    const tuitionFee = tuitionForMonth(student.customTuition ?? student.level?.tuitionFee ?? 450, targetMonth, await getHalfBoundaryMonths(params.schoolId));
     const amountPaid = params.amountOverride !== undefined
       ? params.amountOverride
-      : (payment?.amount || tuitionFee);
+      : (payment && ['PAID', 'PARTIAL'].includes(payment.status) ? payment.amount : 0);
 
     const remainingDue = payment?.status === "PAID"
       ? 0
@@ -282,8 +284,8 @@ export async function getPaymentReceiptTool(
         },
       });
 
-      const tuitionFee = student.customTuition || (student as any).level?.tuitionFee || 450;
-      const amountPaid = payment?.amount || tuitionFee;
+      const tuitionFee = tuitionForMonth(student.customTuition ?? (student as any).level?.tuitionFee ?? 450, targetMonth, await getHalfBoundaryMonths(context.schoolId));
+      const amountPaid = payment && ['PAID', 'PARTIAL'].includes(payment.status) ? payment.amount : 0;
       const remainingDue = payment?.status === "PAID"
         ? 0
         : payment?.deferredAmount ?? Math.max(0, tuitionFee - amountPaid);

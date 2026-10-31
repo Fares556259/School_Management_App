@@ -569,6 +569,18 @@ const SettingsPage = () => {
 
           {/* TUITION FEES PER LEVEL */}
           <div className="p-6 rounded-[12px] border border-[#dddddd] flex flex-col gap-6 bg-[#f8fafc]">
+            <div className="rounded-xl border border-emerald-200 bg-white p-5">
+              <div className="flex items-start justify-between gap-5">
+                <div>
+                  <h3 id="half-tuition-label" className="font-semibold text-slate-900">{locale === 'fr' ? 'Demi-mois en septembre et juin' : locale === 'ar' ? 'نصف معلوم الشهر في سبتمبر وجوان' : 'Half-month fees in September and June'}</h3>
+                  <p id="half-tuition-help" className="mt-2 text-sm leading-6 text-slate-600">{locale === 'fr' ? 'De mi-septembre à mi-juin : 50 % en septembre, 100 % d’octobre à mai et 50 % en juin. Soit 9 mensualités sur l’année. Les sommes déjà encaissées restent inchangées.' : locale === 'ar' ? 'من منتصف سبتمبر إلى منتصف جوان: 50٪ في سبتمبر، والمعلوم كاملاً من أكتوبر إلى ماي، و50٪ في جوان. المجموع يعادل 9 أشهر. لا تتغير المبالغ المقبوضة سابقاً.' : 'From mid-September to mid-June: 50% in September, full fees from October to May, and 50% in June. The year totals 9 monthly fees. Money already collected stays unchanged.'}</p>
+                  <p className="mt-2 text-xs font-medium text-emerald-700">{config.halfBoundaryMonths ? (locale === 'fr' ? 'Activé pour cette école' : locale === 'ar' ? 'مفعّل لهذه المدرسة' : 'Enabled for this school') : (locale === 'fr' ? 'Désactivé · mensualités complètes' : locale === 'ar' ? 'معطّل · معلوم شهري كامل' : 'Disabled · full monthly fees')}</p>
+                </div>
+                <button type="button" role="switch" aria-checked={config.halfBoundaryMonths === true} aria-labelledby="half-tuition-label" aria-describedby="half-tuition-help" disabled={saving} onClick={() => setConfig((previous: any) => ({ ...previous, halfBoundaryMonths: !previous.halfBoundaryMonths }))} className={`relative h-7 w-12 shrink-0 rounded-full transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-emerald-600 ${config.halfBoundaryMonths ? 'bg-emerald-600' : 'bg-slate-300'}`}>
+                  <span className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition-all ${config.halfBoundaryMonths ? 'left-6' : 'left-1'}`} />
+                </button>
+              </div>
+            </div>
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-2">
               <div className="flex items-center justify-between w-full md:w-auto gap-4">
                 <div className="flex items-center gap-2">

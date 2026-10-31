@@ -1,4 +1,6 @@
 import prisma from "@/lib/prisma";
+import { getHalfBoundaryMonths } from '@/lib/serverTuition';
+import { tuitionForMonth } from '@/lib/tuitionPolicy';
 import { getCachedTenantData } from "@/lib/cache";
 import { getRole } from "@/lib/role";
 import { getSchoolId } from "@/lib/school";
@@ -27,6 +29,7 @@ const FinancePage = async (
   const safeSearchParams = searchParams || {};
   const { category, type, q, period, from, to } = safeSearchParams;
   const schoolId = await getSchoolId();
+  const halfBoundaryMonths = await getHalfBoundaryMonths(schoolId);
   const currentMonth = new Date().toLocaleString("en-US", { month: "long", year: "numeric" });
 
   // Period resolution
@@ -508,7 +511,7 @@ const FinancePage = async (
           ) : (
             <div className="flex flex-col gap-2 max-h-80 overflow-y-auto pr-2">
               {unpaidStudents.map((s: any) => {
-                const tuitionAmount = s.level?.tuitionFee || 80 + (s.level?.level || 1) * 20;
+                const tuitionAmount = tuitionForMonth(s.customTuition ?? s.level?.tuitionFee ?? 450, now.getMonth() + 1, halfBoundaryMonths);
                 return (
                   <Link
                     key={s.id}

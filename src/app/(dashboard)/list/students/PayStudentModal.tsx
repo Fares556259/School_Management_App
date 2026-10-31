@@ -6,6 +6,7 @@ import { getSchoolYearMonths, isMonthBefore, MONTHS } from "@/lib/dateUtils";
 import { Banknote } from "lucide-react";
 import { useLanguage } from "@/lib/translations/LanguageContext";
 import { toast } from "react-toastify";
+import { tuitionForMonth } from '@/lib/tuitionPolicy';
 
 export default function PayStudentModal({
   studentId,
@@ -18,6 +19,7 @@ export default function PayStudentModal({
   monthName,
   paidMonths = [],
   tuitionFee = 450,
+  halfBoundaryMonths = false,
   payments = [],
   onSuccess,
 }: {
@@ -31,6 +33,7 @@ export default function PayStudentModal({
   monthName?: string;
   paidMonths?: string[];
   tuitionFee?: number;
+  halfBoundaryMonths?: boolean;
   payments?: any[];
   onSuccess?: (amount: number, status: "PAID" | "PARTIAL", targetMonth: string) => void;
 }) {
@@ -38,10 +41,10 @@ export default function PayStudentModal({
   const allMonths = getSchoolYearMonths();
   const monthsList = allMonths.filter(m => !paidMonths.includes(m));
 
-  const tuitionAmount = tuitionFee || 450;
   
   const [isOpen, setIsOpen] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(monthName || monthsList[0] || "");
+  const tuitionAmount = tuitionForMonth(tuitionFee, Math.max(1, MONTHS.indexOf(selectedMonth.split(' ')[0]) + 1), halfBoundaryMonths);
   
   // Dynamically compute the already paid amount for the currently selected month
   const dynamicInitialPaidAmount = React.useMemo(() => {
@@ -50,7 +53,7 @@ export default function PayStudentModal({
     const monthIdx = MONTHS.indexOf(mName) + 1;
     const yearVal = parseInt(yStr);
     const found = payments.find(p => p.month === monthIdx && p.year === yearVal);
-    return found?.amount || 0;
+    return found && ['PAID', 'PARTIAL'].includes(found.status) ? found.amount : 0;
   }, [selectedMonth, payments, initialPaidAmount]);
 
   const remainingBalance = tuitionAmount - dynamicInitialPaidAmount;
@@ -87,9 +90,10 @@ export default function PayStudentModal({
        const [mName, yStr] = mKey.split(" ");
        const monthIdx = MONTHS.indexOf(mName) + 1;
        const yearVal = parseInt(yStr);
+       const tuitionAmount = tuitionForMonth(tuitionFee, monthIdx, halfBoundaryMonths);
        
        const found = payments?.find(p => p.month === monthIdx && p.year === yearVal);
-       const alreadyPaid = found?.amount || 0;
+       const alreadyPaid = found && ['PAID', 'PARTIAL'].includes(found.status) ? found.amount : 0;
        
        if (currentIdx === allMonths.indexOf(selectedMonth)) {
          // This is the primary month

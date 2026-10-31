@@ -1,6 +1,7 @@
 "use server";
 
 import prisma from "@/lib/prisma";
+import { tuitionFactorSql } from '@/lib/serverTuition';
 import { getStudentAdminSchool } from "@/lib/studentProfile";
 import { getAuthenticatedUser } from "@/utils/supabase/server";
 
@@ -574,7 +575,7 @@ export async function getAIContext(month: number, year: number) {
     });
 
     const unpaidStudents = await prisma.$queryRaw<any[]>`
-      SELECT s.id, s.name, s.surname, COALESCE(s."customTuition", l."tuitionFee", 450) as "tuitionFee"
+      SELECT s.id, s.name, s.surname, GREATEST(0, ROUND((COALESCE(s."customTuition", l."tuitionFee", 450) * ${tuitionFactorSql(schoolId, month)})::numeric, 3) - CASE WHEN pay.status = 'PARTIAL' THEN pay.amount ELSE 0 END)::float as "tuitionFee"
       FROM "Student" s
       JOIN "Level" l ON s."levelId" = l.id
       LEFT JOIN "Payment" pay ON s.id = pay."studentId" 

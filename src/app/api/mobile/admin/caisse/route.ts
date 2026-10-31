@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { getHalfBoundaryMonths, tuitionFactorSql } from '@/lib/serverTuition';
+import { tuitionForMonth } from '@/lib/tuitionPolicy';
 import { authenticateMobileRequest } from "@/lib/mobileAuth";
 
 export const dynamic = "force-dynamic";
@@ -39,6 +41,7 @@ export async function GET(request: NextRequest) {
 
     // 1. If searching for students for Quick Pay
     if (searchQuery && searchQuery.length >= 2) {
+      const halfBoundaryMonths = await getHalfBoundaryMonths(schoolId);
       const matchedStudents = await prisma.student.findMany({
         where: {
           schoolId,
@@ -66,7 +69,7 @@ export async function GET(request: NextRequest) {
       });
 
       const formattedSearchResults = matchedStudents.map((s) => {
-        const fullFee = s.customTuition ?? s.level?.tuitionFee ?? 450;
+        const fullFee = tuitionForMonth(s.customTuition ?? s.level?.tuitionFee ?? 450, activeMonth, halfBoundaryMonths);
         const currentPay = s.payments[0];
         const status = currentPay?.status || "UNPAID";
         const paidAmount = currentPay?.amount || 0;
@@ -132,7 +135,7 @@ export async function GET(request: NextRequest) {
         SELECT 
           s.id, s.name, s.surname, 
           p.name as "pName", p.surname as "pSurname", p.phone as "parentPhone",
-          COALESCE(s."customTuition", l."tuitionFee", 450)::float as "tuitionFee",
+          ROUND((COALESCE(s."customTuition", l."tuitionFee", 450) * ${tuitionFactorSql(schoolId, activeMonth)})::numeric, 3)::float as "tuitionFee",
           c.name as "className",
           pay.status as "paymentStatus", 
           COALESCE(pay.amount, 0)::float as "paidAmount", 
@@ -435,7 +438,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: false, error: "Élève introuvable." }, { status: 404 });
       }
 
-      const fullFee = student.customTuition ?? student.level?.tuitionFee ?? 450;
+      const fullFee = tuitionForMonth(student.customTuition ?? student.level?.tuitionFee ?? 450, activeMonth, await getHalfBoundaryMonths(schoolId));
 
       const { finalStatus } = await prisma.$transaction(async (tx) => {
         // Serialize collections for this student, including the first payment.

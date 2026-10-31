@@ -1,3 +1,4 @@
+import { tuitionMonthlyBalance } from '@/lib/tuitionPolicy';
 /** Tunisia's school calendar is UTC+1, independent of the server's timezone. */
 export function schoolDate(now = new Date()): string {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Tunis', year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
@@ -17,8 +18,12 @@ export function schoolMonth(month?: number, year?: number, now = new Date()) {
   return { month: m, year: y, range: { gte: start, lt: schoolDayRange(next).gte } };
 }
 export const roundMoney = (amount: number) => Math.round((amount + Number.EPSILON) * 1000) / 1000;
-export function tuitionBalance(student: { customTuition?: number | null; level?: { tuitionFee?: number | null } | null }, payment?: any) {
+export function tuitionBalance(student: { customTuition?: number | null; level?: { tuitionFee?: number | null } | null }, payment?: any, month = payment?.month ?? 1, halfBoundaryMonths = false) {
   const fee = student.customTuition ?? student.level?.tuitionFee ?? 450;
+  if (halfBoundaryMonths && [6, 9].includes(month)) {
+    const { fee: adjustedFee, received, due } = tuitionMonthlyBalance(fee, month, true, payment);
+    return { fee: adjustedFee, received, due };
+  }
   const received = payment && ['PAID', 'PARTIAL'].includes(payment.status) ? payment.amount : 0;
   const due = payment?.status === 'PAID' ? 0 : payment?.status === 'PARTIAL'
     ? (payment.deferredAmount ?? Math.max(0, fee - received))

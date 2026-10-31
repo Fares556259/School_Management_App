@@ -4,6 +4,8 @@ import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { getSchoolId } from "@/lib/school";
 import { invalidateTenantTags } from "@/lib/cache";
+import { getStudentAdminSchool } from '@/lib/studentProfile';
+import { reconcileTuitionPolicy } from '@/lib/serverTuition';
 
 export async function getSchoolConfig(tenantId?: string) {
   try {
@@ -23,6 +25,7 @@ export async function getSchoolConfig(tenantId?: string) {
         address: true,
         academicYear: true,
         currentSemester: true,
+        halfBoundaryMonths: true,
         sessions: true,
         holidays: true,
         dayStartTime: true,
@@ -65,6 +68,7 @@ export async function getSchoolConfig(tenantId?: string) {
           address: true,
           academicYear: true,
           currentSemester: true,
+          halfBoundaryMonths: true,
           sessions: true,
           holidays: true,
           dayStartTime: true,
@@ -94,7 +98,9 @@ export async function getSchoolConfig(tenantId?: string) {
 
 export async function updateSchoolConfig(data: any) {
   try {
-    const schoolId = await getSchoolId();
+    const schoolId = await getStudentAdminSchool();
+    if (data.schoolId && data.schoolId !== schoolId) throw new Error('School access denied.');
+    if (data.halfBoundaryMonths !== undefined && typeof data.halfBoundaryMonths !== 'boolean') throw new Error('Invalid tuition setting.');
 
     // Prepare data for update
     const updateData: any = {
@@ -108,6 +114,7 @@ export async function updateSchoolConfig(data: any) {
       address: data.address || "123 Education Ave, Tunis",
       academicYear: data.academicYear,
       currentSemester: data.currentSemester,
+      ...(data.halfBoundaryMonths !== undefined ? { halfBoundaryMonths: data.halfBoundaryMonths } : {}),
       holidays: data.holidays || [],
       sessions: data.sessions || [],
       dayStartTime: data.dayStartTime || "08:00",
@@ -120,10 +127,12 @@ export async function updateSchoolConfig(data: any) {
     const end = data.yearEnd ? new Date(data.yearEnd) : null;
     if (end && !isNaN(end.getTime())) updateData.yearEnd = end;
 
-    const updated = await prisma.institution.upsert({
-      where: { schoolId: data.schoolId || schoolId },
+    const updated = await prisma.$transaction(async tx => {
+      const previous = await tx.institution.findUnique({ where: { schoolId }, select: { halfBoundaryMonths: true } });
+      const result = await tx.institution.upsert({
+      where: { schoolId },
       update: updateData,
-      create: { ...updateData, schoolId: data.schoolId || schoolId },
+      create: { ...updateData, schoolId },
       select: {
         id: true,
         schoolId: true,
@@ -137,6 +146,7 @@ export async function updateSchoolConfig(data: any) {
         address: true,
         academicYear: true,
         currentSemester: true,
+        halfBoundaryMonths: true,
         sessions: true,
         holidays: true,
         dayStartTime: true,
@@ -145,9 +155,12 @@ export async function updateSchoolConfig(data: any) {
         yearEnd: true,
         updatedAt: true
       }
+      });
+      if (data.halfBoundaryMonths !== undefined && data.halfBoundaryMonths !== (previous?.halfBoundaryMonths ?? false)) await reconcileTuitionPolicy(tx, schoolId, data.halfBoundaryMonths, result.academicYear);
+      return result;
     });
 
-    invalidateTenantTags(data.schoolId || schoolId, 'institution');
+    invalidateTenantTags(schoolId, 'institution', 'finance', 'dashboard', 'students');
     revalidatePath("/settings");
     revalidatePath("/list/exams");
     revalidatePath("/admin/timetable");

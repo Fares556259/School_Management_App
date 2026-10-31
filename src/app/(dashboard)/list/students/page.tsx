@@ -137,7 +137,7 @@ const StudentListPage = async (
       prisma.school.findUnique({ where: { id: schoolId }, select: { name: true, subdomain: true } }),
       prisma.institution.findFirst({
         where: { schoolId },
-        select: { schoolName: true, ministryName: true, address: true, phone: true },
+        select: { schoolName: true, ministryName: true, address: true, phone: true, halfBoundaryMonths: true },
       }),
     ]);
 
@@ -284,6 +284,7 @@ const StudentListPage = async (
         partialThisMonth={safePartial}
         totalThisMonth={safeTotal}
         relatedData={studentRelatedData}
+        halfBoundaryMonths={institution?.halfBoundaryMonths === true}
       />
     </div>
   );

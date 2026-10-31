@@ -1,4 +1,6 @@
 import prisma from "@/lib/prisma";
+import { getHalfBoundaryMonths } from '@/lib/serverTuition';
+import { tuitionForMonth } from '@/lib/tuitionPolicy';
 import { MONTHS, formatMonthFrench } from "@/lib/dateUtils";
 import { invalidateTenantTags } from "@/lib/cache";
 import { createAnnouncementNotifications } from "@/lib/notifications";
@@ -31,7 +33,8 @@ export async function calculateStudentPaymentAllocation(
   if (!student) return null;
 
   const { getSchoolYearMonths } = await import("@/lib/dateUtils");
-  const tuitionFee = student.customTuition || student.level?.tuitionFee || 450;
+  const tuitionFee = student.customTuition ?? student.level?.tuitionFee ?? 450;
+  const halfBoundaryMonths = await getHalfBoundaryMonths(schoolId);
   const schoolYearMonths = getSchoolYearMonths();
 
   // Fetch existing payments for the student
@@ -58,8 +61,8 @@ export async function calculateStudentPaymentAllocation(
       const mIdx = MONTHS.indexOf(mName) + 1;
       const yVal = parseInt(yStr);
       const payment = existingPayments.find((p) => p.month === mIdx && p.year === yVal);
-      const paid = payment?.amount || 0;
-      return paid < tuitionFee;
+      const paid = payment && ['PAID', 'PARTIAL'].includes(payment.status) ? payment.amount : 0;
+      return paid < tuitionForMonth(tuitionFee, mIdx, halfBoundaryMonths);
     });
     if (earliestIdx !== -1) {
       currentIdx = earliestIdx;
@@ -87,8 +90,9 @@ export async function calculateStudentPaymentAllocation(
     const yearVal = parseInt(yStr);
 
     const existing = existingPayments.find((p) => p.month === monthIdx && p.year === yearVal);
-    const alreadyPaid = existing?.amount || 0;
-    const remainingForMonth = Math.max(0, tuitionFee - alreadyPaid);
+    const alreadyPaid = existing && ['PAID', 'PARTIAL'].includes(existing.status) ? existing.amount : 0;
+    const monthlyFee = tuitionForMonth(tuitionFee, monthIdx, halfBoundaryMonths);
+    const remainingForMonth = Math.max(0, monthlyFee - alreadyPaid);
 
     // If already fully paid, skip to next month
     if (remainingForMonth === 0) {
@@ -114,7 +118,7 @@ export async function calculateStudentPaymentAllocation(
     } else {
       const allocated = moneyToDistribute;
       const newTotal = alreadyPaid + allocated;
-      const newGap = tuitionFee - newTotal;
+      const newGap = monthlyFee - newTotal;
       paymentsToProcess.push({
         monthYear: mKey,
         month: monthIdx,
@@ -132,18 +136,11 @@ export async function calculateStudentPaymentAllocation(
     currentIdx++;
   }
 
-  // If excess money remains after all months, allocate to last month as overpayment
-  if (moneyToDistribute > 0 && paymentsToProcess.length > 0) {
-    const lastP = paymentsToProcess[paymentsToProcess.length - 1];
-    lastP.amount += moneyToDistribute;
-    lastP.newMoneyCollected += moneyToDistribute;
-    moneyToDistribute = 0;
-  }
-
   return {
     student,
     tuitionFee,
     paymentsToProcess,
+    unallocatedAmount: moneyToDistribute,
   };
 }
 
@@ -195,6 +192,7 @@ export async function recordPaymentTool(
   }
 
   const { paymentsToProcess, tuitionFee } = allocation;
+  if (allocation.unallocatedAmount > 0.001) return { success: false, message: 'Le montant dépasse le solde de cette année scolaire. Vérifiez le montant avant de préparer un nouveau paiement.', summary: 'Montant supérieur au solde scolaire' };
   const upsertedPayments: any[] = [];
   let totalNewMoneyCollected = 0;
 
@@ -463,6 +461,7 @@ export async function calculateParentPaymentDistribution(
       const testAlloc = await calculateStudentPaymentAllocation(student.id, 99999, schoolId, m, y);
       const studentDebt = testAlloc?.paymentsToProcess.reduce((sum, p) => sum + p.newMoneyCollected, 0) || 0;
       const amt = Number(item.amount) || 0;
+      if (amt <= 0 || amt > studentDebt) return null;
       allocatedTotal += amt;
 
       allocations.push({
@@ -587,6 +586,8 @@ export async function recordParentPaymentTool(
       summary: `Aucun impayé trouvé pour ce parent`,
     };
   }
+
+  if (dist.unallocatedAmount > 0.001) return { success: false, message: 'Le montant dépasse le solde familial de cette année scolaire. Aucun paiement enregistré.', summary: 'Montant supérieur au solde familial' };
 
   const processedStudents: string[] = [];
 

@@ -1,4 +1,6 @@
 import prisma from "@/lib/prisma";
+import { tuitionForMonth } from '@/lib/tuitionPolicy';
+import { getHalfBoundaryMonths } from '@/lib/serverTuition';
 import { sendTelegramDocument } from "../telegram";
 import { ToolContext } from "./readTools";
 import { WriteToolResult } from "./writeTools";
@@ -100,11 +102,12 @@ export async function exportExcelReportTool(
         ],
       });
 
+      const halfBoundaryMonths = await getHalfBoundaryMonths(context.schoolId);
       const unpaidList = students
         .map((st) => {
           const p = st.payments[0];
-          const tuitionFee = st.customTuition || st.level?.tuitionFee || 450;
-          const amountPaid = p?.amount || 0;
+          const tuitionFee = tuitionForMonth(st.customTuition ?? st.level?.tuitionFee ?? 450, targetMonth, halfBoundaryMonths);
+          const amountPaid = p && ['PAID', 'PARTIAL'].includes(p.status) ? p.amount : 0;
           const remainingDue =
             p?.status === "PAID"
               ? 0

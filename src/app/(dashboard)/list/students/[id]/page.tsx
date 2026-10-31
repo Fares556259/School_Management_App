@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getRole } from "@/lib/role";
 import { getSchoolId } from "@/lib/school";
 import { getCachedTenantData } from "@/lib/cache";
+import { getHalfBoundaryMonths } from '@/lib/serverTuition';
 import StudentProfileClient, { StudentBundle } from "./StudentProfileClient";
 import { QuickStudentItem } from "./StudentQuickNav";
 import { StudentScheduleItem } from "./tabs/StudentScheduleTab";
@@ -21,6 +22,7 @@ export default async function SingleStudentPage(
   const schoolId = await getSchoolId();
   const role = await getRole();
   const isAdmin = role === "admin";
+  const halfBoundaryMonths = await getHalfBoundaryMonths(schoolId);
 
   // 1. Fetch current student with all relevant data
   const fetchStudent = () =>
@@ -339,6 +341,7 @@ export default async function SingleStudentPage(
 
   return (
     <StudentProfileClient
+      halfBoundaryMonths={halfBoundaryMonths}
       initialStudentId={student.id}
       initialBundlesMap={bundlesMap}
       student={student}

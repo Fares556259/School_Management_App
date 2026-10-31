@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { tuitionFactorSql } from '@/lib/serverTuition';
 import { authenticateMobileRequest } from '@/lib/mobileAuth';
 import { schoolDate, schoolDayRange, schoolMonth } from '@/lib/agent/dataAccuracy';
 
@@ -25,7 +26,7 @@ export async function GET(request: NextRequest) {
             WHERE s."schoolId" = ${schoolId} AND
               CASE WHEN pay.status = 'PAID' THEN 0
                 WHEN pay.status = 'PARTIAL' THEN COALESCE(pay."deferredAmount", GREATEST(0, COALESCE(s."customTuition", l."tuitionFee", 450) - pay.amount))
-                ELSE COALESCE(pay."deferredAmount", pay.amount, s."customTuition", l."tuitionFee", 450) END > 0)::int AS "unpaidStudents"
+                ELSE COALESCE(pay."deferredAmount", pay.amount, ROUND((COALESCE(s."customTuition", l."tuitionFee", 450) * ${tuitionFactorSql(schoolId, month)})::numeric, 3)) END > 0)::int AS "unpaidStudents"
       `,
       prisma.admin.findFirst({ where: { id: userId, schoolId }, select: { name: true, username: true } }),
     ]);

@@ -21,10 +21,12 @@ import { Student, Class, Level, Payment } from "@prisma/client";
 import { getUserAvatar } from "@/lib/avatar";
 
 import ShareParentLinkModal from "@/components/ShareParentLinkModal";
+import { tuitionForMonth } from '@/lib/tuitionPolicy';
 import BulkStudentImport from "./BulkStudentImport";
 import { Share2 } from "lucide-react";
 
 interface Props {
+  halfBoundaryMonths?: boolean;
   initialData: any[];
   columns: any[];
   count: number;
@@ -48,6 +50,7 @@ export default function StudentListClient({
   partialThisMonth = 0,
   totalThisMonth,
   relatedData,
+  halfBoundaryMonths = false,
 }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -138,8 +141,8 @@ export default function StudentListClient({
       const currentPayment = item.payments?.find((p: any) => p.month === monthIdx && p.year === yearVal);
       const statusUpper = currentPayment?.status ? String(currentPayment.status).toUpperCase() : "";
 
-      const tuition = item.customTuition ?? item.level?.tuitionFee ?? 0;
-      const amountPaid = currentPayment?.amount || 0;
+      const tuition = tuitionForMonth(item.customTuition ?? item.level?.tuitionFee ?? 0, monthIdx, halfBoundaryMonths);
+      const amountPaid = ['PAID', 'PARTIAL'].includes(statusUpper) ? currentPayment?.amount || 0 : 0;
       const deferred = currentPayment?.deferredAmount;
       const remaining = (deferred !== undefined && deferred !== null)
         ? deferred
@@ -180,8 +183,8 @@ export default function StudentListClient({
   const displayPaidThisMonth = summaryBaseData.filter(item => {
     const currentPayment = item.payments?.find((p: any) => p.month === sumMonthIdx && p.year === sumYearVal);
     const statusUpper = currentPayment?.status ? String(currentPayment.status).toUpperCase() : "";
-    const tuition = item.customTuition ?? item.level?.tuitionFee ?? 0;
-    const amountPaid = currentPayment?.amount || 0;
+    const tuition = tuitionForMonth(item.customTuition ?? item.level?.tuitionFee ?? 0, sumMonthIdx, halfBoundaryMonths);
+    const amountPaid = ['PAID', 'PARTIAL'].includes(statusUpper) ? currentPayment?.amount || 0 : 0;
     const deferred = currentPayment?.deferredAmount;
     const remaining = (deferred !== undefined && deferred !== null)
       ? deferred
@@ -191,8 +194,8 @@ export default function StudentListClient({
   const displayPartialThisMonth = summaryBaseData.filter(item => {
     const currentPayment = item.payments?.find((p: any) => p.month === sumMonthIdx && p.year === sumYearVal);
     const statusUpper = currentPayment?.status ? String(currentPayment.status).toUpperCase() : "";
-    const tuition = item.customTuition ?? item.level?.tuitionFee ?? 0;
-    const amountPaid = currentPayment?.amount || 0;
+    const tuition = tuitionForMonth(item.customTuition ?? item.level?.tuitionFee ?? 0, sumMonthIdx, halfBoundaryMonths);
+    const amountPaid = ['PAID', 'PARTIAL'].includes(statusUpper) ? currentPayment?.amount || 0 : 0;
     const deferred = currentPayment?.deferredAmount;
     const remaining = (deferred !== undefined && deferred !== null)
       ? deferred
@@ -233,8 +236,8 @@ export default function StudentListClient({
     );
 
     const statusUpper = currentPayment?.status ? String(currentPayment.status).toUpperCase() : "";
-    const tuition = item.customTuition ?? item.level?.tuitionFee ?? 0;
-    const amountPaid = currentPayment?.amount || 0;
+    const tuition = tuitionForMonth(item.customTuition ?? item.level?.tuitionFee ?? 0, sumMonthIdx, halfBoundaryMonths);
+    const amountPaid = ['PAID', 'PARTIAL'].includes(statusUpper) ? currentPayment?.amount || 0 : 0;
     const deferred = currentPayment?.deferredAmount;
     const remaining = (deferred !== undefined && deferred !== null)
       ? deferred
@@ -341,6 +344,7 @@ export default function StudentListClient({
               studentName={item.name + " " + item.surname}
               gradeLevel={item.level?.level ?? 0}
               tuitionFee={item.customTuition ?? item.level?.tuitionFee ?? 450}
+              halfBoundaryMonths={halfBoundaryMonths}
               isPaid={isPaidThisMonth}
               isPartial={isPartialThisMonth}
               initialPaidAmount={currentPayment?.amount || 0}

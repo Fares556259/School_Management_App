@@ -1,0 +1,1 @@
+ALTER TABLE "Institution" ADD COLUMN IF NOT EXISTS "halfBoundaryMonths" BOOLEAN NOT NULL DEFAULT false;

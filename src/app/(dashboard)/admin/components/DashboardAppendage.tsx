@@ -2,6 +2,7 @@
 
 import React from 'react';
 import prisma from "@/lib/prisma";
+import { tuitionFactorSql } from '@/lib/serverTuition';
 import { Prisma } from "@prisma/client";
 import { MONTHS } from "@/lib/dateUtils";
 import FiscalDistribution from "./FiscalDistribution";
@@ -113,7 +114,7 @@ export default async function DashboardAppendage({
       prisma.$queryRaw`
         SELECT 
           s.id, s.name, s.surname, p.phone as "parentPhone",
-          COALESCE(s."customTuition", l."tuitionFee", 450) as "tuitionFee",
+          ROUND((COALESCE(s."customTuition", l."tuitionFee", 450) * ${tuitionFactorSql(schoolId, activeMonth)})::numeric, 3)::float as "tuitionFee",
           c.name as "className",
           pay.status as "paymentStatus", pay.amount as "paymentAmount", pay."deferredAmount"
         FROM "Student" s

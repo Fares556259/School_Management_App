@@ -1,4 +1,5 @@
 import { schoolDate, schoolDayRange, schoolMonth, tuitionBalance, roundMoney } from "@/lib/agent/dataAccuracy";
+import { getHalfBoundaryMonths } from '@/lib/serverTuition';
 import prisma from "@/lib/prisma";
 import { resolveClassByName } from "./classResolver";
 import { buildNameSearchConditions, cleanHonorifics } from "./nameSearch";
@@ -270,6 +271,7 @@ export async function getPaymentsTool(
   });
 
   const paidStudents: any[] = [];
+  const halfBoundaryMonths = await getHalfBoundaryMonths(context.schoolId);
   const partialStudents: any[] = [];
   const unpaidStudents: any[] = [];
 
@@ -278,7 +280,7 @@ export async function getPaymentsTool(
 
   for (const s of students) {
     const payment = s.payments?.[0];
-    const balance = tuitionBalance(s, payment);
+    const balance = tuitionBalance(s, payment, month, halfBoundaryMonths);
     const tuitionFee = balance.fee;
     const baseInfo = {
       studentId: s.id,
@@ -331,8 +333,8 @@ export async function getPaymentsTool(
     } else {
       const studentCards = students.map((s) => {
         const payment = s.payments?.[0];
-        const fee = tuitionBalance(s).fee;
-        const balance = tuitionBalance(s,payment);
+        const fee = tuitionBalance(s, undefined, month, halfBoundaryMonths).fee;
+        const balance = tuitionBalance(s,payment,month,halfBoundaryMonths);
         const paidAmt = balance.received;
         const dueAmt = balance.due;
         const statusBadge = dueAmt === 0 ? "🟢 À JOUR (Soldé)" : paidAmt > 0 ? `🟡 PARTIEL (Reste ${dueAmt} DT)` : "🔴 NON PAYÉ (0 DT)";
@@ -494,10 +496,11 @@ export async function getFinancialSummaryTool(
   const netProfit = totalIncome - totalExpense;
 
   let unpaidTuition = 0;
+  const halfBoundaryMonths = await getHalfBoundaryMonths(context.schoolId);
   let unpaidStudentsCount = 0;
 
   for (const student of allStudents) {
-    const due = tuitionBalance(student,student.payments?.[0]).due;
+    const due = tuitionBalance(student,student.payments?.[0],month,halfBoundaryMonths).due;
     unpaidTuition += due;
     if (due > 0) unpaidStudentsCount++;
   }

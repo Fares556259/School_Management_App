@@ -1,6 +1,7 @@
 import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { authenticateMobileRequest } from "@/lib/mobileAuth";
+import { tuitionForMonth, tuitionMonthlyBalance } from '@/lib/tuitionPolicy';
 
 export const dynamic = "force-dynamic";
 
@@ -45,7 +46,7 @@ export async function GET(request: NextRequest) {
       }),
       prisma.institution.findFirst({
         where: { schoolId },
-        select: { academicYear: true },
+        select: { academicYear: true, halfBoundaryMonths: true },
       }),
     ]);
 
@@ -56,8 +57,9 @@ export async function GET(request: NextRequest) {
       month: p.month,
       year: p.year,
       amount: p.amount,
-      status: p.status,
-      dueDate: `${p.year}-${String(p.month).padStart(2, '0')}-01`,
+      status: tuitionMonthlyBalance(tuitionFee, p.month, institution?.halfBoundaryMonths === true, p).status,
+      totalAmount: tuitionForMonth(tuitionFee, p.month, institution?.halfBoundaryMonths === true),
+      dueDate: `${p.year}-${String(p.month).padStart(2, '0')}-${institution?.halfBoundaryMonths && p.month === 9 ? '15' : '01'}`,
       paidDate: p.paidAt ? p.paidAt.toISOString().split('T')[0] : null
     }));
 
@@ -67,6 +69,8 @@ export async function GET(request: NextRequest) {
       {
         kind: "metadata",
         tuitionFee,
+        halfBoundaryMonths: institution?.halfBoundaryMonths === true,
+        monthlyFees: Object.fromEntries(Array.from({ length: 12 }, (_, index) => [index + 1, tuitionForMonth(tuitionFee, index + 1, institution?.halfBoundaryMonths === true)])),
         academicYear: institution?.academicYear || null,
       },
       ...formattedPayments,
