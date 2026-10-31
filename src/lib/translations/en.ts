@@ -168,6 +168,7 @@ export const en = {
     "settings": "Settings",
     "logout": "Logout",
     "partialPayments": "Partial Payments",
+    "studentServices": "Registration & services",
     "profitability": "Profitability",
     "other": "OTHER",
     "resources": "Resources",

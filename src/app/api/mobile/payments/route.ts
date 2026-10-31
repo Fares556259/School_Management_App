@@ -9,6 +9,7 @@ export async function GET(request: NextRequest) {
   const auth = await authenticateMobileRequest(request);
   if (auth.error) return auth.error;
   const { userId, userType, schoolId } = auth.payload;
+  if (!['parent', 'admin'].includes(userType)) return NextResponse.json({error:'Forbidden'},{status:403});
 
   try {
     const { searchParams } = new URL(request.url);
@@ -39,7 +40,7 @@ export async function GET(request: NextRequest) {
       return new NextResponse(JSON.stringify({ error: "Forbidden" }), { status: 403 });
     }
 
-    const [payments, institution] = await Promise.all([
+    const [payments, institution, additionalCharges] = await Promise.all([
       prisma.payment.findMany({
         where: { studentId, schoolId },
         orderBy: [{ year: "desc" }, { month: "desc" }],
@@ -48,6 +49,7 @@ export async function GET(request: NextRequest) {
         where: { schoolId },
         select: { academicYear: true, halfBoundaryMonths: true },
       }),
+      prisma.studentCharge.findMany({where:{schoolId,studentId,voidedAt:null},orderBy:{dueDate:'asc'},select:{id:true,kind:true,period:true,academicYear:true,amount:true,paidAmount:true,dueDate:true}}),
     ]);
 
     const tuitionFee = student.customTuition ?? student.level?.tuitionFee ?? 450;
@@ -70,6 +72,7 @@ export async function GET(request: NextRequest) {
         kind: "metadata",
         tuitionFee,
         halfBoundaryMonths: institution?.halfBoundaryMonths === true,
+        additionalCharges,
         monthlyFees: Object.fromEntries(Array.from({ length: 12 }, (_, index) => [index + 1, tuitionForMonth(tuitionFee, index + 1, institution?.halfBoundaryMonths === true)])),
         academicYear: institution?.academicYear || null,
       },

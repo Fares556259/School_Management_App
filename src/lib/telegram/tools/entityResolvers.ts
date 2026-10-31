@@ -104,15 +104,15 @@ function matchPersonCandidates<T extends { id: string; name: string; surname: st
 // ── TEACHER RESOLVER ─────────────────────────────────────────────────────────
 export async function resolveTeacherByName(schoolId: string, rawQuery?: string | null) {
   if (!rawQuery || !rawQuery.trim()) return null;
-  const clean = cleanHonorifics(rawQuery).trim();
-  if (!clean) return null;
 
   // 1. Direct ID lookup
   const byId = await prisma.teacher.findFirst({
-    where: { schoolId, id: clean },
+    where: { schoolId, id: rawQuery.trim() },
     include: { subjects: true, classes: true },
   });
   if (byId) return byId;
+  const clean = cleanHonorifics(rawQuery).trim();
+  if (!clean) return null;
 
   // 2. Prisma name search conditions
   const nameConds = buildNameSearchConditions(clean);

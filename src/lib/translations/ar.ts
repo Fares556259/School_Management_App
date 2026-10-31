@@ -168,6 +168,7 @@ export const ar = {
     "settings": "الإعدادات",
     "logout": "تسجيل الخروج",
     "partialPayments": "الدفعات الجزئية",
+    "studentServices": "التسجيل والخدمات",
     "profitability": "الربحية",
     "other": "أخرى",
     "resources": "الموارد",

@@ -93,7 +93,7 @@ export default function TeacherSalaryTracker({
     );
   }, [salary, hourlyRate, hoursPerMonth, payments, currentMonth]);
 
-  const { isPaid, isPartial, isUnpaid, remaining, netDue, amountPaid, deduction, baseSalary } = calc;
+  const { isPaid, isPartial, isUnpaid, remaining, netDue, amountPaid, deduction, baseSalary, overtimeAmount } = calc;
 
   const fmt = (n: number) => n.toLocaleString("en-US").replace(/,/g, " ") + " DT";
 
@@ -175,6 +175,7 @@ export default function TeacherSalaryTracker({
           </div>
         )}
 
+        {overtimeAmount > 0 && <div className="flex w-full items-center justify-between px-2 text-sm font-semibold text-emerald-700"><span>{locale==='ar'?'الساعات الإضافية':locale==='en'?'Overtime':'Heures supplémentaires'}</span><span>+{fmt(overtimeAmount)}</span></div>}
         {amountPaid > 0 && (
           <div className="flex w-full items-center justify-between px-2">
             <span className="text-sm font-medium text-purple-600">{t.teacherFinance.advanceAmount}:</span>

@@ -15,6 +15,7 @@ import { withUniqueStudentIdentifiers } from "./studentIdentifier";
 import { getStudentAdminSchool, normalizeStudentNationalId } from "./studentProfile";
 import bcrypt from "bcryptjs";
 import { generateTemporaryParentPassword } from "./temporaryPassword";
+import {ensureAnnualRegistration,syncStudentCharges} from './studentCharges';
 
 // Runtime allowlists prevent caller-supplied tenant IDs and nested Prisma writes.
 function editableFields(data: any, keys: string[]): any {
@@ -362,6 +363,7 @@ export const createStudent = async (data: {
       entityId: id,
       description: `Enrolled new student: ${data.name} ${data.surname} (${data.username})`,
     });
+    await ensureAnnualRegistration(schoolId,id).catch(error=>console.warn('[Enrollment] Registration billing will retry during daily sync',error));
     invalidateTenantTags(schoolId, 'students', 'classes', 'dashboard');
     revalidatePath("/list/students");
     return { success: true };
@@ -541,6 +543,7 @@ export const bulkCreateStudents = async (students: any[]) => {
       entityId: null,
       description: `Bulk enrolled ${createdCount} student(s)`,
     });
+    await syncStudentCharges(schoolId).catch(error=>console.warn('[Enrollment] Registration billing will retry during daily sync',error));
 
     invalidateTenantTags(schoolId, 'students', 'classes', 'dashboard', 'parents');
     revalidatePath("/list/students");
@@ -1816,6 +1819,7 @@ export const enrollFamily = async (parentData: any, children: any[]) => {
       entityId: result.id,
       description: `Unified Enrollment: Parent ${result.name} ${result.surname} + ${children.length} students.`,
     });
+    await syncStudentCharges(schoolId).catch(error=>console.warn('[Enrollment] Registration billing will retry during daily sync',error));
     
     revalidatePath("/list/parents");
     revalidatePath("/list/students");

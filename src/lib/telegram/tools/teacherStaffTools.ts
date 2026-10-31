@@ -433,7 +433,7 @@ export async function getSalaryDetailsTool(
 
     const t = fullTeacher;
     const teacherFullName = `${t.name} ${t.surname}`;
-    const baseSalary = t.salary || 600;
+    const baseSalary = t.hourlyRate && t.hoursPerMonth ? t.hourlyRate*t.hoursPerMonth : t.salary;
     const effectiveHourlyRate = t.hourlyRate && t.hourlyRate > 0 ? t.hourlyRate : 15;
 
     // Target month payment
@@ -442,6 +442,7 @@ export async function getSalaryDetailsTool(
     const trackedHours = meta.trackedHours;
     const deductedHours = meta.deductionStatus === "APPLIED" ? (meta.deductedHours || trackedHours) : 0;
     const deductionAmount = deductedHours * effectiveHourlyRate;
+    const overtimeAmount=(targetPayment?.overtimeHours||0)*(targetPayment?.overtimeRate??t.hourlyRate??0);
 
     // Advances for this specific month
     const pIds = t.payments.map((p) => p.id.toString());
@@ -468,7 +469,7 @@ export async function getSalaryDetailsTool(
 
     const remainingToPay = targetPayment?.status === "PAID"
       ? 0
-      : Math.max(0, baseSalary - deductionAmount - advancePaid);
+      : Math.max(0, baseSalary - deductionAmount + overtimeAmount - advancePaid);
 
     const isMonthAutoSettled = advancePaid > 0 && remainingToPay <= 0;
     const isFullyPaid = targetPayment?.status === "PAID" || isMonthAutoSettled;
@@ -497,7 +498,7 @@ export async function getSalaryDetailsTool(
       const pMeta = parsePaymentMeta(p);
       const pDedH = pMeta.deductionStatus === "APPLIED" ? (pMeta.deductedHours || pMeta.trackedHours) : 0;
       const pDed = pDedH * effectiveHourlyRate;
-      const pNet = Math.max(0, baseSalary - pDed);
+      const pNet = Math.max(0, baseSalary - pDed + (p.overtimeHours||0)*(p.overtimeRate??t.hourlyRate??0));
       return (p.amount || 0) > 0 && (p.amount || 0) >= pNet;
     }).length;
 
@@ -518,7 +519,7 @@ export async function getSalaryDetailsTool(
       const pMeta = parsePaymentMeta(p);
       const pDedH = pMeta.deductionStatus === "APPLIED" ? (pMeta.deductedHours || pMeta.trackedHours) : 0;
       const pDed = pDedH * effectiveHourlyRate;
-      const pNet = Math.max(0, baseSalary - pDed);
+      const pNet = Math.max(0, baseSalary - pDed + (p?.overtimeHours||0)*(p?.overtimeRate??t.hourlyRate??0));
       const isSettled = p?.status === "PAID" || (p && p.amount > 0 && p.amount >= pNet);
 
       let badge = "⏳ À venir";
@@ -544,6 +545,8 @@ export async function getSalaryDetailsTool(
       missedHours: `${trackedHours}h`,
       deductionStatus: meta.deductionStatus,
       deductionAmount: `${deductionAmount} DT`,
+      overtimeHours: targetPayment?.overtimeHours || 0,
+      overtimeAmount,
       advancePaid: `${advancePaid} DT`,
       remainingToPay: `${remainingToPay} DT`,
       status: statusLabel,
@@ -551,7 +554,7 @@ export async function getSalaryDetailsTool(
       isFullyPaid,
       totalPaidAcademicYear: `${totalPaidYear} DT (${paidMonthsCount} mois réglés)`,
       academicMonthsSchedule,
-      summary: `${teacherFullName} (${monthName} ${year}) : Salaire de base ${baseSalary} DT, Déduction d'absence ${deductionAmount} DT (${trackedHours}h à ${effectiveHourlyRate} DT/h), Avances perçues ${advancePaid} DT, Reste net à payer : ${remainingToPay} DT`,
+      summary: `${teacherFullName} (${monthName} ${year}) : Salaire de base ${baseSalary} DT, Déduction d'absence ${deductionAmount} DT (${trackedHours}h à ${effectiveHourlyRate} DT/h), Heures supplémentaires +${overtimeAmount} DT (${targetPayment?.overtimeHours||0}h), Avances perçues ${advancePaid} DT, Reste net à payer : ${remainingToPay} DT`,
     };
   }
 
@@ -675,7 +678,7 @@ export async function trackTeacherAbsentHoursTool(
     notes: args.notes || `Saisi via Hnia Telegram (${args.missedHours}h manquées)`,
   };
 
-  const baseSalary = teacher.salary || 600;
+  const baseSalary = teacher.hourlyRate && teacher.hoursPerMonth ? teacher.hourlyRate*teacher.hoursPerMonth : teacher.salary;
 
   // Check if there are advances already recorded for this month
   const existingPayment = await prisma.payment.findUnique({
@@ -688,7 +691,9 @@ export async function trackTeacherAbsentHoursTool(
     },
   });
   const advancePaid = existingPayment ? (existingPayment.amount || 0) : 0;
-  const newNetDue = Math.max(0, baseSalary - deductionAmount - advancePaid);
+  if(existingPayment?.status==='PAID'&&deductionStatus==='APPLIED') return {success:false,message:'Ce mois est déjà clôturé. Reportez la retenue sur un mois ouvert.',summary:'Mois clôturé'};
+  const overtimeAmount=(existingPayment?.overtimeHours||0)*(existingPayment?.overtimeRate??teacher.hourlyRate??0);
+  const newNetDue = Math.max(0, baseSalary - deductionAmount + overtimeAmount - advancePaid);
   const shouldAutoSettle = advancePaid > 0 && newNetDue <= 0;
 
   await prisma.payment.upsert({
@@ -764,9 +769,10 @@ export async function payTeacherSalaryTool(
 
   // Deduction calculation matching web TeacherFinanceHub
   const effectiveHourlyRate = teacher.hourlyRate && teacher.hourlyRate > 0 ? teacher.hourlyRate : 15;
-  const baseSalary = teacher.salary || 600;
+  const baseSalary = teacher.hourlyRate && teacher.hoursPerMonth ? teacher.hourlyRate*teacher.hoursPerMonth : teacher.salary;
 
   const result = await prisma.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT id FROM "Teacher" WHERE id=${teacher.id} AND "schoolId"=${context.schoolId} FOR UPDATE`;
     // 1. Check or update Payment record
     const existingPayment = await tx.payment.findFirst({
       where: {
@@ -794,8 +800,10 @@ export async function payTeacherSalaryTool(
 
     let paymentRecord;
     const newTotalPaid = (existingPayment?.amount || 0) + args.amount;
-    const netDue = Math.max(0, baseSalary - deductionAmount);
-    const isFullyCovered = !isAdvance || (newTotalPaid >= netDue && newTotalPaid > 0);
+    const overtimeAmount=(existingPayment?.overtimeHours||0)*(existingPayment?.overtimeRate??teacher.hourlyRate??0);
+    const netDue = Math.max(0, baseSalary - deductionAmount + overtimeAmount);
+    if(args.amount<=0||newTotalPaid>netDue+0.000001) throw new Error('Le paiement dépasse le salaire net restant. Vérifiez les ajustements.');
+    const isFullyCovered = newTotalPaid >= netDue && newTotalPaid > 0;
     const paymentStatus = isFullyCovered ? "PAID" : "PARTIAL";
 
     if (existingPayment) {
@@ -862,16 +870,14 @@ export async function payTeacherSalaryTool(
       },
     });
 
-    return { paymentRecord, newTotalPaid, deductionAmount, missedHours: newMissedHours };
+    return { paymentRecord, newTotalPaid, deductionAmount, missedHours: newMissedHours, overtimeAmount, netDue, isFullyCovered };
   });
 
   invalidateTenantTags(context.schoolId, "teachers", "finance", "expenses", "dashboard");
 
-  const remainingAfter = isAdvance
-    ? Math.max(0, baseSalary - result.deductionAmount - result.newTotalPaid)
-    : 0;
+  const remainingAfter = Math.max(0, result.netDue - result.newTotalPaid);
 
-  const resultMsg = isAdvance
+  const resultMsg = !result.isFullyCovered
     ? `✅ **Avance sur salaire enregistrée avec succès pour ${teacherFullName} (${monthName} ${year}) !**\n\n• Montant versé maintenant : <code>${args.amount} DT</code>\n• Total avances ce mois : <code>${result.newTotalPaid} DT</code>\n• Salaire de base : <code>${baseSalary} DT</code>${
         result.deductionAmount > 0 ? `\n• Retenue d'absence : <code>-${result.deductionAmount} DT</code>` : ""
       }\n• <b>Solde restant dû :</b> <code>${remainingAfter} DT</code>.`

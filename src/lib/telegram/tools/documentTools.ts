@@ -149,7 +149,7 @@ export async function deliverSalaryPayslip(params: {
         },
       });
 
-      const baseSalary = teacher.salary || 600;
+      const baseSalary = teacher.hourlyRate && teacher.hoursPerMonth ? teacher.hourlyRate*teacher.hoursPerMonth : teacher.salary;
       const netPaid = params.amountOverride !== undefined
         ? params.amountOverride
         : (payment?.amount || baseSalary);
@@ -170,6 +170,8 @@ export async function deliverSalaryPayslip(params: {
         hourlyRate: teacher.hourlyRate || undefined,
         missedHours: params.missedHours !== undefined ? params.missedHours : (payment?.missedHours || 0),
         deductionsAmount: params.deductionsAmount,
+        overtimeHours: payment?.overtimeHours || 0,
+        overtimeAmount: (payment?.overtimeHours||0)*(payment?.overtimeRate??teacher.hourlyRate??0),
         advancesAmount: params.isAdvance ? netPaid : undefined,
         netPaid,
         remainingDue: params.remainingAfter ?? (payment?.status === "PAID" ? 0 : undefined),

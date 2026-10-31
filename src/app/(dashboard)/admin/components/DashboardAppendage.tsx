@@ -3,6 +3,7 @@
 import React from 'react';
 import prisma from "@/lib/prisma";
 import { tuitionFactorSql } from '@/lib/serverTuition';
+import { computeTeacherRowStatus } from '@/lib/payrollUtils';
 import { Prisma } from "@prisma/client";
 import { MONTHS } from "@/lib/dateUtils";
 import FiscalDistribution from "./FiscalDistribution";
@@ -133,7 +134,7 @@ export default async function DashboardAppendage({
       prisma.$queryRaw`
         SELECT 
           t.id, t.name, t.surname, t.phone, t.salary, t."hourlyRate", t."hoursPerMonth",
-          pay.status as "paymentStatus", pay.amount as "paymentAmount", pay."deferredAmount", pay."missedHours"
+          pay.status as "paymentStatus", pay.amount as "paymentAmount", pay."deferredAmount", pay."missedHours", pay."overtimeHours", pay."overtimeRate", pay.img as "paymentMeta"
         FROM "Teacher" t
         LEFT JOIN "Payment" pay ON t.id = pay."teacherId" 
           AND pay.month = ${activeMonth} 
@@ -212,16 +213,12 @@ export default async function DashboardAppendage({
     const monthlyHours = Number(t.hoursPerMonth) || 0;
     const baseSalary = (rate > 0 && monthlyHours > 0) ? (rate * monthlyHours) : (Number(t.salary) || 3000);
     const missedHours = Number(t.missedHours) || 0;
-    const deduction = missedHours * rate;
+    const payroll = computeTeacherRowStatus(t,activeMonth,activeYear);
+    const deduction = payroll.deduction;
     const isAdvance = t.paymentStatus === "PARTIAL";
     const advanceAmount = isAdvance ? (Number(t.paymentAmount) || 0) : 0;
 
-    let dueAmount = Math.max(0, baseSalary - deduction - advanceAmount);
-    if (t.deferredAmount && Number(t.deferredAmount) > 0) {
-      dueAmount = Number(t.deferredAmount);
-    } else if (t.paymentStatus === "PENDING" && t.paymentAmount && Number(t.paymentAmount) > 0) {
-      dueAmount = Number(t.paymentAmount);
-    }
+    const dueAmount = payroll.remaining;
 
     return {
       id: t.id,

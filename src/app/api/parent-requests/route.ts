@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import {syncStudentCharges} from '@/lib/studentCharges';
 import { getSchoolId } from "@/lib/school";
 import { getParentAccessAdmin } from "@/lib/parentAccessAdmin";
 import { createAuditLog } from "@/lib/audit";
@@ -177,6 +178,7 @@ export async function POST(request: Request) {
         entityId: parent.id,
         description: `Approuvé parent ${parent.name} ${parent.surname} avec ${children.length} enfant(s): ${createdStudentNames.join(", ")}`,
       });
+      await syncStudentCharges(schoolId).catch(error=>console.warn('[Enrollment] Registration billing will retry during daily sync',error));
 
       return NextResponse.json({
         success: true,

@@ -16,6 +16,7 @@ async function main(){
   './assignmentLessons':{getAssignmentAccess:async()=>{if(!allowed)throw new Error('Denied');return {schoolId:'school-a',teacherId:'teacher-a'};}},
   './subjectConstants':{},'./studentIdentifier':{},'next/cache':{revalidatePath:()=>{}},'@/lib/cache':{invalidateTenantTags:()=>{}},'@/lib/audit':{createAuditLog:async()=>{}},'./notifications':{},'@prisma/client':{},bcryptjs:{},'./temporaryPassword':{},
  };
+ modules['./studentCharges']={ensureAnnualRegistration:async()=>{throw new Error('Not expected');},syncStudentCharges:async()=>{throw new Error('Not expected');}};
  vm.runInNewContext(ts.transpileModule(fs.readFileSync('src/lib/crudActions.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020,esModuleInterop:true}}).outputText,{exports,require:(name:string)=>{if(!(name in modules))throw new Error('Unmocked '+name);return modules[name];},console:{...console,error:()=>{},log:()=>{}},Date,Promise,Number});
  // Every exported server action must reject before any database operation when admin/teacher authorization fails.
  for(const [name,action] of Object.entries(exports)){

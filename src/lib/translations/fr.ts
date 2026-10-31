@@ -168,6 +168,7 @@ export const fr = {
     "settings": "Paramètres",
     "logout": "Se déconnecter",
     "partialPayments": "Paiements Partiels",
+    "studentServices": "Inscriptions & services",
     "profitability": "Rentabilité",
     "other": "AUTRE",
     "resources": "Ressources",

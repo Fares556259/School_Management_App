@@ -1,6 +1,10 @@
 {
   "crons": [
     {
+      "path": "/api/cron/student-charges",
+      "schedule": "0 5 * * *"
+    },
+    {
       "path": "/api/telegram/briefing",
       "schedule": "30 6 * * 1-6"
     },

@@ -26,6 +26,7 @@ import { payTeacherSalary, updateMissedHours, carryOverMissedHours } from "../ac
 import { MONTHS } from "@/lib/dateUtils";
 import { useLanguage } from "@/lib/translations/LanguageContext";
 import { toast } from "react-toastify";
+import TeacherOvertimeEditor from './TeacherOvertimeEditor';
 
 interface PaymentRecord {
   id: number;
@@ -36,6 +37,8 @@ interface PaymentRecord {
   paidAt?: Date | string | null;
   deferredAmount?: number | null;
   missedHours?: number | null;
+  overtimeHours?: number | null;
+  overtimeRate?: number | null;
   img?: string | null;
 }
 
@@ -175,7 +178,7 @@ export default function TeacherFinanceHub({
     const pMeta = parsePaymentMeta(p);
     const pDeductedHours = pMeta.deductionStatus === "APPLIED" ? (pMeta.deductedHours || pMeta.trackedHours) : 0;
     const pDeduction = pDeductedHours * effectiveHourlyRate;
-    const pNetDue = Math.max(0, baseMonthlySalary - pDeduction);
+    const pNetDue = Math.max(0, baseMonthlySalary - pDeduction + (p?.overtimeHours||0)*(p?.overtimeRate??hourlyRate??0));
     const pPaidAmount = p?.amount || 0;
     const isAutoPaid = pPaidAmount > 0 && pPaidAmount >= pNetDue;
 
@@ -255,10 +258,11 @@ export default function TeacherFinanceHub({
     (currentSelectedPayment?.status === "PARTIAL" ? currentSelectedPayment?.paidAt : null);
 
   // Net amounts for Selected Month
-  const selectedNetDue = Math.max(0, baseMonthlySalary - selectedDeductionAmount);
+  const selectedOvertimeAmount=(currentSelectedPayment?.overtimeHours||0)*(currentSelectedPayment?.overtimeRate??hourlyRate??0);
+  const selectedNetDue = Math.max(0, baseMonthlySalary - selectedDeductionAmount + selectedOvertimeAmount);
   const selectedRemainingToPay = Math.max(
     0,
-    baseMonthlySalary - selectedDeductionAmount - rawAdvanceAmount
+    baseMonthlySalary - selectedDeductionAmount + selectedOvertimeAmount - rawAdvanceAmount
   );
 
   // Auto-settled: if payment recorded >= net due (e.g. 270 DT advance with 30 DT deduction on 300 DT salary)
@@ -328,7 +332,7 @@ export default function TeacherFinanceHub({
         meta.deductionStatus === "APPLIED"
           ? (meta.deductedHours || m.payment?.missedHours || 0) * effectiveHourlyRate
           : 0;
-      const mNetDue = Math.max(0, baseMonthlySalary - ded);
+      const mNetDue = Math.max(0, baseMonthlySalary - ded + (m.payment?.overtimeHours||0)*(m.payment?.overtimeRate??hourlyRate??0));
       if (m.status === "PARTIAL" && m.payment) {
         return sum + Math.max(0, mNetDue - (m.payment.amount || 0));
       }
@@ -711,7 +715,7 @@ const fmt = (n: number) => n.toLocaleString("en-US").replace(/,/g, " ") + " DT";
   const modalDeductionAmountCalc = modalDeductedHoursCalc * effectiveHourlyRate;
   const modalProjectedNetToPay = Math.max(
     0,
-    baseMonthlySalary - (modalDeductionMode === "APPLIED" ? modalDeductionAmountCalc : 0) - selectedAdvanceAmount
+    baseMonthlySalary - (modalDeductionMode === "APPLIED" ? modalDeductionAmountCalc : 0) + selectedOvertimeAmount - selectedAdvanceAmount
   );
 
   return (
@@ -965,6 +969,8 @@ const fmt = (n: number) => n.toLocaleString("en-US").replace(/,/g, " ") + " DT";
             </div>
 
             {/* 1. APPLIED DEDUCTION: RED BLOCK */}
+            {isAdmin && <TeacherOvertimeEditor teacherId={teacherId} teacherName={teacherName} period={selectedFullLabel} hours={currentSelectedPayment?.overtimeHours||0} recordedRate={currentSelectedPayment?.overtimeRate} rate={hourlyRate&&hourlyRate>0?hourlyRate:hoursPerMonth&&hoursPerMonth>0?Math.round(baseMonthlySalary/hoursPerMonth*1000)/1000:0} baseSalary={baseMonthlySalary} deduction={selectedDeductionAmount} closed={currentSelectedPayment?.status==='PAID'} onSaved={payment=>setPayments(previous=>[payment,...previous.filter(p=>p.month!==payment.month||p.year!==payment.year)])} />}
+            {!isAdmin && selectedOvertimeAmount > 0 && <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-800">{locale==='ar'?'الساعات الإضافية':locale==='en'?'Overtime':'Heures supplémentaires'} · {currentSelectedPayment?.overtimeHours} h · +{fmt(selectedOvertimeAmount)}</div>}
             {selectedMeta.deductionStatus === "APPLIED" && selectedDeductedHours > 0 && (
               <div className="p-4 bg-rose-50 border border-rose-200/90 rounded-xl flex items-center justify-between gap-3 text-rose-900 shadow-2xs animate-in fade-in duration-200">
                 <div className="flex items-center gap-3">
@@ -1338,7 +1344,7 @@ const fmt = (n: number) => n.toLocaleString("en-US").replace(/,/g, " ") + " DT";
                     
                     const pDeductedHours = pMeta.deductionStatus === "APPLIED" ? (pMeta.deductedHours || pMeta.trackedHours) : 0;
                     const pDeduction = pDeductedHours * effectiveHourlyRate;
-                    const pNetDue = Math.max(0, baseMonthlySalary - pDeduction);
+                    const pNetDue = Math.max(0, baseMonthlySalary - pDeduction + (p.overtimeHours||0)*(p.overtimeRate??hourlyRate??0));
                     const isMonthSettled = p.status === "PAID" || (p.amount > 0 && p.amount >= pNetDue);
 
                     const pAdvances = expensesList.filter(

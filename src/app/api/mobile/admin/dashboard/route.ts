@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { tuitionFactorSql } from '@/lib/serverTuition';
+import { computeTeacherRowStatus } from '@/lib/payrollUtils';
 import { authenticateMobileRequest } from "@/lib/mobileAuth";
 
 export const dynamic = "force-dynamic";
@@ -107,7 +108,7 @@ export async function GET(request: NextRequest) {
           pay.status as "paymentStatus", 
           COALESCE(pay.amount, 0)::float as "paymentAmount", 
           COALESCE(pay."deferredAmount", 0)::float as "deferredAmount", 
-          COALESCE(pay."missedHours", 0)::float as "missedHours"
+          COALESCE(pay."missedHours", 0)::float as "missedHours", pay."overtimeHours", pay."overtimeRate", pay.img as "paymentMeta"
         FROM "Teacher" t
         LEFT JOIN "Payment" pay ON t.id = pay."teacherId" 
           AND pay.month = ${activeMonth} 
@@ -215,16 +216,12 @@ export async function GET(request: NextRequest) {
       const monthlyHours = Number(t.hoursPerMonth) || 0;
       const baseSalary = (rate > 0 && monthlyHours > 0) ? (rate * monthlyHours) : (Number(t.salary) || 3000);
       const missedHours = Number(t.missedHours) || 0;
-      const deduction = missedHours * (rate > 0 ? rate : 15);
+      const payroll = computeTeacherRowStatus(t,activeMonth,activeYear);
+      const deduction = payroll.deduction;
       const isAdvance = t.paymentStatus === "PARTIAL";
       const advanceAmount = isAdvance ? (Number(t.paymentAmount) || 0) : 0;
 
-      let dueAmount = Math.max(0, baseSalary - deduction - advanceAmount);
-      if (t.deferredAmount && Number(t.deferredAmount) > 0) {
-        dueAmount = Number(t.deferredAmount);
-      } else if (t.paymentStatus === "PENDING" && t.paymentAmount && Number(t.paymentAmount) > 0) {
-        dueAmount = Number(t.paymentAmount);
-      }
+      const dueAmount = payroll.remaining;
 
       return {
         id: t.id,
@@ -237,6 +234,9 @@ export async function GET(request: NextRequest) {
         advanceAmount: advanceAmount > 0 ? advanceAmount : 0,
         missedHours: missedHours > 0 ? missedHours : 0,
         deduction: deduction > 0 ? deduction : 0,
+        overtimeHours: payroll.overtimeHours,
+        overtimeAmount: payroll.overtimeAmount,
+        overtimeRate: rate > 0 ? rate : monthlyHours > 0 ? Math.round(baseSalary/monthlyHours*1000)/1000 : 0,
         dueAmount,
         status: t.paymentStatus || "UNPAID",
       };

@@ -1,6 +1,7 @@
 import { tuitionBalance, roundMoney, schoolMonth } from "@/lib/agent/dataAccuracy";
 import { getHalfBoundaryMonths } from '@/lib/serverTuition';
 import { tuitionForMonth } from '@/lib/tuitionPolicy';
+import {ensureAnnualRegistration} from '@/lib/studentCharges';
 import prisma from "@/lib/prisma";
 import { MONTHS, getSchoolYearMonths, formatMonthFrench } from "@/lib/dateUtils";
 import { invalidateTenantTags } from "@/lib/cache";
@@ -699,6 +700,7 @@ export async function createStudentTool(
     return newStudent;
   });
 
+  await ensureAnnualRegistration(context.schoolId,student.id).catch(error=>console.warn('[Enrollment] Registration billing will retry during daily sync',error));
   invalidateTenantTags(context.schoolId, "students", "classes", "dashboard");
 
   return {

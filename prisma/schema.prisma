@@ -76,6 +76,8 @@ model Student {
   notices       Notice[]
   notifications Notification[]
   payments      Payment[]
+  serviceAssignments StudentServiceAssignment[]
+  charges StudentCharge[]
   results       Result[]
   class         Class?         @relation(fields: [classId], references: [id])
   level         Level          @relation(fields: [levelId], references: [id])
@@ -84,6 +86,7 @@ model Student {
 
   @@index([schoolId])
   @@index([classId])
+  @@unique([id, schoolId])
   @@index([parentId])
   @@index([levelId])
   @@index([schoolId, createdAt])
@@ -356,6 +359,10 @@ model Institution {
   academicYear    String   @default("2025-2026")
   currentSemester Int      @default(2)
   halfBoundaryMonths Boolean @default(false)
+  registrationFeeEnabled Boolean @default(false)
+  registrationFee Float @default(150)
+  transportMonthlyFee Float?
+  gardeMonthlyFee Float?
   sessions        Json?    @default("[{\"id\": 1, \"time\": \"08:00 - 10:00\", \"label\": \"Session 1\"}, {\"id\": 2, \"time\": \"10:00 - 12:00\", \"label\": \"Session 2\"}, {\"id\": 3, \"time\": \"12:00 - 14:00\", \"label\": \"Session 3\"}]")
   holidays        Json?    @default("[]")
   dayStartTime    String   @default("08:00")
@@ -445,6 +452,8 @@ model Payment {
   deferredUntil  DateTime?
   img            String?
   missedHours    Float?          @default(0)
+  overtimeHours  Float           @default(0)
+  overtimeRate   Float?
   schoolId       String        @default("default_school")
   School         School        @relation(fields: [schoolId], references: [id])
   staff          Staff?        @relation(fields: [staffId], references: [id])
@@ -620,6 +629,9 @@ model School {
   plan                  String                  @default("FREE")
   activatedAt           DateTime?
   Admin                 Admin[]
+  StudentServiceAssignment StudentServiceAssignment[]
+  StudentCharge StudentCharge[]
+  StudentChargePayment StudentChargePayment[]
   Assignment            Assignment[]
   Attendance            Attendance[]
   AuditLog              AuditLog[]
@@ -744,6 +756,58 @@ model TelegramAccount {
   conversations    AIConversation[]
 
   @@index([schoolId])
+}
+
+model StudentServiceAssignment {
+  id String @id @default(cuid())
+  schoolId String
+  studentId String
+  kind String
+  monthlyFee Float
+  startPeriod String
+  active Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  School School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  student Student @relation(fields: [studentId, schoolId], references: [id, schoolId], onDelete: Cascade)
+  @@unique([schoolId, studentId, kind])
+  @@index([schoolId, active])
+}
+
+model StudentCharge {
+  id String @id @default(cuid())
+  schoolId String
+  studentId String
+  kind String
+  academicYear String
+  period String
+  amount Float
+  paidAmount Float @default(0)
+  voidedAt DateTime?
+  voidReason String?
+  dueDate DateTime
+  createdAt DateTime @default(now())
+  School School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  student Student @relation(fields: [studentId, schoolId], references: [id, schoolId], onDelete: Cascade)
+  payments StudentChargePayment[]
+  @@unique([schoolId, studentId, kind, period])
+  @@unique([id, schoolId])
+  @@index([schoolId, academicYear, dueDate])
+  @@index([studentId])
+}
+
+model StudentChargePayment {
+  id String @id @default(cuid())
+  schoolId String
+  chargeId String
+  amount Float
+  paymentMethod String
+  idempotencyKey String
+  createdAt DateTime @default(now())
+  School School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  charge StudentCharge @relation(fields: [chargeId, schoolId], references: [id, schoolId], onDelete: Cascade)
+  @@unique([schoolId, idempotencyKey])
+  @@index([schoolId, chargeId])
 }
 
 model AIConversation {

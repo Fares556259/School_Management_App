@@ -1,0 +1,16 @@
+import assert from 'node:assert/strict';
+import {chargeCalendar,validateMoney} from '../lib/studentCharges';
+import {computeTeacherPaymentStatus} from '../lib/payrollUtils';
+const config={academicYear:'2026-2027',halfBoundaryMonths:true,yearStart:new Date('2026-09-15')};
+const before=chargeCalendar(config,new Date('2026-09-14T12:00:00Z'));assert.equal(before.periods.length,0);
+const september=chargeCalendar(config,new Date('2026-09-15T06:00:00Z'));assert.deepEqual(september.periods.map(p=>p.period),['2026-09']);
+const october=chargeCalendar(config,new Date('2026-10-31T12:00:00Z'));assert.deepEqual(october.periods.map(p=>p.period),['2026-09','2026-10']);
+const next=chargeCalendar(config,new Date('2027-09-15T06:00:00Z'));assert.equal(next.academicYear,'2027-2028');assert.deepEqual(next.periods.map(p=>p.period),['2027-09']);
+const summer=chargeCalendar(config,new Date('2027-08-01T00:00:00Z'));assert.equal(summer.periods.length,10);assert(!summer.periods.some(p=>/-0[78]$/.test(p.period)));
+assert.equal(validateMoney(150),150);assert.equal(validateMoney(0,true),0);
+for(const invalid of [null,undefined,'',-1,NaN,Infinity,1.1234])assert.throws(()=>validateMoney(invalid));
+const base={salary:3000,hourlyRate:15,payments:[{month:10,year:2026,status:'PARTIAL',amount:1000,missedHours:2,overtimeHours:4,overtimeRate:15}]};
+let payroll=computeTeacherPaymentStatus(base,10,2026);assert.equal(payroll.deduction,30);assert.equal(payroll.overtimeAmount,60);assert.equal(payroll.netDue,3030);assert.equal(payroll.remaining,2030);
+payroll=computeTeacherPaymentStatus({...base,payments:[{...base.payments[0],img:JSON.stringify({deductionStatus:'EXCUSED'})}]},10,2026);assert.equal(payroll.deduction,0);assert.equal(payroll.overtimeAmount,60);assert.equal(payroll.netDue,3060);
+payroll=computeTeacherPaymentStatus({...base,hourlyRate:20,payments:base.payments},10,2026);assert.equal(payroll.overtimeAmount,60,'Overtime uses the reviewed saved rate, not a newly changed rate');
+console.log('Student billing calendar: school start, catch-up, next year, no summer service charges, valid explicit prices; payroll: independent overtime/deductions, saved rates, advances and net pay.');

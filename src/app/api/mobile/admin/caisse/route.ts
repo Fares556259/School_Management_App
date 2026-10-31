@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getHalfBoundaryMonths, tuitionFactorSql } from '@/lib/serverTuition';
 import { tuitionForMonth } from '@/lib/tuitionPolicy';
+import { computeTeacherRowStatus, computeTeacherPaymentStatus } from '@/lib/payrollUtils';
 import { authenticateMobileRequest } from "@/lib/mobileAuth";
 
 export const dynamic = "force-dynamic";
@@ -163,7 +164,7 @@ export async function GET(request: NextRequest) {
           pay.status as "paymentStatus", 
           COALESCE(pay.amount, 0)::float as "paymentAmount", 
           COALESCE(pay."deferredAmount", 0)::float as "deferredAmount", 
-          COALESCE(pay."missedHours", 0)::float as "missedHours"
+          COALESCE(pay."missedHours", 0)::float as "missedHours", pay."overtimeHours", pay."overtimeRate", pay.img as "paymentMeta"
         FROM "Teacher" t
         LEFT JOIN "Payment" pay ON t.id = pay."teacherId" 
           AND pay.month = ${activeMonth} 
@@ -279,16 +280,12 @@ export async function GET(request: NextRequest) {
       const monthlyHours = Number(t.hoursPerMonth) || 0;
       const baseSalary = (rate > 0 && monthlyHours > 0) ? (rate * monthlyHours) : Number(t.salary ?? 3000);
       const missedHours = Number(t.missedHours) || 0;
-      const deduction = missedHours * (rate > 0 ? rate : 15);
+      const payroll = computeTeacherRowStatus(t,activeMonth,activeYear);
+      const deduction = payroll.deduction;
       const isAdvance = t.paymentStatus === "PARTIAL";
       const advanceAmount = isAdvance ? (Number(t.paymentAmount) || 0) : 0;
 
-      let dueAmount = Math.max(0, baseSalary - deduction - advanceAmount);
-      if (t.deferredAmount && Number(t.deferredAmount) > 0) {
-        dueAmount = Number(t.deferredAmount);
-      } else if (t.paymentStatus === "PENDING" && t.paymentAmount && Number(t.paymentAmount) > 0) {
-        dueAmount = Number(t.paymentAmount);
-      }
+      const dueAmount = payroll.remaining;
 
       return {
         id: t.id,
@@ -301,6 +298,9 @@ export async function GET(request: NextRequest) {
         advanceAmount: advanceAmount > 0 ? advanceAmount : 0,
         missedHours: missedHours > 0 ? missedHours : 0,
         deduction: deduction > 0 ? deduction : 0,
+        overtimeHours: payroll.overtimeHours,
+        overtimeAmount: payroll.overtimeAmount,
+        overtimeRate: rate > 0 ? rate : monthlyHours > 0 ? Math.round(baseSalary/monthlyHours*1000)/1000 : 0,
         dueAmount,
         status: t.paymentStatus || "UNPAID",
       };
@@ -580,6 +580,13 @@ export async function POST(request: NextRequest) {
         const teacherName = `${teacher.name} ${teacher.surname}`;
 
         await prisma.$transaction(async (tx) => {
+          await tx.$queryRaw`SELECT id FROM "Teacher" WHERE id=${recipientId} AND "schoolId"=${schoolId} FOR UPDATE`;
+          const existing=await tx.payment.findUnique({where:{teacherId_month_year:{teacherId:recipientId,month:activeMonth,year:activeYear}}});
+          const payroll=computeTeacherPaymentStatus({...teacher,payments:existing?[existing]:[]},activeMonth,activeYear);
+          if(existing?.status==='PAID'||numAmount>payroll.remaining) throw new Error('Le montant dépasse le salaire restant. Actualisez avant de confirmer.');
+          const newTotal=Math.round((payroll.amountPaid+numAmount)*1000)/1000;
+          const deferredAmount=Math.max(0,Math.round((payroll.netDue-newTotal)*1000)/1000);
+          const status=deferredAmount===0?'PAID':'PARTIAL';
           const payment = await tx.payment.upsert({
             where: {
               teacherId_month_year: {
@@ -589,16 +596,18 @@ export async function POST(request: NextRequest) {
               },
             },
             update: {
-              status: "PAID",
-              amount: numAmount,
+              status,
+              amount: newTotal,
+              deferredAmount,
               paidAt: now,
             },
             create: {
               teacherId: recipientId,
-              amount: numAmount,
+              amount: newTotal,
               month: activeMonth,
               year: activeYear,
-              status: "PAID",
+              status,
+              deferredAmount,
               userType: "TEACHER",
               paidAt: now,
               schoolId,
@@ -611,9 +620,12 @@ export async function POST(request: NextRequest) {
               amount: numAmount,
               date: now,
               category: "SALAIRE",
+              referenceType: 'TeacherSalary',
+              referenceId: payment.id.toString(),
               schoolId,
             },
           });
+          await tx.auditLog.create({data:{schoolId,action:'CREATE',performedBy:auth.payload.userId,entityType:'Payment',entityId:payment.id.toString(),description:`Teacher salary ${activeMonth}/${activeYear}: ${numAmount} TND; remaining ${deferredAmount} TND`,amount:numAmount,type:'expense'}});
         });
 
         return NextResponse.json({

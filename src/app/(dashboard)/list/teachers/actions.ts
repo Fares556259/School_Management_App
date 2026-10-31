@@ -6,6 +6,19 @@ import { createAuditLog } from "@/lib/audit";
 import { getSchoolId } from "@/lib/school";
 import { getCachedTenantData } from "@/lib/cache";
 import { parseMonthYear } from "@/lib/dateUtils";
+import { getStudentAdminSchool } from '@/lib/studentProfile';
+import { getAuthenticatedUser } from '@/utils/supabase/server';
+import { saveTeacherOvertime } from '@/lib/teacherOvertime';
+import { computeTeacherPaymentStatus } from '@/lib/payrollUtils';
+
+export async function updateOvertimeHours(teacherId:string,monthYear:string,hours:number,expectedRate?:number) {
+  try {
+    const schoolId=await getStudentAdminSchool();const user=await getAuthenticatedUser();if(!user)throw new Error('Unauthorized');
+    const {month,year}=parseMonthYear(monthYear);const result=await saveTeacherOvertime({schoolId,adminId:user.id,teacherId,month,year,hours,expectedRate});
+    const {invalidateTenantTags}=await import('@/lib/cache');invalidateTenantTags(schoolId,'teachers','finance','dashboard');revalidatePath('/list/teachers');
+    return {success:true,...result};
+  }catch(error:any){return{success:false,error:error.message};}
+}
 
 export const updateMissedHours = async (
   teacherId: string,
@@ -23,7 +36,7 @@ export const updateMissedHours = async (
   const yearVal = parsed.year;
 
   try {
-    const schoolId = await getSchoolId();
+    const schoolId = await getStudentAdminSchool();
     const imgData = meta ? JSON.stringify(meta) : undefined;
 
     // Check if month is already paid - cannot apply deduction to already paid month
@@ -34,10 +47,11 @@ export const updateMissedHours = async (
         }
       }),
       prisma.teacher.findUnique({
-        where: { id: teacherId },
+        where: { id: teacherId, schoolId },
         select: { salary: true, hourlyRate: true, hoursPerMonth: true }
       })
     ]);
+    if (!teacher) throw new Error('Enseignant introuvable dans cette école.');
 
     if (existing?.status === "PAID" && meta?.deductionStatus === "APPLIED") {
       return {
@@ -52,7 +66,8 @@ export const updateMissedHours = async (
     const effectiveRate = teacher?.hourlyRate && teacher.hourlyRate > 0 ? teacher.hourlyRate : 15;
     const deductedH = meta?.deductionStatus === "APPLIED" ? (meta.deductedHours !== undefined ? meta.deductedHours : missedHours) : 0;
     const deductionAmt = deductedH * effectiveRate;
-    const netDue = Math.max(0, baseSalary - deductionAmt);
+    const overtimeAmount=(existing?.overtimeHours||0)*(existing?.overtimeRate??teacher?.hourlyRate??0);
+    const netDue = Math.max(0, baseSalary - deductionAmt + overtimeAmount);
 
     // If an existing payment (advance) covers or exceeds the net due, automatically mark as PAID
     const shouldAutoSettle = Boolean(existing && existing.amount > 0 && existing.amount >= netDue);
@@ -106,7 +121,8 @@ export const carryOverMissedHours = async (
   const toYearVal = toParsed.year;
 
   try {
-    const schoolId = await getSchoolId();
+    const schoolId = await getStudentAdminSchool();
+    if (!await prisma.teacher.findFirst({where:{id:teacherId,schoolId},select:{id:true}})) throw new Error('Enseignant introuvable dans cette école.');
 
     await prisma.$transaction(async (tx) => {
       // 1. Clear hours from source month and mark as transferred
@@ -214,8 +230,8 @@ export const payTeacherSalary = async (
   const standardMonthYear = parsed.monthKey;
 
   try {
-    const [schoolId, existing, teacher] = await Promise.all([
-      getSchoolId(),
+    const schoolId=await getStudentAdminSchool();
+    const [existing, teacher] = await Promise.all([
       prisma.payment.findUnique({
         where: {
           teacherId_month_year: {
@@ -226,10 +242,11 @@ export const payTeacherSalary = async (
         }
       }),
       prisma.teacher.findUnique({
-        where: { id: teacherId },
+        where: { id: teacherId, schoolId },
         select: { salary: true, hourlyRate: true, hoursPerMonth: true }
       })
     ]);
+    if (!teacher) throw new Error('Enseignant introuvable dans cette école.');
 
     if (existing?.status === "PAID") {
       throw new Error("Ce mois est déjà entièrement payé et clôturé.");
@@ -242,14 +259,21 @@ export const payTeacherSalary = async (
     const metaObj = meta || (existing?.img ? (() => { try { return JSON.parse(existing.img); } catch { return null; } })() : null);
     const deductedH = metaObj?.deductionStatus === "APPLIED" ? (metaObj.deductedHours !== undefined ? metaObj.deductedHours : (existing?.missedHours || 0)) : (deduction ? (deduction / effectiveRate) : 0);
     const deductionAmt = deductedH * effectiveRate;
-    const netDue = Math.max(0, baseSalary - deductionAmt);
+    const overtimeAmount=(existing?.overtimeHours||0)*(existing?.overtimeRate??teacher?.hourlyRate??0);
+    const netDue = Math.max(0, baseSalary - deductionAmt + overtimeAmount);
 
-    const newTotalAmount = (existing?.amount || 0) + amountPaidNow;
+    const previousPaid=existing&&['PAID','PARTIAL'].includes(existing.status)?existing.amount:0;
+    if(!Number.isFinite(amountPaidNow)||amountPaidNow<=0||Math.abs(amountPaidNow*1000-Math.round(amountPaidNow*1000))>0.00001||amountPaidNow>netDue-previousPaid) throw new Error('Montant supérieur au salaire restant ou invalide.');
+    const newTotalAmount = Math.round((previousPaid + amountPaidNow)*1000)/1000;
     const isFullyCovered = newTotalAmount >= netDue && newTotalAmount > 0;
     const newStatus = isFullyCovered ? "PAID" : (newTotalAmount > 0 ? "PARTIAL" : "PENDING");
     const imgData = meta ? JSON.stringify(meta) : undefined;
 
     const payment = await prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM "Teacher" WHERE id=${teacherId} AND "schoolId"=${schoolId} FOR UPDATE`;
+      const latest=await tx.payment.findUnique({where:{teacherId_month_year:{teacherId,month:monthIdx,year:yearVal}}});
+      const revision=(value:any)=>JSON.stringify(value?{amount:value.amount,status:value.status,img:value.img,missedHours:value.missedHours,overtimeHours:value.overtimeHours,overtimeRate:value.overtimeRate}:null);
+      if(revision(latest)!==revision(existing)) throw new Error('La paie a changé. Actualisez et vérifiez le nouveau solde avant de payer.');
       const p = await tx.payment.upsert({
         where: {
           teacherId_month_year: {

@@ -89,7 +89,7 @@ const TeacherListPage = async (
           classes: true,
           timetable: { include: { subject: true, class: true } },
           payments: {
-            select: { month: true, year: true, status: true, paidAt: true, missedHours: true, amount: true },
+            select: { month: true, year: true, status: true, paidAt: true, missedHours: true, amount: true, overtimeHours: true, overtimeRate: true, img: true },
           },
         },
         orderBy: [{ name: "asc" }, { surname: "asc" }],

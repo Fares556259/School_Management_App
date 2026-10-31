@@ -58,6 +58,8 @@ export interface SalaryPayslipData {
   hoursTracked?: number;
   missedHours?: number;
   deductionsAmount?: number;
+  overtimeHours?: number;
+  overtimeAmount?: number;
   advancesAmount?: number;
   netPaid: number;
   remainingDue?: number;
@@ -430,6 +432,7 @@ export async function generateSalaryPayslipPdf(data: SalaryPayslipData): Promise
   const school = data.schoolName || "SnapSchool";
   const isTeacher = data.employeeType === "TEACHER";
   const deductions = Math.max(0, data.deductionsAmount ?? 0);
+  const money = (amount: number) => amount.toLocaleString('fr-FR', {minimumFractionDigits:2,maximumFractionDigits:3}).replace(/[\u202f\u00a0]/g, ' ');
   const advances = Math.max(0, data.advancesAmount ?? 0);
   const remaining = Math.max(0, data.remainingDue ?? 0);
   const isFullyPaid = remaining === 0;
@@ -550,12 +553,25 @@ export async function generateSalaryPayslipPdf(data: SalaryPayslipData): Promise
   doc.text("Salaire mensuel de base contractuel", 24, currentY + 6.5);
   doc.setFont("helvetica", "normal");
   doc.text("Forfait mensuel", 95, currentY + 6.5);
-  doc.text(`${data.baseSalary.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} DT`, 140, currentY + 6.5, { align: "right" });
+  doc.text(`${money(data.baseSalary)} DT`, 140, currentY + 6.5, { align: "right" });
   doc.text("—", 186, currentY + 6.5, { align: "right" });
 
   currentY += 10;
 
   // Line 2: Absence Deductions (if any)
+  if ((data.overtimeAmount || 0) > 0) {
+    doc.setFillColor(248, 250, 252);
+    doc.rect(18, currentY, 174, 10, 'F');
+    doc.setDrawColor(226, 232, 240);
+    doc.line(18, currentY + 10, 192, currentY + 10);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(0, 0, 0);
+    doc.text('Heures supplementaires', 24, currentY + 6.5);
+    doc.text(`${data.overtimeHours || 0} heures`, 95, currentY + 6.5);
+    doc.text(`+ ${money(data.overtimeAmount || 0)} DT`, 140, currentY + 6.5, { align: 'right' });
+    doc.text('-', 186, currentY + 6.5, { align: 'right' });
+    currentY += 10;
+  }
   if (deductions > 0 || (data.missedHours && data.missedHours > 0)) {
     doc.setFillColor(255, 255, 255);
     doc.rect(18, currentY, 174, 10, "F");
@@ -568,7 +584,7 @@ export async function generateSalaryPayslipPdf(data: SalaryPayslipData): Promise
     doc.text(`${data.missedHours || 0} heures`, 95, currentY + 6.5);
     doc.text("—", 140, currentY + 6.5, { align: "right" });
     doc.setFont("helvetica", "bold");
-    doc.text(`- ${deductions.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} DT`, 186, currentY + 6.5, { align: "right" });
+    doc.text(`- ${money(deductions)} DT`, 186, currentY + 6.5, { align: "right" });
 
     currentY += 10;
   }
@@ -586,7 +602,7 @@ export async function generateSalaryPayslipPdf(data: SalaryPayslipData): Promise
     doc.text("Acompte", 95, currentY + 6.5);
     doc.text("—", 140, currentY + 6.5, { align: "right" });
     doc.setFont("helvetica", "bold");
-    doc.text(`- ${advances.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} DT`, 186, currentY + 6.5, { align: "right" });
+    doc.text(`- ${money(advances)} DT`, 186, currentY + 6.5, { align: "right" });
 
     currentY += 10;
   }
@@ -620,7 +636,7 @@ export async function generateSalaryPayslipPdf(data: SalaryPayslipData): Promise
   doc.setFont("helvetica", "bold");
   doc.setFontSize(18);
   doc.setTextColor(0, 0, 0);
-  doc.text(`${data.netPaid.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} DT`, 186, netCardY + 20, { align: "right" });
+  doc.text(`${money(data.netPaid)} DT`, 186, netCardY + 20, { align: "right" });
 
   // 7. Official Seal & Signatures
   const sealY = netCardY + 34;
@@ -641,7 +657,7 @@ export async function generateSalaryPayslipPdf(data: SalaryPayslipData): Promise
   doc.text(truncatedSchool.toUpperCase(), 157, sealY + 10, { align: "center" });
 
   doc.setFontSize(9);
-  doc.text("★ SALAIRE ACQUITTÉ ★", 157, sealY + 18, { align: "center" });
+  doc.text("SALAIRE ACQUITTÉ", 157, sealY + 18, { align: "center" });
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);

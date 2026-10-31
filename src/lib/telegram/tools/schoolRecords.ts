@@ -13,6 +13,9 @@ export const SCHOOL_RECORDS: Record<string, RecordDefinition> = {
   staff: { model:'staff', label:'Personnel', fields:[...directory,'role','salary'], search:['name','surname','phone','role'], date:'createdAt' },
   classes: { model:'class', label:'Classes', fields:['id','name','capacity','levelId','supervisorId'], search:['name'], classPath:'id' },
   levels: { model:'level', label:'Niveaux et tarifs', fields:['id','level','tuitionFee','variations'] },
+  student_charges: {model:'studentCharge',label:'Inscriptions et services facturés',fields:['id','studentId','kind','academicYear','period','amount','paidAmount','dueDate','voidedAt','voidReason'],search:['kind','academicYear','period'],date:'dueDate',classPath:'student.classId',sum:'amount',personRelations:['student']},
+  student_services: {model:'studentServiceAssignment',label:'Services attribués aux élèves',fields:['id','studentId','kind','monthlyFee','startPeriod','active'],search:['kind'],classPath:'student.classId',personRelations:['student']},
+  service_payments: {model:'studentChargePayment',label:'Encaissements des inscriptions et services',fields:['id','chargeId','amount','paymentMethod','createdAt'],date:'createdAt',sum:'amount'},
   subjects: { model:'subject', label:'Matières', fields:['id','name','domain','parentId'], search:['name','domain'] },
   rooms: { model:'room', label:'Salles', fields:['id','name'], search:['name'] },
   lessons: { model:'lesson', label:'Cours', fields:['id','name','day','startTime','endTime','classId','teacherId','subjectId'], search:['name'], date:'startTime', classPath:'classId', personRelations:['teacher'], nameRelations:['class','subject'] },
@@ -46,6 +49,7 @@ export async function querySchoolRecords(args: SchoolRecordsArgs, context: ToolC
     if (!context.schoolId || !Object.prototype.hasOwnProperty.call(SCHOOL_RECORDS,args.entity)) throw new Error('Catégorie de données indisponible.');
     const def = SCHOOL_RECORDS[args.entity];
     const where: any = { schoolId: context.schoolId };
+    if(def.model==='studentCharge') where.voidedAt=null;
     const limit = Math.max(1,Math.min(Number.isInteger(args.limit) ? args.limit! : 50,100));
     const offset = Math.max(0,Math.min(Number.isInteger(args.offset) ? args.offset! : 0,100000));
     if (args.query) {
@@ -55,7 +59,7 @@ export async function querySchoolRecords(args: SchoolRecordsArgs, context: ToolC
     }
     if (args.recordId !== undefined) {
       if (typeof args.recordId !== 'string' || !args.recordId.trim()) throw new Error('Identifiant invalide.');
-      where.id=['student','parent','teacher','staff','parentAccessRequest','aIKnowledge'].includes(def.model) ? args.recordId : Number(args.recordId);
+      where.id=['student','parent','teacher','staff','parentAccessRequest','aIKnowledge','studentCharge','studentServiceAssignment','studentChargePayment'].includes(def.model) ? args.recordId : Number(args.recordId);
       if (typeof where.id==='number' && (!Number.isSafeInteger(where.id) || where.id < 1)) throw new Error('Identifiant numérique invalide.');
     }
     if (args.className) {
@@ -67,8 +71,17 @@ export async function querySchoolRecords(args: SchoolRecordsArgs, context: ToolC
       branch[parts[parts.length-1]]=target.id;
     }
     if (args.status) {
-      if (!def.status) throw new Error('Ce type de données ne possède pas de statut filtrable.');
-      where[def.status]=args.status.toUpperCase();
+      if(def.model==='studentCharge') {
+        const status=args.status.toUpperCase();
+        if(status==='VOIDED') where.voidedAt={not:null};
+        else if(status==='PAID') where.paidAmount={gte:prisma.studentCharge.fields.amount};
+        else if(status==='UNPAID'||status==='DUE') where.paidAmount={lt:prisma.studentCharge.fields.amount};
+        else if(status==='PARTIAL') where.paidAmount={gt:0,lt:prisma.studentCharge.fields.amount};
+        else throw new Error('Statut d’échéance invalide.');
+      } else {
+        if (!def.status) throw new Error('Ce type de données ne possède pas de statut filtrable.');
+        where[def.status]=args.status.toUpperCase();
+      }
     }
     if (args.userType) {
       if (def.model!=='payment' || !['STUDENT','TEACHER','STAFF'].includes(args.userType.toUpperCase())) throw new Error('Type de règlement invalide.');
@@ -100,7 +113,7 @@ export async function querySchoolRecords(args: SchoolRecordsArgs, context: ToolC
     const [total,rawRecords,aggregates]=await Promise.all([
       delegate.count({where}),
       delegate.findMany({where,select,take:limit,skip:offset,orderBy:def.date?[{[def.date]:'desc'},{id:'asc'}]:[{id:'asc'}]}),
-      sumField || def.avg ? delegate.aggregate({where,...(sumField?{_sum:{[sumField]:true}}:{}),...(def.avg?{_avg:{[def.avg]:true}}:{})}) : Promise.resolve(null),
+      sumField || def.avg ? delegate.aggregate({where,...(sumField?{_sum:{[sumField]:true,...(def.model==='studentCharge'?{paidAmount:true}:{})}}:{}),...(def.avg?{_avg:{[def.avg]:true}}:{})}) : Promise.resolve(null),
     ]);
     const records=rawRecords.map((row:any)=>{
       const clean={...row};
@@ -112,7 +125,7 @@ export async function querySchoolRecords(args: SchoolRecordsArgs, context: ToolC
     });
     const fetchedAt=new Date().toISOString();
     const hasMore=offset+records.length<total;
-    const summary=aggregates?{...(sumField?{totalAmount:roundMoney(aggregates._sum?.[sumField]??0)}:{}),...(def.avg?{averageScore:aggregates._avg?.[def.avg]??null}:{})}:{};
+    const summary=aggregates?{...(sumField?{totalAmount:roundMoney(aggregates._sum?.[sumField]??0)}:{}),...(def.model==='studentCharge'?{totalCollected:roundMoney(aggregates._sum?.paidAmount??0),totalOutstanding:roundMoney((aggregates._sum?.amount??0)-(aggregates._sum?.paidAmount??0))}:{}),...(def.avg?{averageScore:aggregates._avg?.[def.avg]??null}:{})}:{};
     const filters=Object.fromEntries(Object.entries(args).filter(([key])=>!['limit','offset'].includes(key)));
     const textRows=records.map((row:any,index:number)=>{
       const title=[row.name,row.surname].filter(Boolean).join(' ') || row.title || row.schoolName || row.instruction || (row.level!==undefined?`Niveau ${row.level}`:def.label);
@@ -121,6 +134,7 @@ export async function querySchoolRecords(args: SchoolRecordsArgs, context: ToolC
     }).join('\n');
     const formattedText=`**${def.label} — ${total} résultat(s)**\n${Object.entries(filters).filter(([key])=>key!=='entity').map(([key,value])=>`${key} : ${value}`).join(' · ')}\n`+
       (summary.totalAmount!==undefined?`Total de tous les résultats filtrés : **${summary.totalAmount} DT**\n`:'')+
+      (summary.totalOutstanding!==undefined?`Déjà encaissé : **${summary.totalCollected} DT** · Solde restant : **${summary.totalOutstanding} DT**\n`:'')+
       (summary.averageScore!==undefined?`Moyenne des résultats filtrés : **${summary.averageScore??'Non disponible'}**\n`:'')+
       `\n${textRows || 'Aucun enregistrement correspondant.'}\n\n**${records.length} affiché(s) sur ${total}**${hasMore?' — dites « page suivante » pour continuer.':' — fin des résultats.'}`;
     return {success:true,source:'school_database',entity:args.entity,filters,fetchedAt,total,returned:records.length,offset,hasMore,nextOffset:hasMore?offset+records.length:null,summary,records,formattedText};
