@@ -187,7 +187,7 @@ const StudentListPage = async (
     const staticRefPromise = getCachedTenantData(
       schoolId,
       "classes",
-      ["student_modal_references", userId || "guest"],
+      ["student_modal_references_tuition_v2", userId || "guest"],
       fetchStaticReferences,
       3600
     );

@@ -160,7 +160,7 @@ export async function updateSchoolConfig(data: any) {
       return result;
     });
 
-    invalidateTenantTags(schoolId, 'institution', 'finance', 'dashboard', 'students');
+    invalidateTenantTags(schoolId, 'institution', 'finance', 'dashboard', 'students', 'classes');
     revalidatePath("/settings");
     revalidatePath("/list/exams");
     revalidatePath("/admin/timetable");
