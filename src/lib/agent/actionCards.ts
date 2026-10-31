@@ -21,8 +21,10 @@ export interface ActionCardData {
   arguments?: Record<string, any>;
 }
 
-export function buildActionCardMetadata(toolCallId: string, toolName: string, args: Record<string, any>, confirmText: string): ActionCardData {
-  return { ...buildActionCardContent(toolCallId, toolName, args, confirmText), reviewFingerprint: actionReviewFingerprint(toolCallId, toolName, args) };
+export function buildActionCardMetadata(toolCallId: string, toolName: string, args: Record<string, any>, confirmText: string, display?: { beneficiary?: string }): ActionCardData {
+  const card = buildActionCardContent(toolCallId, toolName, args, confirmText);
+  if (display?.beneficiary) card.fields = card.fields.map(field => field.label === 'Bénéficiaire' ? { ...field, value: display.beneficiary! } : field);
+  return { ...card, reviewFingerprint: actionReviewFingerprint(toolCallId, toolName, args) };
 }
 
 function buildActionCardContent(
@@ -84,7 +86,7 @@ function buildActionCardContent(
       status: "PENDING",
       arguments: args,
       fields: [
-        { label: "Montant", value: `${args.amount || 0} DT` },
+        { label: "Montant", value: typeof args.amount === 'number' && args.amount > 0 ? `${args.amount} DT` : 'À préciser' },
         { label: "Bénéficiaire", value: studentOrParent },
         { label: "Période", value: args.feePeriod || new Date(args.year || new Date().getFullYear(), (args.month || new Date().getMonth() + 1) - 1, 1).toLocaleDateString("fr-FR", { month: "long", year: "numeric" }) },
         { label: "Mode de règlement", value: args.paymentMethod || "Espèces" },

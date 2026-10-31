@@ -1,6 +1,8 @@
 import { executeFreshSchoolRead, formatSchoolRead, getExactSchoolRead } from "./schoolRead";
 import { buildReadPresentation } from './readPresentation';
 import { buildMobileImageMessage, explicitCurrencyAmounts, getPurchaseDraft } from './purchaseDraft';
+import { getNamedPaymentDraft, PAYMENT_WORDS } from './paymentDraft';
+import { outputText, outputLanguageInstruction, proposalMessage, claimsUnbackedAction } from './outputLanguage';
 import { prepareConfirmedArguments, freezeMobileActionArguments } from './actionPolicy';
 import { isVerificationFollowup, isNextPage, needsFreshSchoolData } from "./dataAccuracy";
 import { READ_ONLY_ACTIONS } from "./actionPolicy";
@@ -85,7 +87,7 @@ export function getMobileDeclarations(userMessage: string): any[] {
 
   const derjaHints = [
     /(?:masrouf|sraf|chrina|chrit)/i.test(msg) ? "dépense" : "",
-    /(?:khles|5las|flous|madakhil)/i.test(msg) ? "paiement finance" : "",
+    /(?:khles|5las|flous|madakhil)/i.test(msg) || PAYMENT_WORDS.test(msg) ? "paiement finance" : "",
     /(?:mou3alem|m3alem)/i.test(msg) ? "enseignant" : "",
     /(?:talm|tlem|ya9raw|9esm)/i.test(msg) ? "élève classe" : "",
     /(?:8yeb|ghyeb)/i.test(msg) ? "absence" : "",
@@ -489,6 +491,21 @@ export async function runMobileAgent(input: MobileAgentInput): Promise<MobileAge
     language: input.language || "fr",
   };
 
+  const paymentDraft = await getNamedPaymentDraft(intentMessage, context);
+  if (paymentDraft) {
+    let message = paymentDraft.clarification;
+    let card: ActionCardData | undefined;
+    if (paymentDraft.args && paymentDraft.toolName) {
+      const display = { beneficiary: paymentDraft.beneficiary };
+      const record = await prisma.aIToolCall.create({ data: { conversationId, toolName: paymentDraft.toolName, arguments: paymentDraft.args, status: 'PENDING', requiresConfirm: true, result: { proposalDisplay: display } } });
+      message = proposalMessage(input.language, paymentDraft.args.amount === undefined);
+      card = buildActionCardMetadata(record.id, paymentDraft.toolName, paymentDraft.args, message, display);
+    }
+    message ||= proposalMessage(input.language, true);
+    await prisma.aIMessage.create({ data: { conversationId, role: 'assistant', content: message, ...(card ? { toolCallId: card.toolCallId } : {}) } });
+    return { success: true, conversationId, message, transcription, pendingConfirmation: card || null, widget: card ? { type: 'action_card', data: card } : null, followUpSuggestions: [] };
+  }
+
   // Resolve explicit purchases before general chat/history can select an unrelated read.
   // This path only creates a proposal; the expense tool runs exclusively in confirmMobileAction.
   const purchaseDraft = getPurchaseDraft(originalUserText || transcription || '', analyzedDoc, uploadedImageUrl, Boolean(input.imageBase64));
@@ -502,7 +519,7 @@ export async function runMobileAgent(input: MobileAgentInput): Promise<MobileAge
       conversationId, toolName: 'add_expense', arguments: args, status: 'PENDING', requiresConfirm: true,
     } });
     const card = buildActionCardMetadata(proposal.id, 'add_expense', args, 'Vérifiez les détails puis confirmez.');
-    const message = 'Dépense proposée. Vérifiez le montant et les détails, puis appuyez sur Confirmer. Aucune dépense enregistrée pour le moment.';
+    const message = outputText(input.language, 'Dépense proposée. Vérifiez le montant et les détails, puis appuyez sur Confirmer. Aucune dépense enregistrée pour le moment.', 'Expense proposed. Review the amount and details, then press Confirm. No expense has been recorded yet.', 'يرجى مراجعة مبلغ المصروف وتفاصيله، ثم الضغط على «تأكيد». لم يُسجَّل أي مصروف بعد.');
     await prisma.aIMessage.create({ data: { conversationId, role: 'assistant', content: message, toolCallId: proposal.id } });
     return { success: true, conversationId, message, transcription, imageUrl: uploadedImageUrl,
       pendingConfirmation: card, widget: { type: 'action_card', data: card }, followUpSuggestions: [] };
@@ -511,7 +528,7 @@ export async function runMobileAgent(input: MobileAgentInput): Promise<MobileAge
   // 6. Fast-path checks
   const msgLower = effectiveUserMessage.trim().toLowerCase();
   if (/^(bonjour|salut|ahla|salam|hello|hi)[\s!?.]*$/i.test(msgLower)) {
-    const greeting = `👋 **Bonjour ${adminName} !**\n\nJe suis **Hnia**, votre assistante SnapSchool 🎓\nComment puis-je vous aider aujourd'hui ?`;
+    const greeting = outputText(input.language, `Bonjour ${adminName}. Je suis Hnia, votre assistante SnapSchool. Comment puis-je vous aider ?`, `Hello ${adminName}. I am Hnia, your SnapSchool assistant. How can I help you?`, `مرحباً ${adminName}. أنا هنية، مساعدتكم في SnapSchool. كيف يمكنني مساعدتكم؟`);
     await prisma.aIMessage.create({
       data: { conversationId, role: "assistant", content: greeting },
     });
@@ -589,7 +606,7 @@ export async function runMobileAgent(input: MobileAgentInput): Promise<MobileAge
     schoolName,
     adminName,
     classNames: realClassNames,
-  }) + `\nLANGUE DE CETTE CONVERSATION : ${input.language === 'ar' ? 'arabe tunisien clair' : input.language === 'en' ? 'English' : 'français'}. Respecte ce choix même si le message mélange plusieurs langues. Les montants, dates et confirmations restent explicites et professionnels.`;
+  }) + '\n' + outputLanguageInstruction(input.language);
 
   // 9. Build History
   const rawTurns: { role: "user" | "model"; text: string }[] = [];
@@ -633,8 +650,14 @@ export async function runMobileAgent(input: MobileAgentInput): Promise<MobileAge
   const declarations = getMobileDeclarations(intentMessage);
   const permittedToolNames = new Set(declarations.map(tool => tool.name));
   const typedAmounts = explicitCurrencyAmounts(originalUserText || transcription || '');
-  const proposalArgs = (name: string, args: Record<string, any>) => freezeMobileActionArguments(name, name === 'add_expense' && typedAmounts.length === 1
-    ? { ...args, amount: typedAmounts[0] } : args);
+  const proposalArgs = (name: string, args: Record<string, any>) => {
+    const value = { ...args };
+    if (['record_payment', 'record_parent_payment'].includes(name)) {
+      if (typedAmounts.length === 1) value.amount = typedAmounts[0];
+      else delete value.amount; // An unstated received amount cannot be inferred from chat history or tuition.
+    } else if (name === 'add_expense' && typedAmounts.length === 1) value.amount = typedAmounts[0];
+    return freezeMobileActionArguments(name, value);
+  };
   const mayProposeAction = declarations.some(tool => requiresActionConfirmation(tool.name, TOOLS[tool.name]));
   const modelTimeoutMs = getHniaModelTimeoutMs();
   const candidateModels = getAvailableModels(getMobileHniaModels());
@@ -690,6 +713,15 @@ export async function runMobileAgent(input: MobileAgentInput): Promise<MobileAge
       let candidate = response.response;
 
       let functionCalls = candidate.functionCalls();
+      if (!functionCalls?.length && claimsUnbackedAction(candidate.text() || '')) {
+        candidate = (await sendMessage([{ text: 'Aucune proposition serveur ne correspond à ce texte. Pour préparer une action, appelle la fonction native autorisée. Ne prétends pas avoir créé une carte. Si le montant manque, demande-le sans en inventer un.' }])).response;
+        functionCalls = candidate.functionCalls();
+        if (!functionCalls?.length) {
+          const message = outputText(input.language, 'Je n’ai pas pu préparer une proposition vérifiable. Précisez le destinataire et le montant. Aucune action n’a été effectuée.', 'I could not prepare a verifiable proposal. Specify the recipient and amount. No action was performed.', 'تعذّر إعداد مقترح قابل للمراجعة. يرجى تحديد المستفيد والمبلغ. لم تُنفَّذ أي عملية.');
+          await prisma.aIMessage.create({ data: { conversationId, role: 'assistant', content: message } });
+          return { success: true, conversationId, message };
+        }
+      }
       if (needsFreshSchoolData(intentMessage) && !functionCalls?.length) {
         const grounded = await sendMessage([{ text: "Cette question demande des données actuelles de l'école. Consulte obligatoirement un outil autorisé, en conservant la classe, les dates et les personnes demandées. Si le filtre est ambigu, demande une précision sans annoncer de chiffres." }]);
         candidate = grounded.response;
@@ -796,9 +828,7 @@ export async function runMobileAgent(input: MobileAgentInput): Promise<MobileAge
 
           const firstCard = pendingConfirmations[0];
           const summaryDesc = firstCard?.fields?.map((f) => `• ${f.label} : **${f.value}**`).join("\n") || "";
-          finalReply = summaryDesc
-            ? `Veuillez vérifier et confirmer l'action ci-dessous :\n\n${summaryDesc}`
-            : "Veuillez vérifier et confirmer l'action ci-dessous :";
+          finalReply = proposalMessage(input.language);
 
           return {
             success: true,

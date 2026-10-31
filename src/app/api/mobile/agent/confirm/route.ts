@@ -34,6 +34,7 @@ export async function POST(request: NextRequest) {
       schoolId,
       updatedArgs,
       reviewFingerprint,
+      language: ['fr', 'en', 'ar'].includes(body.language) ? body.language : 'fr',
     });
 
     return NextResponse.json(result);
