@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { randomUUID } from "node:crypto";
 import { Prisma } from "@prisma/client";
 import prisma from "@/lib/prisma";
 import { getStudentAdminSchool } from "@/lib/studentProfile";
@@ -11,6 +12,7 @@ import {
   validateMoney,
   CHARGE_KINDS,
   serviceFrequency,
+  isCustomChargeKind,
 } from "@/lib/studentCharges";
 import { invalidateTenantTags } from "@/lib/cache";
 
@@ -88,7 +90,10 @@ export async function GET(request: NextRequest) {
     };
     const where: Prisma.StudentChargeWhereInput = {
       ...base,
-      ...(kind && CHARGE_KINDS.includes(kind as any) ? { kind } : {}),
+      ...(kind &&
+      (CHARGE_KINDS.includes(kind as any) || isCustomChargeKind(kind))
+        ? { kind }
+        : {}),
       ...(period && /^\d{4}-\d{2}$/.test(period) ? { period } : {}),
       ...(search
         ? {
@@ -111,78 +116,90 @@ export async function GET(request: NextRequest) {
           ? { paidAmount: { lt: prisma.studentCharge.fields.amount } }
           : {}),
     };
-    const [charges, total, summary, students, services, serviceBalances] =
-      await Promise.all([
-        prisma.studentCharge.findMany({
-          where,
-          orderBy: [{ dueDate: "asc" }, { id: "asc" }],
-          skip: (page - 1) * 25,
-          take: 25,
-          include: {
-            student: {
-              select: {
-                id: true,
-                name: true,
-                surname: true,
-                class: { select: { name: true } },
-              },
-            },
-            payments: {
-              orderBy: { createdAt: "desc" },
-              select: {
-                id: true,
-                amount: true,
-                paymentMethod: true,
-                paidAt: true,
-                createdAt: true,
-              },
-            },
-          },
-        }),
-        prisma.studentCharge.count({ where }),
-        prisma.studentCharge.aggregate({
-          where: { ...base, voidedAt: null },
-          _sum: { amount: true, paidAmount: true },
-          _count: { id: true },
-        }),
-        prisma.student.findMany({
-          where: { schoolId },
-          select: {
-            id: true,
-            name: true,
-            surname: true,
-            class: { select: { name: true } },
-          },
-          orderBy: [{ name: "asc" }, { surname: "asc" }],
-        }),
-        prisma.studentServiceAssignment.findMany({
-          where: { schoolId },
-          include: {
-            student: {
-              select: {
-                name: true,
-                surname: true,
-                class: { select: { name: true } },
-              },
+    const [
+      categories,
+      charges,
+      total,
+      summary,
+      students,
+      services,
+      serviceBalances,
+    ] = await Promise.all([
+      prisma.studentChargeCategory.findMany({
+        where: { schoolId },
+        orderBy: { createdAt: "asc" },
+      }),
+      prisma.studentCharge.findMany({
+        where,
+        orderBy: [{ dueDate: "asc" }, { id: "asc" }],
+        skip: (page - 1) * 25,
+        take: 25,
+        include: {
+          student: {
+            select: {
+              id: true,
+              name: true,
+              surname: true,
+              class: { select: { name: true } },
             },
           },
-          orderBy: { updatedAt: "desc" },
-        }),
-        prisma.studentCharge.groupBy({
-          by: ["studentId", "kind"],
-          where: {
-            schoolId,
-            academicYear: calendar.academicYear,
-            kind: { in: ["TRANSPORT", "GARDE"] },
-            voidedAt: null,
+          payments: {
+            orderBy: { createdAt: "desc" },
+            select: {
+              id: true,
+              amount: true,
+              paymentMethod: true,
+              paidAt: true,
+              createdAt: true,
+            },
           },
-          _sum: { amount: true, paidAmount: true },
-        }),
-      ]);
+        },
+      }),
+      prisma.studentCharge.count({ where }),
+      prisma.studentCharge.aggregate({
+        where: { ...base, voidedAt: null },
+        _sum: { amount: true, paidAmount: true },
+        _count: { id: true },
+      }),
+      prisma.student.findMany({
+        where: { schoolId },
+        select: {
+          id: true,
+          name: true,
+          surname: true,
+          class: { select: { name: true } },
+        },
+        orderBy: [{ name: "asc" }, { surname: "asc" }],
+      }),
+      prisma.studentServiceAssignment.findMany({
+        where: { schoolId },
+        include: {
+          student: {
+            select: {
+              name: true,
+              surname: true,
+              class: { select: { name: true } },
+            },
+          },
+        },
+        orderBy: { updatedAt: "desc" },
+      }),
+      prisma.studentCharge.groupBy({
+        by: ["studentId", "kind"],
+        where: {
+          schoolId,
+          academicYear: calendar.academicYear,
+          kind: { not: "REGISTRATION" },
+          voidedAt: null,
+        },
+        _sum: { amount: true, paidAmount: true },
+      }),
+    ]);
     return NextResponse.json(
       {
         success: true,
         config,
+        categories,
         academicYear: calendar.academicYear,
         charges,
         total,
@@ -236,6 +253,118 @@ export async function POST(request: NextRequest) {
       });
       invalidateTenantTags(schoolId, "finance", "dashboard", "incomes");
       return NextResponse.json({ success: true, ...result });
+    }
+    if (body.action === "categoryCreate" || body.action === "categoryUpdate") {
+      const name = typeof body.name === "string" ? body.name.trim() : "";
+      if (name.length < 2 || name.length > 60)
+        throw new Error(
+          "Le nom de la catégorie doit contenir entre 2 et 60 caractères.",
+        );
+      const price = validateMoney(body.price, true);
+      if (body.frequency !== "MONTHLY" && body.frequency !== "YEARLY")
+        throw new Error("Choisissez une fréquence de facturation.");
+      if (typeof body.active !== "boolean")
+        throw new Error("État de catégorie invalide.");
+      const config = await prisma.institution.findUniqueOrThrow({
+        where: { schoolId },
+      });
+      const academicYear = chargeCalendar(config).academicYear;
+      const duplicate = await prisma.studentChargeCategory.findFirst({
+        where: {
+          schoolId,
+          name: { equals: name, mode: "insensitive" },
+          ...(body.action === "categoryUpdate"
+            ? { kind: { not: body.kind } }
+            : {}),
+        },
+      });
+      if (duplicate) throw new Error("Une catégorie porte déjà ce nom.");
+      if (body.action === "categoryCreate") {
+        const kind = `CUSTOM_${randomUUID().replace(/-/g, "").slice(0, 24)}`;
+        await prisma.$transaction(async (tx) => {
+          await tx.studentChargeCategory.create({
+            data: {
+              schoolId,
+              kind,
+              name,
+              price,
+              frequency: body.frequency,
+              active: body.active,
+            },
+          });
+          await tx.auditLog.create({
+            data: {
+              schoolId,
+              action: "CREATE",
+              performedBy: adminId,
+              entityType: "StudentChargeCategory",
+              entityId: kind,
+              description: `Created ${name}: ${price} TND, ${body.frequency}.`,
+            },
+          });
+        });
+      } else {
+        if (typeof body.kind !== "string" || !isCustomChargeKind(body.kind))
+          throw new Error("Catégorie invalide.");
+        const current = await prisma.studentChargeCategory.findUnique({
+          where: { schoolId_kind: { schoolId, kind: body.kind } },
+        });
+        if (!current)
+          throw new Error("Catégorie introuvable dans cette école.");
+        if (
+          name !== current.name &&
+          (await prisma.studentCharge.count({
+            where: { schoolId, kind: body.kind },
+          }))
+        )
+          throw new Error(
+            "Le nom d’une catégorie déjà facturée ne peut pas changer, afin de préserver les reçus existants.",
+          );
+        const hasCharges =
+          (await prisma.studentCharge.count({
+            where: { schoolId, kind: body.kind, academicYear, voidedAt: null },
+          })) > 0;
+        const effectiveFrequency =
+          current.nextFrequency &&
+          current.frequencyYear &&
+          academicYear > current.frequencyYear
+            ? current.nextFrequency
+            : current.frequency;
+        await prisma.$transaction(async (tx) => {
+          await tx.studentChargeCategory.update({
+            where: { schoolId_kind: { schoolId, kind: body.kind } },
+            data: {
+              name,
+              price,
+              active: body.active,
+              frequency: hasCharges ? effectiveFrequency : body.frequency,
+              nextFrequency:
+                hasCharges && body.frequency !== effectiveFrequency
+                  ? body.frequency
+                  : null,
+              frequencyYear: academicYear,
+            },
+          });
+          if (current.price !== price)
+            await tx.studentServiceAssignment.updateMany({
+              where: { schoolId, kind: body.kind, monthlyFee: current.price },
+              data: { monthlyFee: price },
+            });
+          await tx.auditLog.create({
+            data: {
+              schoolId,
+              action: "UPDATE",
+              performedBy: adminId,
+              entityType: "StudentChargeCategory",
+              entityId: body.kind,
+              description: `Updated ${name}: ${price} TND, ${body.frequency}. Existing charges unchanged.`,
+            },
+          });
+        });
+      }
+      await syncStudentCharges(schoolId);
+      invalidateTenantTags(schoolId, "finance", "students");
+      return NextResponse.json({ success: true });
     }
     if (body.action === "settings") {
       if (typeof body.registrationFeeEnabled !== "boolean")
@@ -327,7 +456,11 @@ export async function POST(request: NextRequest) {
     }
     if (body.action === "assignBulk") {
       if (
-        !["TRANSPORT", "GARDE"].includes(body.kind) ||
+        !(
+          body.kind === "TRANSPORT" ||
+          body.kind === "GARDE" ||
+          (typeof body.kind === "string" && isCustomChargeKind(body.kind))
+        ) ||
         !Array.isArray(body.studentIds) ||
         body.studentIds.length < 1 ||
         body.studentIds.length > 1000 ||
@@ -338,8 +471,18 @@ export async function POST(request: NextRequest) {
       const config = await prisma.institution.findUniqueOrThrow({
         where: { schoolId },
       });
-      const price =
-        body.kind === "TRANSPORT"
+      const category = isCustomChargeKind(body.kind)
+        ? await prisma.studentChargeCategory.findUnique({
+            where: { schoolId_kind: { schoolId, kind: body.kind } },
+          })
+        : null;
+      if (isCustomChargeKind(body.kind) && !category?.active)
+        throw new Error("Cette catégorie n’est pas active dans cette école.");
+      const price = category
+        ? category.active
+          ? category.price
+          : null
+        : body.kind === "TRANSPORT"
           ? config.transportMonthlyFee
           : config.gardeMonthlyFee;
       if (price === null)
@@ -376,7 +519,13 @@ export async function POST(request: NextRequest) {
             kind: body.kind,
             studentId: { in: body.studentIds },
           },
-          data: { active: true, startPeriod: body.startPeriod },
+          data: {
+            active: true,
+            startPeriod: body.startPeriod,
+            monthlyFee: price,
+            discountType: null,
+            discountValue: 0,
+          },
         });
         await tx.studentServiceAssignment.createMany({
           data: body.studentIds.map((studentId: string) => ({
@@ -408,7 +557,11 @@ export async function POST(request: NextRequest) {
     }
     if (body.action === "assign") {
       if (
-        !["TRANSPORT", "GARDE"].includes(body.kind) ||
+        !(
+          body.kind === "TRANSPORT" ||
+          body.kind === "GARDE" ||
+          (typeof body.kind === "string" && isCustomChargeKind(body.kind))
+        ) ||
         typeof body.studentId !== "string" ||
         typeof body.active !== "boolean"
       )
@@ -426,6 +579,15 @@ export async function POST(request: NextRequest) {
         });
       } else {
         const monthlyFee = validateMoney(body.monthlyFee, true);
+        if (isCustomChargeKind(body.kind)) {
+          const category = await prisma.studentChargeCategory.findUnique({
+            where: { schoolId_kind: { schoolId, kind: body.kind } },
+          });
+          if (!category?.active)
+            throw new Error(
+              "Cette catégorie n’est pas active dans cette école.",
+            );
+        }
         const discountType =
           body.discountType === null || body.discountType === undefined
             ? null

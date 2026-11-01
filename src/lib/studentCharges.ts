@@ -4,6 +4,8 @@ import { randomUUID } from "node:crypto";
 import { schoolDate, roundMoney } from "./agent/dataAccuracy";
 
 export const CHARGE_KINDS = ["REGISTRATION", "TRANSPORT", "GARDE"] as const;
+export const isCustomChargeKind = (kind: string) =>
+  /^CUSTOM_[a-z0-9]{20,32}$/.test(kind);
 export type ServiceKind = "TRANSPORT" | "GARDE";
 export type BillingFrequency = "MONTHLY" | "YEARLY";
 export function serviceFrequency(
@@ -131,7 +133,7 @@ export async function syncStudentCharges(schoolId: string, now = new Date()) {
   const calendar = chargeCalendar(config, now);
   if (now < calendar.start)
     return { created: 0, academicYear: calendar.academicYear };
-  const [students, services] = await Promise.all([
+  const [students, services, categories] = await Promise.all([
     config.registrationFeeEnabled
       ? prisma.student.findMany({
           where: { schoolId },
@@ -141,7 +143,13 @@ export async function syncStudentCharges(schoolId: string, now = new Date()) {
     prisma.studentServiceAssignment.findMany({
       where: { schoolId, active: true, student: { schoolId } },
     }),
+    prisma.studentChargeCategory.findMany({
+      where: { schoolId, active: true },
+    }),
   ]);
+  const categoryByKind = new Map(
+    categories.map((category) => [category.kind, category]),
+  );
   const rows: Prisma.StudentChargeCreateManyInput[] = students.map(
     (student) => ({
       schoolId,
@@ -155,11 +163,21 @@ export async function syncStudentCharges(schoolId: string, now = new Date()) {
     }),
   );
   for (const service of services) {
-    const frequency = serviceFrequency(
-      config,
-      service.kind as ServiceKind,
-      calendar.academicYear,
-    );
+    const category = isCustomChargeKind(service.kind)
+      ? categoryByKind.get(service.kind)
+      : null;
+    if (isCustomChargeKind(service.kind) && !category) continue;
+    const frequency = category
+      ? ((category.nextFrequency &&
+        category.frequencyYear &&
+        calendar.academicYear > category.frequencyYear
+          ? category.nextFrequency
+          : category.frequency) as BillingFrequency)
+      : serviceFrequency(
+          config,
+          service.kind as ServiceKind,
+          calendar.academicYear,
+        );
     const amount = discountedServiceAmount(
       service.monthlyFee,
       service.discountType,
@@ -288,7 +306,19 @@ export async function collectStudentCharge(input: {
               ? "Inscription"
               : charge.kind === "TRANSPORT"
                 ? "Transport"
-                : "Garde",
+                : charge.kind === "GARDE"
+                  ? "Garde"
+                  : (
+                      await tx.studentChargeCategory.findUnique({
+                        where: {
+                          schoolId_kind: {
+                            schoolId: input.schoolId,
+                            kind: charge.kind,
+                          },
+                        },
+                        select: { name: true },
+                      })
+                    )?.name || "Service",
           amount,
           date: paidAt,
           referenceType: "StudentChargePayment",

@@ -5,21 +5,30 @@ import { Search, Bus, ShieldCheck } from "lucide-react";
 import { useLanguage } from "@/lib/translations/LanguageContext";
 import type { Data } from "./StudentChargesClient";
 
-type Kind = "TRANSPORT" | "GARDE";
+type Kind = string;
 export default function ServiceAssignments({
   data,
   onSaved,
+  initialKind,
 }: {
   data: Data;
   onSaved: () => Promise<unknown>;
+  initialKind: string;
 }) {
   const { locale } = useLanguage();
   const t = (fr: string, en: string, ar: string) =>
     locale === "ar" ? ar : locale === "en" ? en : fr;
-  const [kind, setKind] = useState<Kind>("TRANSPORT");
+  const [kind, setKind] = useState<Kind>(initialKind);
   const [query, setQuery] = useState("");
   const [className, setClassName] = useState("");
+  const [assignmentFilter, setAssignmentFilter] = useState<
+    "available" | "assigned" | "all"
+  >("available");
   const [selected, setSelected] = useState<string[]>([]);
+  useEffect(() => {
+    setKind(initialKind);
+    setSelected([]);
+  }, [initialKind]);
   const [startPeriod, setStartPeriod] = useState(() =>
     new Date()
       .toLocaleDateString("en-CA", { timeZone: "Africa/Tunis" })
@@ -36,20 +45,33 @@ export default function ServiceAssignments({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
-  const price =
+  const category = data.categories.find((item) => item.kind === kind);
+  const serviceName =
     kind === "TRANSPORT"
+      ? t("Transport", "Bus", "النقل")
+      : kind === "GARDE"
+        ? t("Garde", "Care", "الحضانة")
+        : category?.name || kind;
+  const price = category
+    ? category.active
+      ? category.price
+      : null
+    : kind === "TRANSPORT"
       ? data.config.transportMonthlyFee
       : data.config.gardeMonthlyFee;
   const configuredFrequency =
-    kind === "TRANSPORT"
+    category?.frequency ??
+    (kind === "TRANSPORT"
       ? data.config.transportFrequency
-      : data.config.gardeFrequency;
-  const nextFrequency =
-    kind === "TRANSPORT"
+      : data.config.gardeFrequency);
+  const nextFrequency = category
+    ? category.nextFrequency
+    : kind === "TRANSPORT"
       ? data.config.transportNextFrequency
       : data.config.gardeNextFrequency;
-  const frequencyYear =
-    kind === "TRANSPORT"
+  const frequencyYear = category
+    ? category.frequencyYear
+    : kind === "TRANSPORT"
       ? data.config.transportFrequencyYear
       : data.config.gardeFrequencyYear;
   const pendingFrequency =
@@ -73,18 +95,33 @@ export default function ServiceAssignments({
     () =>
       data.students.filter(
         (s) =>
+          (assignmentFilter === "all" ||
+            (assignmentFilter === "assigned"
+              ? data.services.some(
+                  (assignment) =>
+                    assignment.kind === kind &&
+                    assignment.studentId === s.id &&
+                    assignment.active,
+                )
+              : !data.services.some(
+                  (assignment) =>
+                    assignment.kind === kind &&
+                    assignment.studentId === s.id &&
+                    assignment.active,
+                ))) &&
           (!className || s.class?.name === className) &&
           (!query ||
             `${s.name} ${s.surname} ${s.class?.name || ""}`
               .toLocaleLowerCase()
               .includes(query.toLocaleLowerCase())),
       ),
-    [data.students, className, query],
+    [data.students, data.services, kind, assignmentFilter, className, query],
   );
-  const visibleStudents = filtered.slice(0, 100);
+  const visibleStudents = filtered;
   const activeAssignments = data.services.filter(
     (a) =>
       a.active &&
+      a.kind === kind &&
       (!className || a.student.class?.name === className) &&
       (!query ||
         `${a.student.name} ${a.student.surname} ${a.student.class?.name || ""}`
@@ -240,6 +277,13 @@ export default function ServiceAssignments({
             <option value="GARDE">
               {t("Garde", "After-school care", "الحضانة")}
             </option>
+            {data.categories
+              .filter((category) => category.active)
+              .map((category) => (
+                <option key={category.kind} value={category.kind}>
+                  {category.name}
+                </option>
+              ))}
           </select>
           <label className="relative">
             <Search
@@ -287,10 +331,7 @@ export default function ServiceAssignments({
         </div>
         <div className="mt-4 flex flex-wrap items-center gap-3 text-sm">
           <span className="rounded-lg bg-slate-100 px-3 py-2">
-            {kind === "TRANSPORT"
-              ? t("Transport", "Bus", "النقل")
-              : t("Garde", "Care", "الحضانة")}
-            :{" "}
+            {serviceName}:{" "}
             <strong>
               {price === null
                 ? t("Prix non défini", "Price not set", "المعلوم غير محدد")
@@ -318,7 +359,34 @@ export default function ServiceAssignments({
             )}
           </span>
         </div>
-        <div className="mt-4 max-h-72 overflow-auto rounded-xl border">
+        <div
+          className="mt-4 flex flex-wrap gap-2"
+          role="group"
+          aria-label={t(
+            "Filtrer les élèves",
+            "Filter students",
+            "تصفية التلاميذ",
+          )}
+        >
+          {(["available", "assigned", "all"] as const).map((value) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => {
+                setAssignmentFilter(value);
+                setSelected([]);
+              }}
+              className={`rounded-full px-3 py-1.5 text-sm font-medium ${assignmentFilter === value ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-600"}`}
+            >
+              {value === "available"
+                ? t("À inscrire", "Not assigned", "غير مسجل")
+                : value === "assigned"
+                  ? t("Déjà inscrits", "Assigned", "مسجل")
+                  : t("Tous", "All", "الكل")}
+            </button>
+          ))}
+        </div>
+        <div className="mt-3 max-h-96 overflow-auto rounded-xl border">
           <label className="sticky top-0 flex cursor-pointer items-center gap-3 border-b bg-slate-50 px-4 py-3 text-sm font-semibold">
             <input type="checkbox" checked={allVisible} onChange={toggleAll} />
             {t(
@@ -356,12 +424,12 @@ export default function ServiceAssignments({
               </label>
             );
           })}
-          {filtered.length > visibleStudents.length && (
-            <p className="px-4 py-3 text-xs text-slate-500">
+          {filtered.length === 0 && (
+            <p className="p-5 text-sm text-slate-500">
               {t(
-                "100 premiers affichés. Affinez la recherche ou sélectionnez tous les résultats.",
-                "Showing the first 100. Refine the search or select all matching students.",
-                "أول 100 ظاهرون. دقّق البحث أو حدد جميع النتائج.",
+                "Aucun élève dans cette vue.",
+                "No students in this view.",
+                "لا يوجد تلاميذ في هذا العرض.",
               )}
             </p>
           )}
@@ -431,7 +499,12 @@ export default function ServiceAssignments({
         <div className="mt-4 flex flex-wrap gap-2">
           <button
             disabled={
-              selected.length === 0 || price === null || invalidDiscount || busy
+              selected.length === 0 ||
+              price === null ||
+              invalidDiscount ||
+              busy ||
+              (selected.length > 1 &&
+                selected.some((id) => assignmentMap.get(id)?.active))
             }
             onClick={() =>
               setReview({
@@ -467,7 +540,7 @@ export default function ServiceAssignments({
           {t("affectations actives", "active assignments", "إسناد نشط")}
         </p>
         <div className="mt-3 grid gap-2 sm:grid-cols-2">
-          {activeAssignments.slice(0, 100).map((a) => (
+          {activeAssignments.map((a) => (
             <div key={a.id} className="rounded-xl border p-3 text-sm">
               <strong>
                 {a.student.name} {a.student.surname}
@@ -476,10 +549,7 @@ export default function ServiceAssignments({
                 {a.student.class?.name}
               </span>
               <p className="mt-1 text-slate-600">
-                {a.kind === "TRANSPORT"
-                  ? t("Transport", "Bus", "النقل")
-                  : t("Garde", "Care", "الحضانة")}{" "}
-                · {a.monthlyFee} TND{" "}
+                {serviceName} · {a.monthlyFee} TND{" "}
                 {a.discountType
                   ? `· ${t("réduction", "discount", "تخفيض")} ${a.discountValue}${a.discountType === "PERCENT" ? "%" : " TND"}`
                   : ""}
@@ -498,15 +568,6 @@ export default function ServiceAssignments({
             </div>
           ))}
         </div>
-        {activeAssignments.length > 100 && (
-          <p className="mt-3 text-xs text-slate-500">
-            {t(
-              "100 premiers affichés. Utilisez la recherche pour trouver un élève.",
-              "Showing the first 100. Search to find a student.",
-              "أول 100 ظاهرون. استخدم البحث للعثور على تلميذ.",
-            )}
-          </p>
-        )}
       </div>
       {review && (
         <div
@@ -530,10 +591,7 @@ export default function ServiceAssignments({
             </h3>
             <p className="mt-3 text-sm text-slate-600">
               {review.ids.length} {t("élève(s)", "student(s)", "تلميذ")} ·{" "}
-              {kind === "TRANSPORT"
-                ? t("Transport", "Bus", "النقل")
-                : t("Garde", "Care", "الحضانة")}{" "}
-              · {price} TND ·{" "}
+              {serviceName} · {price} TND ·{" "}
               {frequency === "YEARLY"
                 ? t("une fois/an", "once/year", "مرة/سنة")
                 : t("par mois", "per month", "شهرياً")}

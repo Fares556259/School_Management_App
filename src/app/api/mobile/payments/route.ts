@@ -45,33 +45,41 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    const [payments, institution, additionalCharges] = await Promise.all([
-      prisma.payment.findMany({
-        where: { studentId, schoolId },
-        orderBy: [{ year: "desc" }, { month: "desc" }],
-      }),
-      prisma.institution.findFirst({
-        where: { schoolId },
-        select: {
-          academicYear: true,
-          halfBoundaryMonths: true,
-          registrationReconciliationYear: true,
-        },
-      }),
-      prisma.studentCharge.findMany({
-        where: { schoolId, studentId, voidedAt: null },
-        orderBy: { dueDate: "asc" },
-        select: {
-          id: true,
-          kind: true,
-          period: true,
-          academicYear: true,
-          amount: true,
-          paidAmount: true,
-          dueDate: true,
-        },
-      }),
-    ]);
+    const [payments, institution, additionalCharges, categories] =
+      await Promise.all([
+        prisma.payment.findMany({
+          where: { studentId, schoolId },
+          orderBy: [{ year: "desc" }, { month: "desc" }],
+        }),
+        prisma.institution.findFirst({
+          where: { schoolId },
+          select: {
+            academicYear: true,
+            halfBoundaryMonths: true,
+            registrationReconciliationYear: true,
+          },
+        }),
+        prisma.studentCharge.findMany({
+          where: { schoolId, studentId, voidedAt: null },
+          orderBy: { dueDate: "asc" },
+          select: {
+            id: true,
+            kind: true,
+            period: true,
+            academicYear: true,
+            amount: true,
+            paidAmount: true,
+            dueDate: true,
+          },
+        }),
+        prisma.studentChargeCategory.findMany({
+          where: { schoolId },
+          select: { kind: true, name: true },
+        }),
+      ]);
+    const categoryNames = new Map(
+      categories.map((category) => [category.kind, category.name]),
+    );
 
     const tuitionFee =
       student.customTuition ?? student.level?.tuitionFee ?? 450;
@@ -104,13 +112,18 @@ export async function GET(request: NextRequest) {
           kind: "metadata",
           tuitionFee,
           halfBoundaryMonths: institution?.halfBoundaryMonths === true,
-          additionalCharges: additionalCharges.filter(
-            (charge) =>
-              charge.kind !== "REGISTRATION" ||
-              charge.academicYear !==
-                institution?.registrationReconciliationYear ||
-              charge.paidAmount >= charge.amount,
-          ),
+          additionalCharges: additionalCharges
+            .filter(
+              (charge) =>
+                charge.kind !== "REGISTRATION" ||
+                charge.academicYear !==
+                  institution?.registrationReconciliationYear ||
+                charge.paidAmount >= charge.amount,
+            )
+            .map((charge) => ({
+              ...charge,
+              categoryName: categoryNames.get(charge.kind) || null,
+            })),
           monthlyFees: Object.fromEntries(
             Array.from({ length: 12 }, (_, index) => [
               index + 1,

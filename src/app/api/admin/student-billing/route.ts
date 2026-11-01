@@ -70,7 +70,7 @@ export async function GET(request: NextRequest) {
         { success: false, error: "Student not found" },
         { status: 404 },
       );
-    const [institution, payments, charges] = await Promise.all([
+    const [institution, payments, charges, categories] = await Promise.all([
       prisma.institution.findUniqueOrThrow({
         where: { schoolId },
         select: { halfBoundaryMonths: true, academicYear: true },
@@ -92,7 +92,14 @@ export async function GET(request: NextRequest) {
           dueDate: true,
         },
       }),
+      prisma.studentChargeCategory.findMany({
+        where: { schoolId },
+        select: { kind: true, name: true },
+      }),
     ]);
+    const categoryNames = new Map(
+      categories.map((category) => [category.kind, category.name]),
+    );
     return NextResponse.json(
       {
         success: true,
@@ -101,7 +108,10 @@ export async function GET(request: NextRequest) {
         halfBoundaryMonths: institution.halfBoundaryMonths,
         academicYear: institution.academicYear,
         payments,
-        charges,
+        charges: charges.map((charge) => ({
+          ...charge,
+          categoryName: categoryNames.get(charge.kind) || null,
+        })),
       },
       { headers: { "Cache-Control": "private, no-store" } },
     );
@@ -319,6 +329,12 @@ export async function POST(request: NextRequest) {
             where: { id: item.id },
             data: { paidAmount: { increment: item.amount } },
           });
+          const customCategory = charge.kind.startsWith("CUSTOM_")
+            ? await tx.studentChargeCategory.findUnique({
+                where: { schoolId_kind: { schoolId, kind: charge.kind } },
+                select: { name: true },
+              })
+            : null;
           incomeLines.push({
             title: `${charge.kind}: ${student.name} ${student.surname} (${charge.period})`,
             amount: item.amount,
@@ -327,7 +343,9 @@ export async function POST(request: NextRequest) {
                 ? "Registration"
                 : charge.kind === "TRANSPORT"
                   ? "Transport"
-                  : "Garde",
+                  : charge.kind === "GARDE"
+                    ? "Garde"
+                    : customCategory?.name || "Service",
           });
         }
         const receipt = await tx.studentBillingReceipt.create({

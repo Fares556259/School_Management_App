@@ -638,6 +638,7 @@ model School {
   activatedAt           DateTime?
   Admin                 Admin[]
   StudentServiceAssignment StudentServiceAssignment[]
+  StudentChargeCategory StudentChargeCategory[]
   StudentCharge StudentCharge[]
   StudentChargePayment StudentChargePayment[]
   StudentBillingReceipt StudentBillingReceipt[]
@@ -671,6 +672,23 @@ model School {
   TelegramAccount       TelegramAccount[]
   AIKnowledge           AIKnowledge[]
   AIReminder            AIReminder[]
+}
+
+model StudentChargeCategory {
+  id String @id @default(cuid())
+  schoolId String
+  kind String
+  name String
+  price Float
+  frequency String @default("MONTHLY")
+  nextFrequency String?
+  frequencyYear String?
+  active Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  School School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  @@unique([schoolId, kind])
+  @@index([schoolId, active])
 }
 
 model SetupRequest {

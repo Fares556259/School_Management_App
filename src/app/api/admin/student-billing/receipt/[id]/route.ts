@@ -60,11 +60,24 @@ export async function GET(
     const chargeIds = selectedCharges
       .map((item) => item.id)
       .filter((value): value is string => !!value);
-    const charges = await prisma.studentCharge.findMany({
-      where: { id: { in: chargeIds }, schoolId, studentId: receipt.studentId },
-      select: { id: true, kind: true, period: true },
-    });
+    const [charges, categories] = await Promise.all([
+      prisma.studentCharge.findMany({
+        where: {
+          id: { in: chargeIds },
+          schoolId,
+          studentId: receipt.studentId,
+        },
+        select: { id: true, kind: true, period: true },
+      }),
+      prisma.studentChargeCategory.findMany({
+        where: { schoolId },
+        select: { kind: true, name: true },
+      }),
+    ]);
     const chargesById = new Map(charges.map((charge) => [charge.id, charge]));
+    const categoryNames = new Map(
+      categories.map((category) => [category.kind, category.name]),
+    );
     const lines = [
       ...tuition.map((item) => ({
         label: `Scolarité · ${item.monthYear || ""}`,
@@ -79,7 +92,7 @@ export async function GET(
               ? "Garde"
               : charge?.kind === "TRANSPORT"
                 ? "Transport"
-                : "Service";
+                : categoryNames.get(charge?.kind || "") || "Service";
         return {
           label: `${label} · ${charge?.period || ""}`,
           amount: item.amount,

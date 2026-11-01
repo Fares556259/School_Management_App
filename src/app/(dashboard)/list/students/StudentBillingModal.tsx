@@ -13,6 +13,7 @@ type Charge = {
   amount: number;
   paidAmount: number;
   dueDate: string;
+  categoryName?: string | null;
 };
 type Billing = {
   tuitionFee: number;
@@ -524,89 +525,80 @@ export default function StudentBillingModal({
                       </select>
                     )}
                   </section>
-                  <div className="mt-3 space-y-2">
-                    {(["REGISTRATION", "GARDE", "TRANSPORT"] as const).map(
-                      (kind) => {
-                        const matching = dueCharges.filter(
-                          (c) => c.kind === kind,
-                        );
-                        return (
-                          <section key={kind} className="rounded-xl border p-4">
-                            <h3 className="font-semibold">
-                              {kind === "REGISTRATION"
-                                ? t("Inscription", "Registration", "التسجيل")
-                                : kind === "GARDE"
-                                  ? t("Garde", "After-school care", "الحضانة")
-                                  : t("Transport", "Bus", "النقل")}
-                            </h3>
-                            {matching.length === 0 ? (
-                              <p className="mt-1 text-sm text-slate-400">
-                                {t(
-                                  "Aucune échéance",
-                                  "No charge",
-                                  "لا توجد معاليم",
-                                )}
-                              </p>
-                            ) : (
-                              matching.map((c) => (
-                                <div
-                                  key={c.id}
-                                  className="mt-3 flex flex-wrap items-center gap-3 border-t pt-3"
-                                >
-                                  <label className="flex min-w-0 flex-1 items-center gap-2 text-sm">
-                                    <input
-                                      type="checkbox"
-                                      checked={chosen.includes(c.id)}
-                                      onChange={(e) =>
-                                        setChosen((prev) =>
-                                          e.target.checked
-                                            ? [...prev, c.id]
-                                            : prev.filter((id) => id !== c.id),
-                                        )
-                                      }
-                                    />
-                                    <span>
-                                      {c.period} ·{" "}
-                                      {t("Reste", "Due", "المتبقي")}{" "}
-                                      {Math.round(
-                                        (c.amount - c.paidAmount) * 1000,
-                                      ) / 1000}{" "}
-                                      TND
-                                    </span>
-                                  </label>
-                                  {chosen.includes(c.id) && (
-                                    <input
-                                      aria-label={t(
-                                        "Montant reçu",
-                                        "Amount received",
-                                        "المبلغ المقبوض",
-                                      )}
-                                      inputMode="decimal"
-                                      className="w-28 rounded-lg border p-2 text-sm"
-                                      value={
-                                        chargeAmounts[c.id] ??
-                                        String(
-                                          Math.round(
-                                            (c.amount - c.paidAmount) * 1000,
-                                          ) / 1000,
-                                        )
-                                      }
-                                      onChange={(e) =>
-                                        setChargeAmounts((prev) => ({
-                                          ...prev,
-                                          [c.id]: e.target.value,
-                                        }))
-                                      }
-                                    />
-                                  )}
-                                </div>
-                              ))
-                            )}
-                          </section>
-                        );
-                      },
-                    )}
-                  </div>
+                  {dueCharges.length > 0 && (
+                    <div className="mt-4 space-y-2">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        {t(
+                          "Autres frais à régler",
+                          "Other charges due",
+                          "معاليم أخرى مستحقة",
+                        )}
+                      </p>
+                      {dueCharges.map((charge) => (
+                        <label
+                          key={charge.id}
+                          className={`flex cursor-pointer flex-wrap items-center gap-3 rounded-xl border p-3 transition-colors ${chosen.includes(charge.id) ? "border-blue-300 bg-blue-50/60" : "border-slate-200 bg-white"}`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={chosen.includes(charge.id)}
+                            onChange={(event) =>
+                              setChosen((previous) =>
+                                event.target.checked
+                                  ? [...previous, charge.id]
+                                  : previous.filter((id) => id !== charge.id),
+                              )
+                            }
+                          />
+                          <span className="min-w-0 flex-1 text-sm">
+                            <strong className="block text-slate-900">
+                              {charge.categoryName ||
+                                (charge.kind === "REGISTRATION"
+                                  ? t("Inscription", "Registration", "التسجيل")
+                                  : charge.kind === "GARDE"
+                                    ? t("Garde", "After-school care", "الحضانة")
+                                    : charge.kind === "TRANSPORT"
+                                      ? t("Transport", "Bus", "النقل")
+                                      : t(
+                                          "Autre service",
+                                          "Other service",
+                                          "خدمة أخرى",
+                                        ))}
+                            </strong>
+                            <span className="text-xs text-slate-500">
+                              {charge.period} · {t("Reste", "Due", "المتبقي")}{" "}
+                              {Math.round(
+                                (charge.amount - charge.paidAmount) * 1000,
+                              ) / 1000}{" "}
+                              TND
+                            </span>
+                          </span>
+                          {chosen.includes(charge.id) && (
+                            <input
+                              aria-label={`${t("Montant reçu", "Amount received", "المبلغ المقبوض")} ${charge.categoryName || charge.kind}`}
+                              inputMode="decimal"
+                              className="w-28 rounded-lg border border-slate-300 bg-white p-2 text-sm"
+                              value={
+                                chargeAmounts[charge.id] ??
+                                String(
+                                  Math.round(
+                                    (charge.amount - charge.paidAmount) * 1000,
+                                  ) / 1000,
+                                )
+                              }
+                              onChange={(event) =>
+                                setChargeAmounts((previous) => ({
+                                  ...previous,
+                                  [charge.id]: event.target.value,
+                                }))
+                              }
+                              onClick={(event) => event.stopPropagation()}
+                            />
+                          )}
+                        </label>
+                      ))}
+                    </div>
+                  )}
                   <div className="mt-4 grid gap-3 sm:grid-cols-2">
                     <label className="text-sm">
                       {t(
@@ -690,11 +682,18 @@ export default function StudentBillingModal({
                             className="flex justify-between gap-2"
                           >
                             <span>
-                              {charge.kind === "REGISTRATION"
-                                ? t("Inscription", "Registration", "التسجيل")
-                                : charge.kind === "GARDE"
-                                  ? t("Garde", "After-school care", "الحضانة")
-                                  : t("Transport", "Bus", "النقل")}{" "}
+                              {charge.categoryName ||
+                                (charge.kind === "REGISTRATION"
+                                  ? t("Inscription", "Registration", "التسجيل")
+                                  : charge.kind === "GARDE"
+                                    ? t("Garde", "After-school care", "الحضانة")
+                                    : charge.kind === "TRANSPORT"
+                                      ? t("Transport", "Bus", "النقل")
+                                      : t(
+                                          "Autre service",
+                                          "Other service",
+                                          "خدمة أخرى",
+                                        ))}{" "}
                               · {charge.period}
                             </span>
                             <strong>
