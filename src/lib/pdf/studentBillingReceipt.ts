@@ -9,7 +9,17 @@ function formatAmount(value: number) {
 type ReceiptLine = { label: string; amount: number };
 type ReceiptPdfInput = {
   school: { schoolName: string; address: string; phone: string } | null;
-  student: { name: string; surname: string; class: { name: string } | null };
+  student: {
+    name: string;
+    surname: string;
+    class: { name: string } | null;
+    parent?: {
+      name: string;
+      surname: string;
+      phone: string;
+      address: string;
+    } | null;
+  };
   receipt: { id: string; amount: number; paymentMethod: string; paidAt: Date };
   lines: ReceiptLine[];
 };
@@ -79,7 +89,35 @@ export async function renderStudentBillingReceiptPdf({
     doc.text(`Classe : ${student.class.name}`, width - left, y, {
       align: "right",
     });
-  y += 14;
+  y += 9;
+  if (student.parent) {
+    const parent = student.parent;
+    const addressLines = parent.address
+      ? doc.splitTextToSize(parent.address, width - left * 2 - 12).slice(0, 2)
+      : [];
+    const boxHeight = 24 + addressLines.length * 5;
+    doc.setFillColor(247, 249, 252);
+    doc.setDrawColor(224, 231, 239);
+    doc.roundedRect(left, y, width - left * 2, boxHeight, 3, 3, "FD");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.setTextColor(48, 61, 82);
+    doc.text("PARENT / TUTEUR ENREGISTRÉ", left + 5, y + 7);
+    doc.setFont(nameFont, "normal");
+    doc.setFontSize(11);
+    doc.text(`${parent.name} ${parent.surname}`, left + 5, y + 14);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(83, 97, 116);
+    doc.text(`Téléphone : ${parent.phone}`, left + 5, y + 21);
+    if (addressLines.length) {
+      doc.setFont(nameFont, "normal");
+      doc.text(addressLines, left + 5, y + 27);
+    }
+    y += boxHeight + 12;
+  } else {
+    y += 7;
+  }
   doc.setFillColor(241, 246, 252);
   doc.roundedRect(left, y - 7, width - left * 2, 11, 2, 2, "F");
   doc.setFont("helvetica", "bold");

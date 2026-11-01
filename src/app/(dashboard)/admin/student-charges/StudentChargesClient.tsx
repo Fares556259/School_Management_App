@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import {
   Receipt,
+  Bus,
   ShieldCheck,
   X,
   RefreshCw,
@@ -11,7 +12,9 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { useLanguage } from "@/lib/translations/LanguageContext";
+import { getMonthKey } from "@/lib/dateUtils";
 import ServiceAssignments from "./ServiceAssignments";
+import StudentBillingModal from "../../list/students/StudentBillingModal";
 
 type Kind = "REGISTRATION" | "TRANSPORT" | "GARDE";
 interface Charge {
@@ -131,6 +134,7 @@ export default function StudentChargesClient() {
     "w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-500";
   const button =
     "rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50";
+  const filtersActive = !!(search || kind || period || status !== "DUE");
   const load = useCallback(
     async (signal?: AbortSignal) => {
       const params = new URLSearchParams({
@@ -431,88 +435,146 @@ export default function StudentChargesClient() {
         />
       ) : tab === "charges" ? (
         <section className="overflow-hidden rounded-2xl border bg-white">
-          <div className="grid gap-3 border-b p-4 sm:grid-cols-2 lg:grid-cols-4">
-            <label className="relative">
-              <Search
-                size={16}
-                className="absolute top-3 left-3 text-slate-400"
-              />
-              <input
-                aria-label={text(
-                  "Rechercher un élève ou une classe",
-                  "Search student or class",
-                  "البحث عن تلميذ أو قسم",
-                )}
-                value={search}
-                onChange={(event) => {
-                  setSearch(event.target.value);
-                  setPage(1);
-                }}
-                placeholder={text(
-                  "Élève ou classe…",
-                  "Student or class…",
-                  "تلميذ أو قسم…",
-                )}
-                className={`${input} pl-9`}
-              />
-            </label>
-            <select
-              aria-label={text("Type de frais", "Charge type", "نوع المعاليم")}
-              value={kind}
-              onChange={(event) => {
-                setKind(event.target.value);
-                setPage(1);
-              }}
-              className={input}
-            >
-              <option value="">
-                {text("Tous les frais", "All charges", "كل المعاليم")}
-              </option>
-              {["REGISTRATION", "TRANSPORT", "GARDE"].map((value) => (
-                <option key={value} value={value}>
-                  {title(value)}
-                </option>
-              ))}
-            </select>
-            <select
-              aria-label={text("Statut", "Status", "الحالة")}
-              value={status}
-              onChange={(event) => {
-                setStatus(event.target.value);
-                setPage(1);
-              }}
-              className={input}
-            >
-              <option value="DUE">
-                {data.config.registrationReconciliationYear ===
-                data.academicYear
-                  ? text(
-                      "À rapprocher ou encaisser",
-                      "Reconcile or collect",
-                      "للمطابقة أو القبض",
-                    )
-                  : text("À encaisser", "Outstanding", "للقبض")}
-              </option>
-              <option value="PAID">{text("Soldées", "Paid", "خالصة")}</option>
-              <option value="">{text("Toutes", "All", "الكل")}</option>
-              <option value="VOIDED">
-                {text("Annulées", "Voided", "ملغاة")}
-              </option>
-            </select>
-            <input
-              aria-label={text(
-                "Mois (facultatif)",
-                "Month (optional)",
-                "الشهر (اختياري)",
+          <div className="border-b bg-slate-50/60 p-4 sm:p-5">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <h2 className="font-semibold text-slate-900">
+                  {text(
+                    "Échéances des élèves",
+                    "Student charges",
+                    "معاليم التلاميذ",
+                  )}
+                </h2>
+                <p className="mt-0.5 text-sm text-slate-500">
+                  {data.total}{" "}
+                  {text(
+                    "résultats dans cette vue",
+                    "results in this view",
+                    "نتائج في هذا العرض",
+                  )}
+                </p>
+              </div>
+              {filtersActive && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearch("");
+                    setKind("");
+                    setStatus("DUE");
+                    setPeriod("");
+                    setPage(1);
+                  }}
+                  className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-blue-700 hover:bg-blue-50"
+                >
+                  {text(
+                    "Réinitialiser les filtres",
+                    "Clear filters",
+                    "مسح المرشحات",
+                  )}
+                </button>
               )}
-              type="month"
-              value={period}
-              onChange={(event) => {
-                setPeriod(event.target.value);
-                setPage(1);
-              }}
-              className={input}
-            />
+            </div>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <label className="relative block text-xs font-medium text-slate-600">
+                {text("Rechercher", "Search", "بحث")}
+                <span className="relative mt-1 block">
+                  <Search
+                    size={16}
+                    className="absolute top-3 left-3 text-slate-400"
+                  />
+                  <input
+                    aria-label={text(
+                      "Rechercher un élève ou une classe",
+                      "Search student or class",
+                      "البحث عن تلميذ أو قسم",
+                    )}
+                    value={search}
+                    onChange={(event) => {
+                      setSearch(event.target.value);
+                      setPage(1);
+                    }}
+                    placeholder={text(
+                      "Élève ou classe…",
+                      "Student or class…",
+                      "تلميذ أو قسم…",
+                    )}
+                    className={`${input} pl-9`}
+                  />
+                </span>
+              </label>
+              <label className="block text-xs font-medium text-slate-600">
+                {text("Type de frais", "Charge type", "نوع المعلوم")}
+                <select
+                  aria-label={text(
+                    "Type de frais",
+                    "Charge type",
+                    "نوع المعاليم",
+                  )}
+                  value={kind}
+                  onChange={(event) => {
+                    setKind(event.target.value);
+                    setPage(1);
+                  }}
+                  className={`${input} mt-1`}
+                >
+                  <option value="">
+                    {text("Tous les frais", "All charges", "كل المعاليم")}
+                  </option>
+                  {["REGISTRATION", "TRANSPORT", "GARDE"].map((value) => (
+                    <option key={value} value={value}>
+                      {title(value)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="block text-xs font-medium text-slate-600">
+                {text("Statut", "Status", "الحالة")}
+                <select
+                  aria-label={text("Statut", "Status", "الحالة")}
+                  value={status}
+                  onChange={(event) => {
+                    setStatus(event.target.value);
+                    setPage(1);
+                  }}
+                  className={`${input} mt-1`}
+                >
+                  <option value="DUE">
+                    {data.config.registrationReconciliationYear ===
+                    data.academicYear
+                      ? text(
+                          "À rapprocher ou encaisser",
+                          "Reconcile or collect",
+                          "للمطابقة أو القبض",
+                        )
+                      : text("À encaisser", "Outstanding", "للقبض")}
+                  </option>
+                  <option value="PAID">
+                    {text("Soldées", "Paid", "خالصة")}
+                  </option>
+                  <option value="">{text("Toutes", "All", "الكل")}</option>
+                  <option value="VOIDED">
+                    {text("Annulées", "Voided", "ملغاة")}
+                  </option>
+                </select>
+              </label>
+              <label className="block text-xs font-medium text-slate-600">
+                {text("Mois", "Month", "الشهر")}
+                <input
+                  aria-label={text(
+                    "Mois (facultatif)",
+                    "Month (optional)",
+                    "الشهر (اختياري)",
+                  )}
+                  type="month"
+                  value={period}
+                  onChange={(event) => {
+                    setPeriod(event.target.value);
+                    setPage(1);
+                  }}
+                  className={`${input} mt-1`}
+                />
+              </label>
+            </div>
           </div>
           {!data.charges.length ? (
             <div className="p-12 text-center">
@@ -540,81 +602,102 @@ export default function StudentChargesClient() {
                 return (
                   <article
                     key={charge.id}
-                    className="flex flex-wrap items-center justify-between gap-4 p-5"
+                    className="grid gap-4 p-4 transition-colors hover:bg-slate-50/60 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:p-5"
                   >
-                    <div className="min-w-0">
-                      <h3 className="font-semibold text-slate-900">
-                        {name(charge.student)}
-                      </h3>
-                      <p className="mt-1 text-sm text-slate-600">
-                        {title(charge.kind)} · {charge.period}
-                      </p>
-                      <p className="mt-1 text-xs text-slate-500">
-                        {text("Facturé", "Billed", "المستحق")}:{" "}
-                        {currency(charge.amount)} ·{" "}
-                        {text("Reçu", "Received", "المقبوض")}:{" "}
-                        {currency(charge.paidAmount)}
-                      </p>
-                      {charge.payments.length > 0 && (
-                        <details className="mt-2 text-xs text-slate-500">
-                          <summary className="cursor-pointer">
-                            {text(
-                              "Historique des règlements",
-                              "Payment history",
-                              "سجل الدفعات",
-                            )}
-                          </summary>
-                          {charge.payments.map((payment) => (
-                            <p key={payment.id} className="mt-1">
-                              {new Date(payment.paidAt).toLocaleDateString()} ·{" "}
-                              {currency(payment.amount)} ·{" "}
-                              {payment.paymentMethod}
-                            </p>
-                          ))}
-                        </details>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex min-w-0 items-start gap-3">
                       <span
-                        className={`rounded-lg px-3 py-1.5 text-sm font-semibold ${charge.voidedAt ? "bg-slate-100 text-slate-500" : due <= 0 ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-800"}`}
+                        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${charge.kind === "TRANSPORT" ? "bg-sky-50 text-sky-700" : charge.kind === "GARDE" ? "bg-violet-50 text-violet-700" : "bg-blue-50 text-blue-700"}`}
                       >
-                        {charge.voidedAt
-                          ? text("Annulée", "Voided", "ملغاة")
-                          : due <= 0
-                            ? text("Soldée", "Paid", "خالصة")
-                            : charge.kind === "REGISTRATION" &&
-                                data.config.registrationReconciliationYear ===
-                                  data.academicYear
-                              ? `${text("À rapprocher", "Reconcile", "للمطابقة")} · ${currency(due)}`
-                              : currency(due)}
+                        {charge.kind === "TRANSPORT" ? (
+                          <Bus size={19} />
+                        ) : charge.kind === "GARDE" ? (
+                          <ShieldCheck size={19} />
+                        ) : (
+                          <Receipt size={19} />
+                        )}
                       </span>
-                      {!charge.voidedAt && due > 0 && (
-                        <button
-                          className={button}
-                          onClick={() =>
-                            open({
-                              title: text(
-                                "Confirmer l’encaissement",
-                                "Confirm payment",
-                                "تأكيد القبض",
-                              ),
-                              lines: [
-                                name(charge.student),
-                                `${title(charge.kind)} · ${charge.period}`,
-                                `${text("Solde restant", "Remaining balance", "الرصيد المتبقي")}: ${currency(due)}`,
-                              ],
-                              payload: {
-                                action: "collect",
-                                chargeId: charge.id,
-                                idempotencyKey: crypto.randomUUID(),
-                              },
-                              charge,
-                              mode: "collect",
-                            })
-                          }
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h3 className="font-semibold text-slate-900">
+                            {charge.student.name} {charge.student.surname}
+                          </h3>
+                          {charge.student.class && (
+                            <span className="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
+                              {charge.student.class.name}
+                            </span>
+                          )}
+                        </div>
+                        <p className="mt-1 text-sm text-slate-600">
+                          {title(charge.kind)} · {charge.period}
+                        </p>
+                        <p className="mt-1 text-xs text-slate-500">
+                          {text("Encaissé", "Collected", "المقبوض")}{" "}
+                          {currency(charge.paidAmount)}{" "}
+                          <span className="mx-1 text-slate-300">/</span>{" "}
+                          {text("Facturé", "Billed", "المستحق")}{" "}
+                          {currency(charge.amount)}
+                        </p>
+                        {charge.payments.length > 0 && (
+                          <details className="mt-2 text-xs text-slate-500">
+                            <summary className="cursor-pointer font-medium text-blue-700">
+                              {text(
+                                "Historique des règlements",
+                                "Payment history",
+                                "سجل الدفعات",
+                              )}
+                            </summary>
+                            {charge.payments.map((payment) => (
+                              <p key={payment.id} className="mt-1">
+                                {new Date(payment.paidAt).toLocaleDateString()}{" "}
+                                · {currency(payment.amount)} ·{" "}
+                                {payment.paymentMethod}
+                              </p>
+                            ))}
+                          </details>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-3 sm:justify-end">
+                      <div className="min-w-28 sm:text-right">
+                        <p
+                          className={`text-[11px] font-semibold uppercase tracking-wide ${charge.voidedAt ? "text-slate-500" : due <= 0 ? "text-emerald-700" : "text-amber-700"}`}
                         >
-                          {text("Encaisser", "Collect", "قبض")}
-                        </button>
+                          {charge.voidedAt
+                            ? text("Annulée", "Voided", "ملغاة")
+                            : due <= 0
+                              ? text("Soldée", "Paid", "خالصة")
+                              : charge.kind === "REGISTRATION" &&
+                                  data.config.registrationReconciliationYear ===
+                                    data.academicYear
+                                ? text(
+                                    "À rapprocher",
+                                    "To reconcile",
+                                    "للمطابقة",
+                                  )
+                                : text(
+                                    "Reste à payer",
+                                    "Balance due",
+                                    "المتبقي",
+                                  )}
+                        </p>
+                        <p
+                          className={`mt-0.5 text-lg font-semibold ${charge.voidedAt ? "text-slate-400" : due <= 0 ? "text-emerald-700" : "text-slate-900"}`}
+                        >
+                          {currency(charge.voidedAt ? 0 : due)}
+                        </p>
+                      </div>
+                      {!charge.voidedAt && due > 0 && (
+                        <StudentBillingModal
+                          studentId={charge.student.id}
+                          studentName={`${charge.student.name} ${charge.student.surname}`}
+                          monthName={getMonthKey(undefined)}
+                          isAdmin
+                          initialChargeId={charge.id}
+                          triggerLabel={text("Encaisser", "Collect", "قبض")}
+                          onPaymentRecorded={() => {
+                            void load();
+                          }}
+                        />
                       )}
                       {!charge.voidedAt &&
                         charge.paidAmount === 0 &&
@@ -625,7 +708,7 @@ export default function StudentChargesClient() {
                               "Void this charge",
                               "إلغاء الاستحقاق",
                             )}
-                            className="rounded-lg p-2 text-slate-400 hover:bg-rose-50 hover:text-rose-600"
+                            className="rounded-lg border border-slate-200 p-2 text-slate-400 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600"
                             onClick={() =>
                               open({
                                 title: text(

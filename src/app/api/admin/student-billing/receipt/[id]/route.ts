@@ -27,6 +27,15 @@ export async function GET(
             name: true,
             surname: true,
             class: { select: { name: true } },
+            parent: {
+              select: {
+                name: true,
+                surname: true,
+                phone: true,
+                address: true,
+                schoolId: true,
+              },
+            },
           },
         },
       },
@@ -80,7 +89,13 @@ export async function GET(
 
     const { pdf, filename } = await renderStudentBillingReceiptPdf({
       school,
-      student: receipt.student,
+      student: {
+        ...receipt.student,
+        parent:
+          receipt.student.parent?.schoolId === schoolId
+            ? receipt.student.parent
+            : null,
+      },
       receipt,
       lines,
     });

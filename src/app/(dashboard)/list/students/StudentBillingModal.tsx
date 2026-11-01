@@ -26,6 +26,9 @@ export default function StudentBillingModal({
   monthName,
   isAdmin,
   onTuitionPaid,
+  initialChargeId,
+  triggerLabel,
+  onPaymentRecorded,
 }: {
   studentId: string;
   studentName: string;
@@ -36,6 +39,9 @@ export default function StudentBillingModal({
     status: "PAID" | "PARTIAL",
     month: string,
   ) => void;
+  initialChargeId?: string;
+  triggerLabel?: string;
+  onPaymentRecorded?: () => void;
 }) {
   const { locale } = useLanguage();
   const t = (fr: string, en: string, ar: string) =>
@@ -83,7 +89,16 @@ export default function StudentBillingModal({
       })
       .then((value) => {
         setData(value);
-        setChosen([]);
+        setChosen(
+          initialChargeId &&
+            value.charges.some(
+              (charge) =>
+                charge.id === initialChargeId &&
+                charge.amount > charge.paidAmount,
+            )
+            ? [initialChargeId]
+            : [],
+        );
         setChargeAmounts({});
         setExtraTuition({});
         setReceipt(null);
@@ -94,7 +109,7 @@ export default function StudentBillingModal({
       })
       .finally(() => setLoading(false));
     return () => controller.abort();
-  }, [open, studentId]);
+  }, [open, studentId, initialChargeId]);
   const [monthLabel, yearText] = month.split(" ");
   const monthNo = MONTHS.indexOf(monthLabel) + 1;
   const year = Number(yearText);
@@ -110,8 +125,8 @@ export default function StudentBillingModal({
   );
   useEffect(() => {
     setTuitionAmount(String(due));
-    setTuitionChecked(due > 0);
-  }, [due, month]);
+    setTuitionChecked(!initialChargeId && due > 0);
+  }, [due, month, initialChargeId]);
   const dueCharges = useMemo(
     () => data?.charges.filter((c) => c.amount - c.paidAmount > 0) || [],
     [data],
@@ -245,6 +260,7 @@ export default function StudentBillingModal({
           month,
         );
       router.refresh();
+      onPaymentRecorded?.();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
       setReview(false);
@@ -299,9 +315,13 @@ export default function StudentBillingModal({
           setOpen(true);
         }}
         title={t("Encaisser", "Collect payment", "استخلاص")}
-        className="flex h-8 w-8 items-center justify-center rounded-md border bg-white shadow-sm disabled:opacity-50"
+        className={
+          triggerLabel
+            ? "rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
+            : "flex h-8 w-8 items-center justify-center rounded-md border bg-white shadow-sm disabled:opacity-50"
+        }
       >
-        <Banknote size={16} />
+        {triggerLabel || <Banknote size={16} />}
       </button>
       {open && (
         <div
