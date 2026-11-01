@@ -10,6 +10,7 @@ import {
   syncStudentCharges,
   validateMoney,
   CHARGE_KINDS,
+  serviceFrequency,
 } from "@/lib/studentCharges";
 import { invalidateTenantTags } from "@/lib/cache";
 
@@ -63,6 +64,12 @@ export async function GET(request: NextRequest) {
         registrationReconciliationYear: true,
         transportMonthlyFee: true,
         gardeMonthlyFee: true,
+        transportFrequency: true,
+        gardeFrequency: true,
+        transportNextFrequency: true,
+        gardeNextFrequency: true,
+        transportFrequencyYear: true,
+        gardeFrequencyYear: true,
         academicYear: true,
         halfBoundaryMonths: true,
         yearStart: true,
@@ -104,63 +111,74 @@ export async function GET(request: NextRequest) {
           ? { paidAmount: { lt: prisma.studentCharge.fields.amount } }
           : {}),
     };
-    const [charges, total, summary, students, services] = await Promise.all([
-      prisma.studentCharge.findMany({
-        where,
-        orderBy: [{ dueDate: "asc" }, { id: "asc" }],
-        skip: (page - 1) * 25,
-        take: 25,
-        include: {
-          student: {
-            select: {
-              id: true,
-              name: true,
-              surname: true,
-              class: { select: { name: true } },
+    const [charges, total, summary, students, services, serviceBalances] =
+      await Promise.all([
+        prisma.studentCharge.findMany({
+          where,
+          orderBy: [{ dueDate: "asc" }, { id: "asc" }],
+          skip: (page - 1) * 25,
+          take: 25,
+          include: {
+            student: {
+              select: {
+                id: true,
+                name: true,
+                surname: true,
+                class: { select: { name: true } },
+              },
+            },
+            payments: {
+              orderBy: { createdAt: "desc" },
+              select: {
+                id: true,
+                amount: true,
+                paymentMethod: true,
+                paidAt: true,
+                createdAt: true,
+              },
             },
           },
-          payments: {
-            orderBy: { createdAt: "desc" },
-            select: {
-              id: true,
-              amount: true,
-              paymentMethod: true,
-              paidAt: true,
-              createdAt: true,
+        }),
+        prisma.studentCharge.count({ where }),
+        prisma.studentCharge.aggregate({
+          where: { ...base, voidedAt: null },
+          _sum: { amount: true, paidAmount: true },
+          _count: { id: true },
+        }),
+        prisma.student.findMany({
+          where: { schoolId },
+          select: {
+            id: true,
+            name: true,
+            surname: true,
+            class: { select: { name: true } },
+          },
+          orderBy: [{ name: "asc" }, { surname: "asc" }],
+        }),
+        prisma.studentServiceAssignment.findMany({
+          where: { schoolId },
+          include: {
+            student: {
+              select: {
+                name: true,
+                surname: true,
+                class: { select: { name: true } },
+              },
             },
           },
-        },
-      }),
-      prisma.studentCharge.count({ where }),
-      prisma.studentCharge.aggregate({
-        where: { ...base, voidedAt: null },
-        _sum: { amount: true, paidAmount: true },
-        _count: { id: true },
-      }),
-      prisma.student.findMany({
-        where: { schoolId },
-        select: {
-          id: true,
-          name: true,
-          surname: true,
-          class: { select: { name: true } },
-        },
-        orderBy: [{ name: "asc" }, { surname: "asc" }],
-      }),
-      prisma.studentServiceAssignment.findMany({
-        where: { schoolId },
-        include: {
-          student: {
-            select: {
-              name: true,
-              surname: true,
-              class: { select: { name: true } },
-            },
+          orderBy: { updatedAt: "desc" },
+        }),
+        prisma.studentCharge.groupBy({
+          by: ["studentId", "kind"],
+          where: {
+            schoolId,
+            academicYear: calendar.academicYear,
+            kind: { in: ["TRANSPORT", "GARDE"] },
+            voidedAt: null,
           },
-        },
-        orderBy: { updatedAt: "desc" },
-      }),
-    ]);
+          _sum: { amount: true, paidAmount: true },
+        }),
+      ]);
     return NextResponse.json(
       {
         success: true,
@@ -171,6 +189,7 @@ export async function GET(request: NextRequest) {
         page,
         students,
         services,
+        serviceBalances,
         summary: {
           billed: summary._sum.amount || 0,
           paid: summary._sum.paidAmount || 0,
@@ -230,11 +249,44 @@ export async function POST(request: NextRequest) {
           academicYear: true,
           halfBoundaryMonths: true,
           yearStart: true,
+          transportMonthlyFee: true,
+          gardeMonthlyFee: true,
+          transportFrequency: true,
+          gardeFrequency: true,
+          transportNextFrequency: true,
+          gardeNextFrequency: true,
+          transportFrequencyYear: true,
+          gardeFrequencyYear: true,
         },
       });
       const currentAcademicYear = chargeCalendar(school).academicYear;
       const nullableFee = (value: unknown) =>
         value === null ? null : validateMoney(value, true);
+      const frequencySettings: Record<string, string | null> = {};
+      for (const [kind, prefix] of [
+        ["TRANSPORT", "transport"],
+        ["GARDE", "garde"],
+      ] as const) {
+        const requested = body[`${prefix}Frequency`];
+        if (!["MONTHLY", "YEARLY"].includes(requested))
+          throw new Error("Fréquence de facturation invalide.");
+        const effective = serviceFrequency(school, kind, currentAcademicYear);
+        const hasCharges =
+          (await prisma.studentCharge.count({
+            where: {
+              schoolId,
+              kind,
+              academicYear: currentAcademicYear,
+              voidedAt: null,
+            },
+          })) > 0;
+        frequencySettings[`${prefix}Frequency`] = hasCharges
+          ? effective
+          : requested;
+        frequencySettings[`${prefix}NextFrequency`] =
+          hasCharges && requested !== effective ? requested : null;
+        frequencySettings[`${prefix}FrequencyYear`] = currentAcademicYear;
+      }
       const config = {
         registrationFeeEnabled: body.registrationFeeEnabled,
         registrationFee,
@@ -243,9 +295,20 @@ export async function POST(request: NextRequest) {
           : null,
         transportMonthlyFee: nullableFee(body.transportMonthlyFee),
         gardeMonthlyFee: nullableFee(body.gardeMonthlyFee),
+        ...frequencySettings,
       };
       await prisma.$transaction(async (tx) => {
         await tx.institution.update({ where: { schoolId }, data: config });
+        for (const [kind, oldPrice, nextPrice] of [
+          ["TRANSPORT", school.transportMonthlyFee, config.transportMonthlyFee],
+          ["GARDE", school.gardeMonthlyFee, config.gardeMonthlyFee],
+        ] as const) {
+          if (oldPrice !== null && nextPrice !== null && oldPrice !== nextPrice)
+            await tx.studentServiceAssignment.updateMany({
+              where: { schoolId, kind, monthlyFee: oldPrice },
+              data: { monthlyFee: nextPrice },
+            });
+        }
         await tx.auditLog.create({
           data: {
             schoolId,
@@ -261,6 +324,87 @@ export async function POST(request: NextRequest) {
       const sync = await syncStudentCharges(schoolId);
       invalidateTenantTags(schoolId, "institution", "finance");
       return NextResponse.json({ success: true, ...sync });
+    }
+    if (body.action === "assignBulk") {
+      if (
+        !["TRANSPORT", "GARDE"].includes(body.kind) ||
+        !Array.isArray(body.studentIds) ||
+        body.studentIds.length < 1 ||
+        body.studentIds.length > 1000 ||
+        new Set(body.studentIds).size !== body.studentIds.length ||
+        body.studentIds.some((id: unknown) => typeof id !== "string")
+      )
+        throw new Error("Sélectionnez des élèves de cette école.");
+      const config = await prisma.institution.findUniqueOrThrow({
+        where: { schoolId },
+      });
+      const price =
+        body.kind === "TRANSPORT"
+          ? config.transportMonthlyFee
+          : config.gardeMonthlyFee;
+      if (price === null)
+        throw new Error("Définissez d’abord le tarif du service.");
+      const calendar = chargeCalendar(config);
+      if (
+        typeof body.startPeriod !== "string" ||
+        !/^\d{4}-(0[1-6]|09|1[0-2])$/.test(body.startPeriod) ||
+        body.startPeriod < calendar.academicYear.slice(0, 4) + "-09" ||
+        body.startPeriod > calendar.academicYear.slice(5) + "-06"
+      )
+        throw new Error("Choisissez un mois de cette année scolaire.");
+      const owned = await prisma.student.count({
+        where: { schoolId, id: { in: body.studentIds } },
+      });
+      if (owned !== body.studentIds.length)
+        throw new Error("Un élève ne fait pas partie de cette école.");
+      const alreadyAssigned = await prisma.studentServiceAssignment.count({
+        where: {
+          schoolId,
+          kind: body.kind,
+          studentId: { in: body.studentIds },
+          active: true,
+        },
+      });
+      if (alreadyAssigned)
+        throw new Error(
+          "Des élèves sélectionnés utilisent déjà ce service. Modifiez-les individuellement.",
+        );
+      await prisma.$transaction(async (tx) => {
+        await tx.studentServiceAssignment.updateMany({
+          where: {
+            schoolId,
+            kind: body.kind,
+            studentId: { in: body.studentIds },
+          },
+          data: { active: true, startPeriod: body.startPeriod },
+        });
+        await tx.studentServiceAssignment.createMany({
+          data: body.studentIds.map((studentId: string) => ({
+            schoolId,
+            studentId,
+            kind: body.kind,
+            monthlyFee: price,
+            startPeriod: body.startPeriod,
+          })),
+          skipDuplicates: true,
+        });
+        await tx.auditLog.create({
+          data: {
+            schoolId,
+            action: "UPDATE",
+            performedBy: adminId,
+            entityType: "StudentServiceAssignment",
+            description: `${body.kind}: bulk assigned to ${body.studentIds.length} students from ${body.startPeriod}. Existing charges retained.`,
+          },
+        });
+      });
+      const sync = await syncStudentCharges(schoolId);
+      invalidateTenantTags(schoolId, "students", "finance");
+      return NextResponse.json({
+        success: true,
+        assigned: body.studentIds.length,
+        ...sync,
+      });
     }
     if (body.action === "assign") {
       if (
@@ -282,6 +426,22 @@ export async function POST(request: NextRequest) {
         });
       } else {
         const monthlyFee = validateMoney(body.monthlyFee, true);
+        const discountType =
+          body.discountType === null || body.discountType === undefined
+            ? null
+            : body.discountType;
+        if (
+          discountType !== null &&
+          !["FIXED", "PERCENT"].includes(discountType)
+        )
+          throw new Error("Type de réduction invalide.");
+        const discountValue =
+          discountType === null ? 0 : validateMoney(body.discountValue, true);
+        if (
+          (discountType === "PERCENT" && discountValue > 100) ||
+          (discountType === "FIXED" && discountValue > monthlyFee)
+        )
+          throw new Error("Réduction supérieure au tarif.");
         const config = await prisma.institution.findUniqueOrThrow({
           where: { schoolId },
         });
@@ -301,12 +461,20 @@ export async function POST(request: NextRequest) {
               kind: body.kind,
             },
           },
-          update: { monthlyFee, startPeriod: body.startPeriod, active: true },
+          update: {
+            monthlyFee,
+            startPeriod: body.startPeriod,
+            active: true,
+            discountType,
+            discountValue,
+          },
           create: {
             schoolId,
             studentId: body.studentId,
             kind: body.kind,
             monthlyFee,
+            discountType,
+            discountValue,
             startPeriod: body.startPeriod,
           },
         });

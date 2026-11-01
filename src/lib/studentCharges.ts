@@ -4,6 +4,45 @@ import { randomUUID } from "node:crypto";
 import { schoolDate, roundMoney } from "./agent/dataAccuracy";
 
 export const CHARGE_KINDS = ["REGISTRATION", "TRANSPORT", "GARDE"] as const;
+export type ServiceKind = "TRANSPORT" | "GARDE";
+export type BillingFrequency = "MONTHLY" | "YEARLY";
+export function serviceFrequency(
+  config: {
+    transportFrequency: string;
+    gardeFrequency: string;
+    transportNextFrequency: string | null;
+    gardeNextFrequency: string | null;
+    transportFrequencyYear: string | null;
+    gardeFrequencyYear: string | null;
+  },
+  kind: ServiceKind,
+  academicYear: string,
+): BillingFrequency {
+  const current = (
+    kind === "TRANSPORT" ? config.transportFrequency : config.gardeFrequency
+  ) as BillingFrequency;
+  const next = (
+    kind === "TRANSPORT"
+      ? config.transportNextFrequency
+      : config.gardeNextFrequency
+  ) as BillingFrequency | null;
+  const setYear =
+    kind === "TRANSPORT"
+      ? config.transportFrequencyYear
+      : config.gardeFrequencyYear;
+  return next && setYear && academicYear > setYear ? next : current;
+}
+export function discountedServiceAmount(
+  price: number,
+  discountType: string | null,
+  discountValue: number,
+) {
+  if (discountType === "PERCENT")
+    return roundMoney(Math.max(0, price * (1 - discountValue / 100)));
+  if (discountType === "FIXED")
+    return roundMoney(Math.max(0, price - discountValue));
+  return price;
+}
 export function validateMoney(value: unknown, allowZero = false): number {
   if (
     typeof value !== "number" ||
@@ -115,19 +154,45 @@ export async function syncStudentCharges(schoolId: string, now = new Date()) {
         student.createdAt > calendar.start ? student.createdAt : calendar.start,
     }),
   );
-  for (const service of services)
-    for (const period of calendar.periods) {
-      if (period.period >= service.startPeriod)
+  for (const service of services) {
+    const frequency = serviceFrequency(
+      config,
+      service.kind as ServiceKind,
+      calendar.academicYear,
+    );
+    const amount = discountedServiceAmount(
+      service.monthlyFee,
+      service.discountType,
+      service.discountValue,
+    );
+    if (frequency === "YEARLY") {
+      const firstPeriod = calendar.periods.find(
+        (period) => period.period >= service.startPeriod,
+      );
+      if (firstPeriod)
         rows.push({
           schoolId,
           studentId: service.studentId,
           kind: service.kind,
           academicYear: calendar.academicYear,
-          period: period.period,
-          amount: service.monthlyFee,
-          dueDate: period.dueDate,
+          period: calendar.academicYear,
+          amount,
+          dueDate: firstPeriod.dueDate,
         });
-    }
+    } else
+      for (const period of calendar.periods) {
+        if (period.period >= service.startPeriod)
+          rows.push({
+            schoolId,
+            studentId: service.studentId,
+            kind: service.kind,
+            academicYear: calendar.academicYear,
+            period: period.period,
+            amount,
+            dueDate: period.dueDate,
+          });
+      }
+  }
   if (!rows.length) return { created: 0, academicYear: calendar.academicYear };
   // Batches keep newly opened schools with thousands of students within DB parameter limits.
   let created = 0;

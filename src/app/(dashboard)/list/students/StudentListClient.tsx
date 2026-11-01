@@ -4,7 +4,7 @@ import { useState, useTransition, useEffect } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import Table from "@/components/Table";
 import Pagination from "@/components/Pagination";
-import PayStudentModal from "./PayStudentModal";
+import StudentBillingModal from "./StudentBillingModal";
 import PaymentTimeline from "@/components/PaymentTimeline";
 import CrudFormModal from "@/components/CrudFormModal";
 import TableSearch from "@/components/TableSearch";
@@ -309,6 +309,7 @@ export default function StudentListClient({
           ) : <span className="text-slate-400 text-[13px]">{t.students.notProvided}</span>}
         </td>
         <td className="py-4 px-6">
+          <div className="flex flex-wrap items-center gap-1.5">
           {isPaidThisMonth ? (
             <span className="px-2.5 py-1 rounded-[4px] bg-emerald-50 border border-emerald-200 text-emerald-700 text-[12px] font-medium whitespace-nowrap">
               {t.students.paid}
@@ -322,6 +323,17 @@ export default function StudentListClient({
               {t.students.unpaid}
             </span>
           )}
+          {(item as any).serviceAssignments?.some((assignment: any) => assignment.kind === 'GARDE') && (
+            <span title={locale === 'ar' ? 'الحضانة' : locale === 'en' ? 'After-school care' : 'Garde'} className="rounded border border-violet-200 bg-violet-50 px-2 py-1 text-xs font-medium text-violet-700">
+              {locale === 'ar' ? 'حضانة' : locale === 'en' ? 'Care' : 'Garde'}
+            </span>
+          )}
+          {(item as any).serviceAssignments?.some((assignment: any) => assignment.kind === 'TRANSPORT') && (
+            <span title={locale === 'ar' ? 'النقل' : locale === 'en' ? 'School bus' : 'Transport'} className="rounded border border-sky-200 bg-sky-50 px-2 py-1 text-xs font-medium text-sky-700">
+              {locale === 'ar' ? 'نقل' : locale === 'en' ? 'Bus' : 'Transport'}
+            </span>
+          )}
+          </div>
         </td>
         <td className="py-4 px-6">
           <div className="flex items-center gap-2">
@@ -339,36 +351,21 @@ export default function StudentListClient({
               delegation={relatedData?.delegation}
               schoolAddress={relatedData?.schoolAddress}
             />
-            <PayStudentModal
+            <StudentBillingModal
               studentId={item.id}
-              studentName={item.name + " " + item.surname}
-              gradeLevel={item.level?.level ?? 0}
-              tuitionFee={item.customTuition ?? item.level?.tuitionFee ?? 450}
-              halfBoundaryMonths={halfBoundaryMonths}
-              isPaid={isPaidThisMonth}
-              isPartial={isPartialThisMonth}
-              initialPaidAmount={currentPayment?.amount || 0}
-              isAdmin={role === "admin"}
+              studentName={`${item.name} ${item.surname}`}
               monthName={clientMonthKey}
-              payments={item.payments || []}
-              paidMonths={(item.payments || [])
-                .filter(p => p.status === "PAID" || p.status === "PARTIAL")
-                .map(p => `${MONTHS[p.month - 1]} ${p.year}`)}
-              onSuccess={(newAmount, newStatus, targetMonth) => {
-                setOptimisticData((prev: any[]) => prev.map((s: any) => {
-                  if (s.id === item.id) {
-                    const monthIdx = MONTHS.indexOf(targetMonth.split(" ")[0]) + 1;
-                    const yearVal = parseInt(targetMonth.split(" ")[1]);
-                    const payments = [...(s.payments || [])];
-                    const existingIdx = payments.findIndex(p => p.month === monthIdx && p.year === yearVal);
-                    if (existingIdx >= 0) {
-                      payments[existingIdx] = { ...payments[existingIdx], amount: newAmount, status: newStatus };
-                    } else {
-                      payments.push({ month: monthIdx, year: yearVal, amount: newAmount, status: newStatus });
-                    }
-                    return { ...s, payments };
-                  }
-                  return s;
+              isAdmin={role === 'admin'}
+              onTuitionPaid={(newAmount, newStatus, targetMonth) => {
+                setOptimisticData(prev => prev.map(s => {
+                  if (s.id !== item.id) return s;
+                  const monthIdx = MONTHS.indexOf(targetMonth.split(' ')[0]) + 1;
+                  const yearVal = Number(targetMonth.split(' ')[1]);
+                  const payments = [...(s.payments || [])];
+                  const index = payments.findIndex((p: any) => p.month === monthIdx && p.year === yearVal);
+                  if (index >= 0) payments[index] = { ...payments[index], amount: newAmount, status: newStatus };
+                  else payments.push({ month: monthIdx, year: yearVal, amount: newAmount, status: newStatus });
+                  return { ...s, payments };
                 }));
               }}
             />

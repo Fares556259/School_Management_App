@@ -78,6 +78,7 @@ model Student {
   payments      Payment[]
   serviceAssignments StudentServiceAssignment[]
   charges StudentCharge[]
+  billingReceipts StudentBillingReceipt[]
   results       Result[]
   class         Class?         @relation(fields: [classId], references: [id])
   level         Level          @relation(fields: [levelId], references: [id])
@@ -364,6 +365,12 @@ model Institution {
   registrationReconciliationYear String?
   transportMonthlyFee Float?
   gardeMonthlyFee Float?
+  transportFrequency String @default("MONTHLY")
+  gardeFrequency String @default("MONTHLY")
+  transportNextFrequency String?
+  gardeNextFrequency String?
+  transportFrequencyYear String?
+  gardeFrequencyYear String?
   sessions        Json?    @default("[{\"id\": 1, \"time\": \"08:00 - 10:00\", \"label\": \"Session 1\"}, {\"id\": 2, \"time\": \"10:00 - 12:00\", \"label\": \"Session 2\"}, {\"id\": 3, \"time\": \"12:00 - 14:00\", \"label\": \"Session 3\"}]")
   holidays        Json?    @default("[]")
   dayStartTime    String   @default("08:00")
@@ -633,6 +640,7 @@ model School {
   StudentServiceAssignment StudentServiceAssignment[]
   StudentCharge StudentCharge[]
   StudentChargePayment StudentChargePayment[]
+  StudentBillingReceipt StudentBillingReceipt[]
   Assignment            Assignment[]
   Attendance            Attendance[]
   AuditLog              AuditLog[]
@@ -765,6 +773,8 @@ model StudentServiceAssignment {
   studentId String
   kind String
   monthlyFee Float
+  discountType String?
+  discountValue Float @default(0)
   startPeriod String
   active Boolean @default(true)
   createdAt DateTime @default(now())
@@ -773,6 +783,22 @@ model StudentServiceAssignment {
   student Student @relation(fields: [studentId, schoolId], references: [id, schoolId], onDelete: Cascade)
   @@unique([schoolId, studentId, kind])
   @@index([schoolId, active])
+}
+
+model StudentBillingReceipt {
+  id String @id @default(cuid())
+  schoolId String
+  studentId String
+  idempotencyKey String
+  amount Float
+  paymentMethod String
+  paidAt DateTime
+  allocations Json
+  createdAt DateTime @default(now())
+  School School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  student Student @relation(fields: [studentId, schoolId], references: [id, schoolId], onDelete: Cascade)
+  @@unique([schoolId, idempotencyKey])
+  @@index([schoolId, studentId, createdAt])
 }
 
 model StudentCharge {

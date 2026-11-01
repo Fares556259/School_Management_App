@@ -9,7 +9,6 @@ import Link from "next/link";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import { Class, Level, Payment, Prisma, Student } from "@prisma/client";
-import PayStudentModal from "./PayStudentModal";
 import PaymentTimeline from "@/components/PaymentTimeline";
 
 import { getMonthKey, MONTHS } from "@/lib/dateUtils";
@@ -152,6 +151,10 @@ const StudentListPage = async (
           parent: true,
           payments: {
             select: { id: true, amount: true, month: true, year: true, status: true, paidAt: true, deferredAmount: true },
+          },
+          serviceAssignments: {
+            where: { active: true },
+            select: { kind: true },
           },
         },
       }),

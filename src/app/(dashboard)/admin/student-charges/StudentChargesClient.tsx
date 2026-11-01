@@ -1,10 +1,8 @@
 "use client";
 import { useEffect, useRef, useState, useCallback } from "react";
 import {
-  Bus,
   Receipt,
   ShieldCheck,
-  Plus,
   X,
   RefreshCw,
   Search,
@@ -13,6 +11,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { useLanguage } from "@/lib/translations/LanguageContext";
+import ServiceAssignments from "./ServiceAssignments";
 
 type Kind = "REGISTRATION" | "TRANSPORT" | "GARDE";
 interface Charge {
@@ -38,7 +37,7 @@ interface Charge {
     createdAt: string;
   }[];
 }
-interface Data {
+export interface Data {
   academicYear: string;
   config: {
     registrationFeeEnabled: boolean;
@@ -46,6 +45,12 @@ interface Data {
     registrationReconciliationYear: string | null;
     transportMonthlyFee: number | null;
     gardeMonthlyFee: number | null;
+    transportFrequency: string;
+    gardeFrequency: string;
+    transportNextFrequency: string | null;
+    gardeNextFrequency: string | null;
+    transportFrequencyYear: string | null;
+    gardeFrequencyYear: string | null;
   };
   charges: Charge[];
   students: Charge["student"][];
@@ -54,9 +59,16 @@ interface Data {
     studentId: string;
     kind: Kind;
     monthlyFee: number;
+    discountType: string | null;
+    discountValue: number;
     startPeriod: string;
     active: boolean;
     student: Charge["student"];
+  }[];
+  serviceBalances: {
+    studentId: string;
+    kind: string;
+    _sum: { amount: number | null; paidAmount: number | null };
   }[];
   total: number;
   summary: { billed: number; paid: number; count: number };
@@ -87,19 +99,6 @@ export default function StudentChargesClient() {
   const [kind, setKind] = useState("");
   const [period, setPeriod] = useState("");
   const [page, setPage] = useState(1);
-  const [studentId, setStudentId] = useState("");
-  const [service, setService] = useState<"TRANSPORT" | "GARDE">("TRANSPORT");
-  const [fee, setFee] = useState("");
-  const [start, setStart] = useState(
-    new Date()
-      .toLocaleDateString("en-CA", {
-        timeZone: "Africa/Tunis",
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-      })
-      .slice(0, 7),
-  );
   const [registrationEnabled, setRegistrationEnabled] = useState(false);
   const [
     hideCurrentRegistrationFromParents,
@@ -108,6 +107,8 @@ export default function StudentChargesClient() {
   const [registrationFee, setRegistrationFee] = useState("150");
   const [transportFee, setTransportFee] = useState("");
   const [gardeFee, setGardeFee] = useState("");
+  const [transportFrequency, setTransportFrequency] = useState("MONTHLY");
+  const [gardeFrequency, setGardeFrequency] = useState("MONTHLY");
   const [review, setReview] = useState<Review | null>(null);
   const [amount, setAmount] = useState("");
   const [method, setMethod] = useState("Espèces");
@@ -180,14 +181,13 @@ export default function StudentChargesClient() {
         ? ""
         : String(data.config.gardeMonthlyFee),
     );
-  }, [
-    data?.config.registrationFeeEnabled,
-    data?.config.registrationReconciliationYear,
-    data?.academicYear,
-    data?.config.registrationFee,
-    data?.config.transportMonthlyFee,
-    data?.config.gardeMonthlyFee,
-  ]);
+    setTransportFrequency(
+      data.config.transportNextFrequency || data.config.transportFrequency,
+    );
+    setGardeFrequency(
+      data.config.gardeNextFrequency || data.config.gardeFrequency,
+    );
+  }, [data]);
   useEffect(() => {
     if (review && !dialog.current?.open) dialog.current?.showModal();
     if (!review && dialog.current?.open) dialog.current.close();
@@ -264,14 +264,6 @@ export default function StudentChargesClient() {
       setBusy(false);
     }
   };
-  const chooseService = (next: "TRANSPORT" | "GARDE") => {
-    setService(next);
-    const price =
-      next === "TRANSPORT"
-        ? data?.config.transportMonthlyFee
-        : data?.config.gardeMonthlyFee;
-    setFee(price === null || price === undefined ? "" : String(price));
-  };
   const reviewSettings = () =>
     open({
       title: text(
@@ -281,6 +273,8 @@ export default function StudentChargesClient() {
       ),
       lines: [
         `${title("REGISTRATION")}: ${registrationEnabled ? currency(Number(registrationFee.replace(",", "."))) : text("Désactivée", "Disabled", "معطّل")}`,
+        `${title("TRANSPORT")}: ${transportFee.trim() === "" ? text("Non défini", "Not set", "غير محدد") : currency(Number(transportFee.replace(",", ".")))} · ${transportFrequency === "YEARLY" ? text("une fois/an", "once/year", "مرة/سنة") : text("mensuel", "monthly", "شهري")}`,
+        `${title("GARDE")}: ${gardeFee.trim() === "" ? text("Non défini", "Not set", "غير محدد") : currency(Number(gardeFee.replace(",", ".")))} · ${gardeFrequency === "YEARLY" ? text("une fois/an", "once/year", "مرة/سنة") : text("mensuel", "monthly", "شهري")}`,
         hideCurrentRegistrationFromParents
           ? text(
               "Rapprochement en cours : les inscriptions non soldées restent masquées aux parents.",
@@ -309,6 +303,8 @@ export default function StudentChargesClient() {
             : Number(transportFee.replace(",", ".")),
         gardeMonthlyFee:
           gardeFee.trim() === "" ? null : Number(gardeFee.replace(",", ".")),
+        transportFrequency,
+        gardeFrequency,
       },
     });
   return (
@@ -698,173 +694,7 @@ export default function StudentChargesClient() {
           </footer>
         </section>
       ) : tab === "services" ? (
-        <section className="space-y-5">
-          <form
-            className="space-y-4 rounded-2xl border bg-white p-6"
-            onSubmit={(event) => {
-              event.preventDefault();
-              const student = data.students.find((s) => s.id === studentId);
-              if (!student) return;
-              open({
-                title: text(
-                  "Confirmer le service",
-                  "Confirm service assignment",
-                  "تأكيد إسناد الخدمة",
-                ),
-                lines: [
-                  name(student),
-                  `${title(service)} · ${currency(Number(fee.replace(",", ".")))}/${text("mois", "month", "شهر")}`,
-                  `${text("À partir de", "Starting", "ابتداءً من")} ${start}`,
-                  text(
-                    "Seuls les mois commencés sont facturés. Les tarifs de service sont indépendants de la demi-scolarité.",
-                    "Only started months are billed. Service rates are independent of half-month tuition.",
-                    "تُحتسب الأشهر التي بدأت فقط. معاليم الخدمة مستقلة عن نصف معلوم التمدرس.",
-                  ),
-                ],
-                payload: {
-                  action: "assign",
-                  studentId,
-                  kind: service,
-                  monthlyFee: Number(fee.replace(",", ".")),
-                  startPeriod: start,
-                  active: true,
-                },
-              });
-            }}
-          >
-            <h2 className="flex items-center gap-2 font-semibold">
-              <Bus size={19} />
-              {text("Affecter un service", "Assign a service", "إسناد خدمة")}
-            </h2>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <select
-                required
-                aria-label={text("Élève", "Student", "التلميذ")}
-                value={studentId}
-                onChange={(event) => setStudentId(event.target.value)}
-                className={input}
-              >
-                <option value="">
-                  {text("Choisir un élève", "Choose student", "اختر تلميذاً")}
-                </option>
-                {data.students.map((student) => (
-                  <option key={student.id} value={student.id}>
-                    {name(student)}
-                  </option>
-                ))}
-              </select>
-              <select
-                aria-label={text("Service", "Service", "الخدمة")}
-                value={service}
-                onChange={(event) => chooseService(event.target.value as any)}
-                className={input}
-              >
-                <option value="TRANSPORT">{title("TRANSPORT")}</option>
-                <option value="GARDE">{title("GARDE")}</option>
-              </select>
-              <input
-                required
-                aria-label={text(
-                  "Prix mensuel en TND",
-                  "Monthly price in TND",
-                  "المعلوم الشهري بالدينار",
-                )}
-                inputMode="decimal"
-                value={fee}
-                onChange={(event) => setFee(event.target.value)}
-                placeholder={text(
-                  "Tarif à définir (TND)",
-                  "Set price (TND)",
-                  "حدّد المعلوم (د.ت)",
-                )}
-                className={input}
-              />
-              <input
-                required
-                aria-label={text("Premier mois", "First month", "الشهر الأول")}
-                type="month"
-                value={start}
-                onChange={(event) => setStart(event.target.value)}
-                className={input}
-              />
-            </div>
-            <button
-              disabled={busy || !studentId || fee.trim() === ""}
-              className={`${button} flex items-center gap-2`}
-            >
-              <Plus size={16} />
-              {text(
-                "Vérifier l’affectation",
-                "Review assignment",
-                "مراجعة الإسناد",
-              )}
-            </button>
-          </form>
-          <div className="divide-y rounded-2xl border bg-white">
-            {data.services.length ? (
-              data.services.map((assignment) => (
-                <div
-                  key={assignment.id}
-                  className="flex flex-wrap items-center justify-between gap-3 p-5"
-                >
-                  <div>
-                    <h3 className="font-semibold">
-                      {name(assignment.student)}
-                    </h3>
-                    <p className="mt-1 text-sm text-slate-600">
-                      {title(assignment.kind)} ·{" "}
-                      {currency(assignment.monthlyFee)}/
-                      {text("mois", "month", "شهر")} · {assignment.startPeriod}
-                    </p>
-                  </div>
-                  {assignment.active ? (
-                    <button
-                      className="rounded-xl border px-4 py-2 text-sm text-slate-600"
-                      onClick={() =>
-                        open({
-                          title: text(
-                            "Arrêter ce service",
-                            "Stop this service",
-                            "إيقاف الخدمة",
-                          ),
-                          lines: [
-                            name(assignment.student),
-                            title(assignment.kind),
-                            text(
-                              "Les échéances existantes restent dues. Aucune nouvelle échéance après l’arrêt.",
-                              "Existing charges remain due. No new charges after stopping.",
-                              "تبقى الاستحقاقات السابقة مستحقة. لن تُنشأ استحقاقات جديدة بعد الإيقاف.",
-                            ),
-                          ],
-                          payload: {
-                            action: "assign",
-                            studentId: assignment.studentId,
-                            kind: assignment.kind,
-                            active: false,
-                          },
-                        })
-                      }
-                    >
-                      {text("Arrêter", "Stop", "إيقاف")}
-                    </button>
-                  ) : (
-                    <span className="text-sm text-slate-400">
-                      {text("Arrêté", "Stopped", "متوقف")}
-                    </span>
-                  )}
-                </div>
-              ))
-            ) : (
-              <p className="p-8 text-center text-sm text-slate-500">
-                {text(
-                  "Aucun service attribué. Les prix non définis ne créent aucune facturation.",
-                  "No services assigned. Unset prices create no charges.",
-                  "لا توجد خدمات مسندة. المعاليم غير المحددة لا تنشئ استحقاقات.",
-                )}
-              </p>
-            )}
-          </div>
-        </section>
+        <ServiceAssignments data={data} onSaved={load} />
       ) : (
         <form
           className="max-w-3xl space-y-6 rounded-2xl border bg-white p-6"
@@ -944,6 +774,53 @@ export default function StudentChargesClient() {
                   }
                   placeholder={text("Non défini", "Not set", "غير محدد")}
                 />
+              </label>
+            ))}
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {(
+              [
+                [
+                  title("TRANSPORT"),
+                  transportFrequency,
+                  setTransportFrequency,
+                  data.config.transportNextFrequency,
+                ],
+                [
+                  title("GARDE"),
+                  gardeFrequency,
+                  setGardeFrequency,
+                  data.config.gardeNextFrequency,
+                ],
+              ] as const
+            ).map(([label, value, setter, pending]) => (
+              <label key={label} className="text-sm font-medium text-slate-700">
+                {label} · {text("Facturation", "Billing", "الفوترة")}
+                <select
+                  className={`${input} mt-2`}
+                  value={value}
+                  onChange={(event) => setter(event.target.value)}
+                >
+                  <option value="MONTHLY">
+                    {text("Chaque mois", "Every month", "كل شهر")}
+                  </option>
+                  <option value="YEARLY">
+                    {text(
+                      "Une fois par année scolaire",
+                      "Once per school year",
+                      "مرة في السنة الدراسية",
+                    )}
+                  </option>
+                </select>
+                {pending && (
+                  <span className="mt-1 block text-xs text-amber-700">
+                    {text(
+                      "Changement prévu pour la prochaine année scolaire",
+                      "Change scheduled for next school year",
+                      "التغيير يبدأ السنة الدراسية القادمة",
+                    )}
+                  </span>
+                )}
               </label>
             ))}
           </div>
