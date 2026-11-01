@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Banknote } from "lucide-react";
+import { Banknote, Download } from "lucide-react";
 import { MONTHS, getSchoolYearMonths } from "@/lib/dateUtils";
 import { tuitionForMonth } from "@/lib/tuitionPolicy";
 import { useLanguage } from "@/lib/translations/LanguageContext";
@@ -46,6 +46,7 @@ export default function StudentBillingModal({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [downloading, setDownloading] = useState(false);
   const [month, setMonth] = useState(monthName);
   const [tuitionChecked, setTuitionChecked] = useState(true);
   const [tuitionAmount, setTuitionAmount] = useState("");
@@ -251,6 +252,44 @@ export default function StudentBillingModal({
       setBusy(false);
     }
   };
+  const downloadReceipt = async () => {
+    if (!receipt || downloading) return;
+    setDownloading(true);
+    setError("");
+    try {
+      const response = await fetch(
+        `/api/admin/student-billing/receipt/${encodeURIComponent(receipt.id)}`,
+        { cache: "no-store" },
+      );
+      if (
+        !response.ok ||
+        !response.headers.get("Content-Type")?.includes("application/pdf")
+      ) {
+        throw new Error(
+          t(
+            "Le reçu est indisponible. Réessayez.",
+            "Receipt unavailable. Please try again.",
+            "الوصل غير متاح. حاول مرة أخرى.",
+          ),
+        );
+      }
+      const blobUrl = URL.createObjectURL(await response.blob());
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download =
+        response.headers
+          .get("Content-Disposition")
+          ?.match(/filename="([^"]+)"/)?.[1] || "Recu-SnapSchool.pdf";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 30_000);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : String(cause));
+    } finally {
+      setDownloading(false);
+    }
+  };
   return (
     <>
       <button
@@ -317,15 +356,30 @@ export default function StudentBillingModal({
                     "تم تسجيل الدفعة",
                   )}
                 </p>
-                <p className="mt-2 text-sm">
-                  {receipt.total} TND · {receipt.id}
-                </p>
-                <button
-                  className="mt-4 rounded-lg bg-emerald-700 px-4 py-2 text-white"
-                  onClick={() => setOpen(false)}
-                >
-                  {t("Terminer", "Done", "تم")}
-                </button>
+                <p className="mt-2 text-sm">{receipt.total} TND</p>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={downloadReceipt}
+                    disabled={downloading}
+                    className="inline-flex items-center gap-2 rounded-lg bg-emerald-700 px-4 py-2 font-semibold text-white disabled:opacity-60"
+                  >
+                    <Download size={17} />
+                    {downloading
+                      ? t("Préparation…", "Preparing…", "جار التحضير…")
+                      : t(
+                          "Télécharger le reçu",
+                          "Download receipt",
+                          "تنزيل الوصل",
+                        )}
+                  </button>
+                  <button
+                    className="rounded-lg border border-emerald-200 bg-white px-4 py-2 text-emerald-800"
+                    onClick={() => setOpen(false)}
+                  >
+                    {t("Terminer", "Done", "تم")}
+                  </button>
+                </div>
               </div>
             ) : (
               data && (

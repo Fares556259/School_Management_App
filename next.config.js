@@ -2,6 +2,9 @@
 // Force reload: 2026-04-15T19:37
 const nextConfig = {
   compress: true,
+  outputFileTracingIncludes: {
+    '/api/admin/student-billing/receipt/*': ['./public/fonts/Amiri-Regular.ttf'],
+  },
   images: {
     remotePatterns: [
       {
