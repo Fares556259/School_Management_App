@@ -151,6 +151,8 @@ async function main() {
     // The API owns authentication: middleware must not redirect writes to an HTML sign-in page.
     const pass = await middleware(new NextRequest('https://example.com/api/admin/parent-access', { method: 'POST' }));
     assert.equal(pass.headers.get('x-middleware-next'), '1');
+    const billingPass = await middleware(new NextRequest('https://example.com/api/admin/student-charges', { method: 'POST' }));
+    assert.equal(billingPass.headers.get('x-middleware-next'), '1', 'Billing API must return its own authenticated JSON response instead of a sign-in redirect');
     assert.equal(pass.headers.has('location'), false);
     for (const origin of ['https://attacker.example', 'http://example.com', 'null']) {
       const denied = await adminDecision(new Request('https://example.com/api/admin/parent-access', {
