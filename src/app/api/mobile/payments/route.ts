@@ -1,7 +1,7 @@
 import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { authenticateMobileRequest } from "@/lib/mobileAuth";
-import { tuitionForMonth, tuitionMonthlyBalance } from '@/lib/tuitionPolicy';
+import { tuitionForMonth, tuitionMonthlyBalance } from "@/lib/tuitionPolicy";
 
 export const dynamic = "force-dynamic";
 
@@ -9,7 +9,8 @@ export async function GET(request: NextRequest) {
   const auth = await authenticateMobileRequest(request);
   if (auth.error) return auth.error;
   const { userId, userType, schoolId } = auth.payload;
-  if (!['parent', 'admin'].includes(userType)) return NextResponse.json({error:'Forbidden'},{status:403});
+  if (!["parent", "admin"].includes(userType))
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   try {
     const { searchParams } = new URL(request.url);
@@ -34,10 +35,14 @@ export async function GET(request: NextRequest) {
     }
 
     if (userType === "parent" && student.parentId !== userId) {
-      return new NextResponse(JSON.stringify({ error: "Forbidden" }), { status: 403 });
+      return new NextResponse(JSON.stringify({ error: "Forbidden" }), {
+        status: 403,
+      });
     }
     if (student.schoolId !== schoolId) {
-      return new NextResponse(JSON.stringify({ error: "Forbidden" }), { status: 403 });
+      return new NextResponse(JSON.stringify({ error: "Forbidden" }), {
+        status: 403,
+      });
     }
 
     const [payments, institution, additionalCharges] = await Promise.all([
@@ -47,40 +52,86 @@ export async function GET(request: NextRequest) {
       }),
       prisma.institution.findFirst({
         where: { schoolId },
-        select: { academicYear: true, halfBoundaryMonths: true },
+        select: {
+          academicYear: true,
+          halfBoundaryMonths: true,
+          registrationReconciliationYear: true,
+        },
       }),
-      prisma.studentCharge.findMany({where:{schoolId,studentId,voidedAt:null},orderBy:{dueDate:'asc'},select:{id:true,kind:true,period:true,academicYear:true,amount:true,paidAmount:true,dueDate:true}}),
+      prisma.studentCharge.findMany({
+        where: { schoolId, studentId, voidedAt: null },
+        orderBy: { dueDate: "asc" },
+        select: {
+          id: true,
+          kind: true,
+          period: true,
+          academicYear: true,
+          amount: true,
+          paidAmount: true,
+          dueDate: true,
+        },
+      }),
     ]);
 
-    const tuitionFee = student.customTuition ?? student.level?.tuitionFee ?? 450;
+    const tuitionFee =
+      student.customTuition ?? student.level?.tuitionFee ?? 450;
 
-    const formattedPayments = payments.map(p => ({
+    const formattedPayments = payments.map((p) => ({
       id: p.id.toString(),
       month: p.month,
       year: p.year,
       amount: p.amount,
-      status: tuitionMonthlyBalance(tuitionFee, p.month, institution?.halfBoundaryMonths === true, p).status,
-      totalAmount: tuitionForMonth(tuitionFee, p.month, institution?.halfBoundaryMonths === true),
-      dueDate: `${p.year}-${String(p.month).padStart(2, '0')}-${institution?.halfBoundaryMonths && p.month === 9 ? '15' : '01'}`,
-      paidDate: p.paidAt ? p.paidAt.toISOString().split('T')[0] : null
+      status: tuitionMonthlyBalance(
+        tuitionFee,
+        p.month,
+        institution?.halfBoundaryMonths === true,
+        p,
+      ).status,
+      totalAmount: tuitionForMonth(
+        tuitionFee,
+        p.month,
+        institution?.halfBoundaryMonths === true,
+      ),
+      dueDate: `${p.year}-${String(p.month).padStart(2, "0")}-${institution?.halfBoundaryMonths && p.month === 9 ? "15" : "01"}`,
+      paidDate: p.paidAt ? p.paidAt.toISOString().split("T")[0] : null,
     }));
 
     // Keep the response as an array for older mobile builds. They ignore this
     // metadata row, while current builds use it as the authoritative school data.
-    return NextResponse.json([
-      {
-        kind: "metadata",
-        tuitionFee,
-        halfBoundaryMonths: institution?.halfBoundaryMonths === true,
-        additionalCharges,
-        monthlyFees: Object.fromEntries(Array.from({ length: 12 }, (_, index) => [index + 1, tuitionForMonth(tuitionFee, index + 1, institution?.halfBoundaryMonths === true)])),
-        academicYear: institution?.academicYear || null,
-      },
-      ...formattedPayments,
-    ], { headers: { "Cache-Control": "private, no-store" } });
-
+    return NextResponse.json(
+      [
+        {
+          kind: "metadata",
+          tuitionFee,
+          halfBoundaryMonths: institution?.halfBoundaryMonths === true,
+          additionalCharges: additionalCharges.filter(
+            (charge) =>
+              charge.kind !== "REGISTRATION" ||
+              charge.academicYear !==
+                institution?.registrationReconciliationYear ||
+              charge.paidAmount >= charge.amount,
+          ),
+          monthlyFees: Object.fromEntries(
+            Array.from({ length: 12 }, (_, index) => [
+              index + 1,
+              tuitionForMonth(
+                tuitionFee,
+                index + 1,
+                institution?.halfBoundaryMonths === true,
+              ),
+            ]),
+          ),
+          academicYear: institution?.academicYear || null,
+        },
+        ...formattedPayments,
+      ],
+      { headers: { "Cache-Control": "private, no-store" } },
+    );
   } catch (error) {
     console.error("Error fetching mobile payments:", error);
-    return new NextResponse(JSON.stringify({ error: "Internal Server Error" }), { status: 500 });
+    return new NextResponse(
+      JSON.stringify({ error: "Internal Server Error" }),
+      { status: 500 },
+    );
   }
 }

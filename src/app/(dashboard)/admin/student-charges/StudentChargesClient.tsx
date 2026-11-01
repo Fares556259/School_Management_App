@@ -34,6 +34,7 @@ interface Charge {
     id: string;
     amount: number;
     paymentMethod: string;
+    paidAt: string;
     createdAt: string;
   }[];
 }
@@ -42,6 +43,7 @@ interface Data {
   config: {
     registrationFeeEnabled: boolean;
     registrationFee: number;
+    registrationReconciliationYear: string | null;
     transportMonthlyFee: number | null;
     gardeMonthlyFee: number | null;
   };
@@ -99,12 +101,19 @@ export default function StudentChargesClient() {
       .slice(0, 7),
   );
   const [registrationEnabled, setRegistrationEnabled] = useState(false);
+  const [
+    hideCurrentRegistrationFromParents,
+    setHideCurrentRegistrationFromParents,
+  ] = useState(false);
   const [registrationFee, setRegistrationFee] = useState("150");
   const [transportFee, setTransportFee] = useState("");
   const [gardeFee, setGardeFee] = useState("");
   const [review, setReview] = useState<Review | null>(null);
   const [amount, setAmount] = useState("");
   const [method, setMethod] = useState("Espèces");
+  const [paidOn, setPaidOn] = useState(() =>
+    new Date().toLocaleDateString("en-CA", { timeZone: "Africa/Tunis" }),
+  );
   const [reason, setReason] = useState("");
   const dialog = useRef<HTMLDialogElement>(null);
   const currency = (value: number) =>
@@ -157,6 +166,9 @@ export default function StudentChargesClient() {
   useEffect(() => {
     if (!data) return;
     setRegistrationEnabled(data.config.registrationFeeEnabled);
+    setHideCurrentRegistrationFromParents(
+      data.config.registrationReconciliationYear === data.academicYear,
+    );
     setRegistrationFee(String(data.config.registrationFee));
     setTransportFee(
       data.config.transportMonthlyFee === null
@@ -170,6 +182,8 @@ export default function StudentChargesClient() {
     );
   }, [
     data?.config.registrationFeeEnabled,
+    data?.config.registrationReconciliationYear,
+    data?.academicYear,
     data?.config.registrationFee,
     data?.config.transportMonthlyFee,
     data?.config.gardeMonthlyFee,
@@ -183,6 +197,9 @@ export default function StudentChargesClient() {
     setReview(value);
     setReason("");
     setMethod("Espèces");
+    setPaidOn(
+      new Date().toLocaleDateString("en-CA", { timeZone: "Africa/Tunis" }),
+    );
     setAmount(
       value.charge
         ? String(
@@ -211,7 +228,11 @@ export default function StudentChargesClient() {
       const payload = {
         ...review.payload,
         ...(review.mode === "collect"
-          ? { amount: Number(amount.replace(",", ".")), paymentMethod: method }
+          ? {
+              amount: Number(amount.replace(",", ".")),
+              paymentMethod: method,
+              paidOn,
+            }
           : {}),
         ...(review.mode === "void" ? { reason } : {}),
       };
@@ -260,6 +281,17 @@ export default function StudentChargesClient() {
       ),
       lines: [
         `${title("REGISTRATION")}: ${registrationEnabled ? currency(Number(registrationFee.replace(",", "."))) : text("Désactivée", "Disabled", "معطّل")}`,
+        hideCurrentRegistrationFromParents
+          ? text(
+              "Rapprochement en cours : les inscriptions non soldées restent masquées aux parents.",
+              "Reconciliation in progress: unpaid registration charges stay hidden from parents.",
+              "المطابقة جارية: معاليم التسجيل غير المسددة مخفية عن الأولياء.",
+            )
+          : text(
+              "Les inscriptions non soldées seront visibles aux parents.",
+              "Unpaid registration charges will be visible to parents.",
+              "ستظهر معاليم التسجيل غير المسددة للأولياء.",
+            ),
         text(
           "L’activation génère une seule échéance par élève et par année scolaire. Les échéances existantes ne sont pas modifiées.",
           "Enabling generates one charge per student per school year. Existing charges stay unchanged.",
@@ -269,6 +301,7 @@ export default function StudentChargesClient() {
       payload: {
         action: "settings",
         registrationFeeEnabled: registrationEnabled,
+        hideCurrentRegistrationFromParents,
         registrationFee: Number(registrationFee.replace(",", ".")),
         transportMonthlyFee:
           transportFee.trim() === ""
@@ -329,19 +362,33 @@ export default function StudentChargesClient() {
           {notice}
         </p>
       )}
+      {data?.config.registrationReconciliationYear === data?.academicYear && (
+        <p className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">
+          {text(
+            "Rapprochement des inscriptions en cours. Enregistrez les frais déjà reçus avec leur date réelle. Les inscriptions non soldées restent masquées aux parents jusqu’à la fin du rapprochement.",
+            "Registration reconciliation is in progress. Record fees already received with their actual payment date. Unpaid registration charges stay hidden from parents until reconciliation is complete.",
+            "مطابقة معاليم التسجيل جارية. سجّل المعاليم المقبوضة بتاريخ دفعها الفعلي. تبقى المعاليم غير المسددة مخفية عن الأولياء حتى انتهاء المطابقة.",
+          )}
+        </p>
+      )}
       <div className="grid grid-cols-3 gap-2 sm:gap-3">
         {[
           [text("Facturé", "Billed", "المستحق"), data?.summary.billed],
           [text("Encaissé", "Collected", "المقبوض"), data?.summary.paid],
           [
-            text("Reste à encaisser", "Outstanding", "المتبقي"),
+            data?.config.registrationReconciliationYear === data?.academicYear
+              ? text("À rapprocher", "To reconcile", "للمطابقة")
+              : text("Reste à encaisser", "Outstanding", "المتبقي"),
             Math.max(
               0,
               (data?.summary.billed || 0) - (data?.summary.paid || 0),
             ),
           ],
         ].map(([label, value], index) => (
-          <div key={String(label)} className="rounded-2xl border bg-white p-3 sm:p-5">
+          <div
+            key={String(label)}
+            className="rounded-2xl border bg-white p-3 sm:p-5"
+          >
             <span className="text-xs text-slate-500 sm:text-sm">{label}</span>
             <p
               className={`mt-2 text-lg font-semibold sm:text-2xl ${index === 2 ? "text-amber-700" : "text-slate-900"}`}
@@ -441,7 +488,14 @@ export default function StudentChargesClient() {
               className={input}
             >
               <option value="DUE">
-                {text("À encaisser", "Outstanding", "للقبض")}
+                {data.config.registrationReconciliationYear ===
+                data.academicYear
+                  ? text(
+                      "À rapprocher ou encaisser",
+                      "Reconcile or collect",
+                      "للمطابقة أو القبض",
+                    )
+                  : text("À encaisser", "Outstanding", "للقبض")}
               </option>
               <option value="PAID">{text("Soldées", "Paid", "خالصة")}</option>
               <option value="">{text("Toutes", "All", "الكل")}</option>
@@ -516,8 +570,8 @@ export default function StudentChargesClient() {
                           </summary>
                           {charge.payments.map((payment) => (
                             <p key={payment.id} className="mt-1">
-                              {new Date(payment.createdAt).toLocaleDateString()}{" "}
-                              · {currency(payment.amount)} ·{" "}
+                              {new Date(payment.paidAt).toLocaleDateString()} ·{" "}
+                              {currency(payment.amount)} ·{" "}
                               {payment.paymentMethod}
                             </p>
                           ))}
@@ -532,7 +586,11 @@ export default function StudentChargesClient() {
                           ? text("Annulée", "Voided", "ملغاة")
                           : due <= 0
                             ? text("Soldée", "Paid", "خالصة")
-                            : currency(due)}
+                            : charge.kind === "REGISTRATION" &&
+                                data.config.registrationReconciliationYear ===
+                                  data.academicYear
+                              ? `${text("À rapprocher", "Reconcile", "للمطابقة")} · ${currency(due)}`
+                              : currency(due)}
                       </span>
                       {!charge.voidedAt && due > 0 && (
                         <button
@@ -839,6 +897,32 @@ export default function StudentChargesClient() {
               className="h-5 w-5"
             />
           </label>
+          <label className="flex items-center justify-between gap-4 rounded-xl border border-amber-200 bg-amber-50 p-4">
+            <span>
+              <span className="block font-semibold text-amber-950">
+                {text(
+                  "Rapprochement des inscriptions",
+                  "Registration reconciliation",
+                  "مطابقة معاليم التسجيل",
+                )}
+              </span>
+              <span className="mt-1 block text-sm text-amber-900">
+                {text(
+                  "Masquer aux parents les inscriptions non soldées de cette année pendant la saisie des paiements déjà reçus. Désactivez après vérification de tous les élèves.",
+                  "Hide this year’s unpaid registration charges from parents while entering payments already collected. Turn off after checking every student.",
+                  "إخفاء معاليم تسجيل هذه السنة غير المسددة عن الأولياء أثناء تسجيل الدفعات السابقة. أوقف الإخفاء بعد مراجعة جميع التلاميذ.",
+                )}
+              </span>
+            </span>
+            <input
+              type="checkbox"
+              checked={hideCurrentRegistrationFromParents}
+              onChange={(event) =>
+                setHideCurrentRegistrationFromParents(event.target.checked)
+              }
+              className="h-5 w-5"
+            />
+          </label>
           <div className="grid gap-5 sm:grid-cols-3">
             {[
               [title("REGISTRATION"), registrationFee, setRegistrationFee],
@@ -908,7 +992,7 @@ export default function StudentChargesClient() {
             ))}
           </div>
           {review?.mode === "collect" && (
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-3">
               <label className="text-sm">
                 {text(
                   "Montant reçu (TND)",
@@ -920,6 +1004,22 @@ export default function StudentChargesClient() {
                   inputMode="decimal"
                   value={amount}
                   onChange={(event) => setAmount(event.target.value)}
+                  className={`${input} mt-2`}
+                />
+              </label>
+              <label className="text-sm">
+                {text(
+                  "Date réelle du paiement",
+                  "Actual payment date",
+                  "تاريخ الدفع الفعلي",
+                )}
+                <input
+                  type="date"
+                  value={paidOn}
+                  max={new Date().toLocaleDateString("en-CA", {
+                    timeZone: "Africa/Tunis",
+                  })}
+                  onChange={(event) => setPaidOn(event.target.value)}
                   className={`${input} mt-2`}
                 />
               </label>

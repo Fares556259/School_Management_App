@@ -148,6 +148,7 @@ export async function collectStudentCharge(input: {
   amount: number;
   idempotencyKey: string;
   paymentMethod?: string;
+  paidOn?: string;
 }) {
   const amount = validateMoney(input.amount);
   if (!/^[\w-]{16,128}$/.test(input.idempotencyKey))
@@ -155,6 +156,12 @@ export async function collectStudentCharge(input: {
   const paymentMethod = input.paymentMethod || "Espèces";
   if (!["Espèces", "Chèque", "Virement", "Carte"].includes(paymentMethod))
     throw new Error("Mode de règlement invalide.");
+  const paidOn = input.paidOn || schoolDate(new Date());
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(paidOn) || paidOn > schoolDate(new Date()))
+    throw new Error("Date de réception invalide ou future.");
+  const paidAt = new Date(`${paidOn}T12:00:00+01:00`);
+  if (Number.isNaN(paidAt.getTime()) || schoolDate(paidAt) !== paidOn)
+    throw new Error("Date de réception invalide.");
   return prisma.$transaction(
     async (tx) => {
       await tx.$queryRaw`SELECT id FROM "StudentCharge" WHERE id = ${input.chargeId} AND "schoolId" = ${input.schoolId} FOR UPDATE`;
@@ -170,7 +177,8 @@ export async function collectStudentCharge(input: {
         if (
           previous.chargeId !== input.chargeId ||
           previous.amount !== amount ||
-          previous.paymentMethod !== paymentMethod
+          previous.paymentMethod !== paymentMethod ||
+          schoolDate(previous.paidAt) !== paidOn
         )
           throw new Error(
             "Ce paiement a déjà été utilisé avec des détails différents.",
@@ -199,6 +207,7 @@ export async function collectStudentCharge(input: {
           amount,
           paymentMethod,
           idempotencyKey: input.idempotencyKey,
+          paidAt,
         },
       });
       await tx.studentCharge.update({
@@ -216,7 +225,7 @@ export async function collectStudentCharge(input: {
                 ? "Transport"
                 : "Garde",
           amount,
-          date: new Date(),
+          date: paidAt,
           referenceType: "StudentChargePayment",
           referenceId: payment.id,
         },

@@ -60,6 +60,7 @@ export async function GET(request: NextRequest) {
       select: {
         registrationFeeEnabled: true,
         registrationFee: true,
+        registrationReconciliationYear: true,
         transportMonthlyFee: true,
         gardeMonthlyFee: true,
         academicYear: true,
@@ -124,6 +125,7 @@ export async function GET(request: NextRequest) {
               id: true,
               amount: true,
               paymentMethod: true,
+              paidAt: true,
               createdAt: true,
             },
           },
@@ -211,6 +213,7 @@ export async function POST(request: NextRequest) {
         amount: body.amount,
         idempotencyKey: body.idempotencyKey,
         paymentMethod: body.paymentMethod,
+        paidOn: body.paidOn,
       });
       invalidateTenantTags(schoolId, "finance", "dashboard", "incomes");
       return NextResponse.json({ success: true, ...result });
@@ -219,11 +222,25 @@ export async function POST(request: NextRequest) {
       if (typeof body.registrationFeeEnabled !== "boolean")
         throw new Error("Option d’inscription invalide.");
       const registrationFee = validateMoney(body.registrationFee, true);
+      if (typeof body.hideCurrentRegistrationFromParents !== "boolean")
+        throw new Error("Option de rapprochement invalide.");
+      const school = await prisma.institution.findUniqueOrThrow({
+        where: { schoolId },
+        select: {
+          academicYear: true,
+          halfBoundaryMonths: true,
+          yearStart: true,
+        },
+      });
+      const currentAcademicYear = chargeCalendar(school).academicYear;
       const nullableFee = (value: unknown) =>
         value === null ? null : validateMoney(value, true);
       const config = {
         registrationFeeEnabled: body.registrationFeeEnabled,
         registrationFee,
+        registrationReconciliationYear: body.hideCurrentRegistrationFromParents
+          ? currentAcademicYear
+          : null,
         transportMonthlyFee: nullableFee(body.transportMonthlyFee),
         gardeMonthlyFee: nullableFee(body.gardeMonthlyFee),
       };

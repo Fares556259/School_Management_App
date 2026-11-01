@@ -9,13 +9,15 @@ import { WriteToolResult } from "./writeTools";
  */
 export async function getAdminProfileTool(
   _args: Record<string, any>,
-  context: ToolContext
+  context: ToolContext,
 ) {
   const admin = await prisma.admin.findUnique({
     where: { id: context.adminId },
     include: {
       School: { select: { id: true, name: true, subdomain: true } },
-      telegramAccount: { select: { language: true, dailyBriefing: true, telegramUsername: true } },
+      telegramAccount: {
+        select: { language: true, dailyBriefing: true, telegramUsername: true },
+      },
     },
   });
 
@@ -26,7 +28,8 @@ export async function getAdminProfileTool(
     };
   }
 
-  const fullName = [admin.name, admin.surname].filter(Boolean).join(" ") || admin.username;
+  const fullName =
+    [admin.name, admin.surname].filter(Boolean).join(" ") || admin.username;
 
   return {
     success: true,
@@ -61,7 +64,7 @@ export async function updateAdminProfileTool(
     language?: "fr" | "ar" | "en";
     dailyBriefing?: boolean;
   },
-  context: ToolContext
+  context: ToolContext,
 ): Promise<WriteToolResult> {
   const admin = await prisma.admin.findUnique({
     where: { id: context.adminId },
@@ -96,7 +99,10 @@ export async function updateAdminProfileTool(
     changes.push(`Téléphone : <code>${cleanPhone}</code>`);
   }
 
-  if (args.email && args.email.trim().toLowerCase() !== admin.email?.toLowerCase()) {
+  if (
+    args.email &&
+    args.email.trim().toLowerCase() !== admin.email?.toLowerCase()
+  ) {
     adminUpdateData.email = args.email.trim().toLowerCase();
     changes.push(`Email : <code>${args.email.trim().toLowerCase()}</code>`);
   }
@@ -106,17 +112,32 @@ export async function updateAdminProfileTool(
     changes.push(`Photo de profil mise à jour 🖼️`);
   }
 
-  if (args.language && admin.telegramAccount && args.language !== admin.telegramAccount.language) {
+  if (
+    args.language &&
+    admin.telegramAccount &&
+    args.language !== admin.telegramAccount.language
+  ) {
     tgUpdateData.language = args.language;
-    changes.push(`Langue de Hnia : <code>${args.language.toUpperCase()}</code>`);
+    changes.push(
+      `Langue de Hnia : <code>${args.language.toUpperCase()}</code>`,
+    );
   }
 
-  if (args.dailyBriefing !== undefined && admin.telegramAccount && args.dailyBriefing !== admin.telegramAccount.dailyBriefing) {
+  if (
+    args.dailyBriefing !== undefined &&
+    admin.telegramAccount &&
+    args.dailyBriefing !== admin.telegramAccount.dailyBriefing
+  ) {
     tgUpdateData.dailyBriefing = args.dailyBriefing;
-    changes.push(`Briefing quotidien : <code>${args.dailyBriefing ? "Activé ✅" : "Désactivé ❌"}</code>`);
+    changes.push(
+      `Briefing quotidien : <code>${args.dailyBriefing ? "Activé ✅" : "Désactivé ❌"}</code>`,
+    );
   }
 
-  if (Object.keys(adminUpdateData).length === 0 && Object.keys(tgUpdateData).length === 0) {
+  if (
+    Object.keys(adminUpdateData).length === 0 &&
+    Object.keys(tgUpdateData).length === 0
+  ) {
     return {
       success: false,
       message: "Aucune modification spécifiée pour votre profil.",
@@ -161,7 +182,10 @@ export async function updateAdminProfileTool(
 
 <blockquote>💡 <b>Hnia :</b> Vos coordonnées et préférences ont été actualisées avec succès.</blockquote>`,
     summary: `Mise à jour profil ${context.adminName}`,
-    data: { adminId: context.adminId, updates: { ...adminUpdateData, ...tgUpdateData } },
+    data: {
+      adminId: context.adminId,
+      updates: { ...adminUpdateData, ...tgUpdateData },
+    },
   };
 }
 
@@ -171,7 +195,7 @@ export async function updateAdminProfileTool(
  */
 export async function getSchoolSettingsTool(
   _args: Record<string, any>,
-  context: ToolContext
+  context: ToolContext,
 ) {
   const [institution, school, levels] = await Promise.all([
     prisma.institution.findFirst({
@@ -191,16 +215,25 @@ export async function getSchoolSettingsTool(
   return {
     success: true,
     settings: {
-      schoolName: institution?.schoolName || school?.name || "SnapSchool Academy",
+      schoolName:
+        institution?.schoolName || school?.name || "SnapSchool Academy",
       phone: institution?.phone || "Non configuré",
       address: institution?.address || "Non configurée",
       schoolLogo: institution?.schoolLogo || school?.logo || null,
       academicYear: institution?.academicYear || "2026-2027",
       currentSemester: institution?.currentSemester || 1,
       halfSeptemberAndJuneTuition: institution?.halfBoundaryMonths === true,
-      registrationFee: institution?.registrationFeeEnabled ? `${institution.registrationFee} TND / année` : 'Désactivée',
-      transportMonthlyFee: institution?.transportMonthlyFee ?? 'Non défini : aucune attribution automatique',
-      gardeMonthlyFee: institution?.gardeMonthlyFee ?? 'Non défini : aucune attribution automatique',
+      registrationFee: institution?.registrationFeeEnabled
+        ? `${institution.registrationFee} TND / année`
+        : "Désactivée",
+      registrationReconciliationYear:
+        institution?.registrationReconciliationYear || null,
+      transportMonthlyFee:
+        institution?.transportMonthlyFee ??
+        "Non défini : aucune attribution automatique",
+      gardeMonthlyFee:
+        institution?.gardeMonthlyFee ??
+        "Non défini : aucune attribution automatique",
       dayStartTime: institution?.dayStartTime || "08:00",
       dayEndTime: institution?.dayEndTime || "14:00",
       subdomain: school?.subdomain || null,
@@ -228,7 +261,7 @@ export async function updateSchoolSettingsTool(
     dayStartTime?: string;
     dayEndTime?: string;
   },
-  context: ToolContext
+  context: ToolContext,
 ): Promise<WriteToolResult> {
   let institution = await prisma.institution.findFirst({
     where: { schoolId: context.schoolId },
@@ -275,19 +308,32 @@ export async function updateSchoolSettingsTool(
     changes.push(`Logo officiel mis à jour 🏫`);
   }
 
-  if (args.academicYear && args.academicYear.trim() !== institution.academicYear) {
+  if (
+    args.academicYear &&
+    args.academicYear.trim() !== institution.academicYear
+  ) {
     updateData.academicYear = args.academicYear.trim();
     changes.push(`Année scolaire : <code>${args.academicYear.trim()}</code>`);
   }
 
-  if (args.currentSemester && args.currentSemester !== institution.currentSemester) {
+  if (
+    args.currentSemester &&
+    args.currentSemester !== institution.currentSemester
+  ) {
     updateData.currentSemester = args.currentSemester;
-    changes.push(`Trimestre / Semestre en cours : <code>Trimestre ${args.currentSemester}</code>`);
+    changes.push(
+      `Trimestre / Semestre en cours : <code>Trimestre ${args.currentSemester}</code>`,
+    );
   }
 
-  if (args.dayStartTime && args.dayStartTime.trim() !== institution.dayStartTime) {
+  if (
+    args.dayStartTime &&
+    args.dayStartTime.trim() !== institution.dayStartTime
+  ) {
     updateData.dayStartTime = args.dayStartTime.trim();
-    changes.push(`Heure d'ouverture : <code>${args.dayStartTime.trim()}</code>`);
+    changes.push(
+      `Heure d'ouverture : <code>${args.dayStartTime.trim()}</code>`,
+    );
   }
 
   if (args.dayEndTime && args.dayEndTime.trim() !== institution.dayEndTime) {
@@ -351,7 +397,7 @@ export async function updateLevelTuitionFeeTool(
     levelNumber: number;
     tuitionFee: number;
   },
-  context: ToolContext
+  context: ToolContext,
 ): Promise<WriteToolResult> {
   const level = await prisma.level.findFirst({
     where: {
@@ -392,7 +438,8 @@ export async function updateLevelTuitionFeeTool(
 
   invalidateTenantTags(context.schoolId, "finance", "students", "dashboard");
 
-  const levelName = args.levelNumber === 0 ? "Préparatoire" : `${args.levelNumber}ème année`;
+  const levelName =
+    args.levelNumber === 0 ? "Préparatoire" : `${args.levelNumber}ème année`;
 
   return {
     success: true,

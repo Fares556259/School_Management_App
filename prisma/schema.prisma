@@ -361,6 +361,7 @@ model Institution {
   halfBoundaryMonths Boolean @default(false)
   registrationFeeEnabled Boolean @default(false)
   registrationFee Float @default(150)
+  registrationReconciliationYear String?
   transportMonthlyFee Float?
   gardeMonthlyFee Float?
   sessions        Json?    @default("[{\"id\": 1, \"time\": \"08:00 - 10:00\", \"label\": \"Session 1\"}, {\"id\": 2, \"time\": \"10:00 - 12:00\", \"label\": \"Session 2\"}, {\"id\": 3, \"time\": \"12:00 - 14:00\", \"label\": \"Session 3\"}]")
@@ -803,6 +804,7 @@ model StudentChargePayment {
   amount Float
   paymentMethod String
   idempotencyKey String
+  paidAt DateTime @default(now())
   createdAt DateTime @default(now())
   School School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   charge StudentCharge @relation(fields: [chargeId, schoolId], references: [id, schoolId], onDelete: Cascade)
