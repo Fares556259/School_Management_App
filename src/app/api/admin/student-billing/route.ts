@@ -8,6 +8,11 @@ import { schoolDate, roundMoney } from "@/lib/agent/dataAccuracy";
 import { invalidateTenantTags } from "@/lib/cache";
 import { revalidatePath } from "next/cache";
 import { authenticateMobileRequest } from "@/lib/mobileAuth";
+import {
+  chargeCalendar,
+  discountedServiceAmount,
+  serviceFrequency,
+} from "@/lib/studentCharges";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -70,33 +75,56 @@ export async function GET(request: NextRequest) {
         { success: false, error: "Student not found" },
         { status: 404 },
       );
-    const [institution, payments, charges, categories] = await Promise.all([
-      prisma.institution.findUniqueOrThrow({
-        where: { schoolId },
-        select: { halfBoundaryMonths: true, academicYear: true },
-      }),
-      prisma.payment.findMany({
-        where: { schoolId, studentId, userType: "STUDENT" },
-        select: { month: true, year: true, amount: true, status: true },
-      }),
-      prisma.studentCharge.findMany({
-        where: { schoolId, studentId, voidedAt: null },
-        orderBy: [{ dueDate: "asc" }, { id: "asc" }],
-        select: {
-          id: true,
-          kind: true,
-          period: true,
-          academicYear: true,
-          amount: true,
-          paidAmount: true,
-          dueDate: true,
-        },
-      }),
-      prisma.studentChargeCategory.findMany({
-        where: { schoolId },
-        select: { kind: true, name: true },
-      }),
-    ]);
+    const [institution, payments, charges, categories, busAssignment] =
+      await Promise.all([
+        prisma.institution.findUniqueOrThrow({
+          where: { schoolId },
+          select: {
+            halfBoundaryMonths: true,
+            academicYear: true,
+            transportFrequency: true,
+            gardeFrequency: true,
+            transportNextFrequency: true,
+            gardeNextFrequency: true,
+            transportFrequencyYear: true,
+            gardeFrequencyYear: true,
+            yearStart: true,
+          },
+        }),
+        prisma.payment.findMany({
+          where: { schoolId, studentId, userType: "STUDENT" },
+          select: { month: true, year: true, amount: true, status: true },
+        }),
+        prisma.studentCharge.findMany({
+          where: { schoolId, studentId, voidedAt: null },
+          orderBy: [{ dueDate: "asc" }, { id: "asc" }],
+          select: {
+            id: true,
+            kind: true,
+            period: true,
+            academicYear: true,
+            amount: true,
+            paidAmount: true,
+            dueDate: true,
+          },
+        }),
+        prisma.studentChargeCategory.findMany({
+          where: { schoolId },
+          select: { kind: true, name: true },
+        }),
+        prisma.studentServiceAssignment.findUnique({
+          where: {
+            schoolId_studentId_kind: { schoolId, studentId, kind: "TRANSPORT" },
+          },
+          select: {
+            active: true,
+            startPeriod: true,
+            monthlyFee: true,
+            discountType: true,
+            discountValue: true,
+          },
+        }),
+      ]);
     const categoryNames = new Map(
       categories.map((category) => [category.kind, category.name]),
     );
@@ -107,6 +135,23 @@ export async function GET(request: NextRequest) {
         tuitionFee: student.customTuition ?? student.level?.tuitionFee ?? 450,
         halfBoundaryMonths: institution.halfBoundaryMonths,
         academicYear: institution.academicYear,
+        bus:
+          busAssignment?.active &&
+          serviceFrequency(
+            institution,
+            "TRANSPORT",
+            chargeCalendar(institution).academicYear,
+          ) === "MONTHLY"
+            ? {
+                startPeriod: busAssignment.startPeriod,
+                academicYear: chargeCalendar(institution).academicYear,
+                monthlyAmount: discountedServiceAmount(
+                  busAssignment.monthlyFee,
+                  busAssignment.discountType,
+                  busAssignment.discountValue,
+                ),
+              }
+            : null,
         payments,
         charges: charges.map((charge) => ({
           ...charge,
@@ -164,6 +209,21 @@ export async function POST(request: NextRequest) {
     )
       throw new Error("Invalid tuition amount");
     const items = body.charges;
+    const advanceBus = body.advanceBus == null ? [] : body.advanceBus;
+    if (
+      !Array.isArray(advanceBus) ||
+      advanceBus.length > 10 ||
+      advanceBus.some(
+        (item: any) =>
+          !item || typeof item.period !== "string" || !money(item.amount),
+      )
+    )
+      throw new Error("Invalid bus month or amount");
+    if (
+      new Set(advanceBus.map((item: any) => item.period)).size !==
+      advanceBus.length
+    )
+      throw new Error("Duplicate bus month");
     if (
       !Array.isArray(items) ||
       items.length > 50 ||
@@ -178,7 +238,11 @@ export async function POST(request: NextRequest) {
       throw new Error("Invalid charge selection");
     if (new Set(items.map((item: any) => item.id)).size !== items.length)
       throw new Error("Duplicate charge");
-    if (tuitionItems.length === 0 && items.length === 0)
+    if (
+      tuitionItems.length === 0 &&
+      items.length === 0 &&
+      advanceBus.length === 0
+    )
       throw new Error("Select at least one payment");
     const normalized = {
       tuition: tuitionItems
@@ -190,6 +254,12 @@ export async function POST(request: NextRequest) {
       charges: items
         .map((item: any) => ({ id: item.id, amount: roundMoney(item.amount) }))
         .sort((a: any, b: any) => a.id.localeCompare(b.id)),
+      advanceBus: advanceBus
+        .map((item: any) => ({
+          period: item.period,
+          amount: roundMoney(item.amount),
+        }))
+        .sort((a: any, b: any) => a.period.localeCompare(b.period)),
     };
     if (
       new Set(normalized.tuition.map((item: any) => item.monthYear)).size !==
@@ -202,6 +272,10 @@ export async function POST(request: NextRequest) {
         0,
       ) +
         normalized.charges.reduce(
+          (sum: number, item: any) => sum + item.amount,
+          0,
+        ) +
+        normalized.advanceBus.reduce(
           (sum: number, item: any) => sum + item.amount,
           0,
         ),
@@ -233,7 +307,11 @@ export async function POST(request: NextRequest) {
             previous.studentId !== body.studentId ||
             previous.amount !== total ||
             previous.paymentMethod !== body.paymentMethod ||
-            stableJson(previous.allocations) !== stableJson(normalized) ||
+            stableJson({
+              ...(previous.allocations as Record<string, unknown>),
+              advanceBus:
+                (previous.allocations as { advanceBus?: unknown }).advanceBus ?? [],
+            }) !== stableJson(normalized) ||
             schoolDate(previous.paidAt) !== body.paidOn
           )
             throw new Error("Receipt key used with different details");
@@ -245,8 +323,19 @@ export async function POST(request: NextRequest) {
         }
         const institution = await tx.institution.findUniqueOrThrow({
           where: { schoolId },
-          select: { halfBoundaryMonths: true },
+          select: {
+            halfBoundaryMonths: true,
+            academicYear: true,
+            yearStart: true,
+            transportFrequency: true,
+            gardeFrequency: true,
+            transportNextFrequency: true,
+            gardeNextFrequency: true,
+            transportFrequencyYear: true,
+            gardeFrequencyYear: true,
+          },
         });
+        const busPaymentIds: { id: string; amount: number }[] = [];
         const incomeLines: {
           title: string;
           amount: number;
@@ -348,6 +437,95 @@ export async function POST(request: NextRequest) {
                     : customCategory?.name || "Service",
           });
         }
+        if (normalized.advanceBus.length) {
+          const calendar = chargeCalendar(institution);
+          const assignment = await tx.studentServiceAssignment.findUnique({
+            where: {
+              schoolId_studentId_kind: {
+                schoolId,
+                studentId: body.studentId,
+                kind: "TRANSPORT",
+              },
+            },
+          });
+          if (
+            !assignment?.active ||
+            serviceFrequency(
+              institution,
+              "TRANSPORT",
+              calendar.academicYear,
+            ) !== "MONTHLY"
+          )
+            throw new Error(
+              "Monthly bus subscription is no longer active; refresh before collecting",
+            );
+          const [firstYear] = calendar.academicYear.split("-").map(Number);
+          const validPeriods = new Set(
+            [9, 10, 11, 12, 1, 2, 3, 4, 5, 6].map(
+              (month) =>
+                `${month >= 9 ? firstYear : firstYear + 1}-${String(month).padStart(2, "0")}`,
+            ),
+          );
+          const currentPrice = discountedServiceAmount(
+            assignment.monthlyFee,
+            assignment.discountType,
+            assignment.discountValue,
+          );
+          for (const item of normalized.advanceBus) {
+            if (
+              !validPeriods.has(item.period) ||
+              item.period < assignment.startPeriod
+            )
+              throw new Error(
+                "Bus month is outside this student's subscription",
+              );
+            const dueDate = item.period.endsWith("-09")
+              ? calendar.start
+              : new Date(`${item.period}-01T00:00:00+01:00`);
+            await tx.studentCharge.createMany({
+              data: [
+                {
+                  schoolId,
+                  studentId: body.studentId,
+                  kind: "TRANSPORT",
+                  academicYear: calendar.academicYear,
+                  period: item.period,
+                  amount: currentPrice,
+                  dueDate,
+                },
+              ],
+              skipDuplicates: true,
+            });
+            const charge = await tx.studentCharge.findUniqueOrThrow({
+              where: {
+                schoolId_studentId_kind_period: {
+                  schoolId,
+                  studentId: body.studentId,
+                  kind: "TRANSPORT",
+                  period: item.period,
+                },
+              },
+            });
+            if (
+              charge.voidedAt ||
+              item.amount > roundMoney(charge.amount - charge.paidAmount) ||
+              normalized.charges.some(
+                (selected: { id: string }) => selected.id === charge.id,
+              )
+            )
+              throw new Error("Bus balance changed; refresh before collecting");
+            await tx.studentCharge.update({
+              where: { id: charge.id },
+              data: { paidAmount: { increment: item.amount } },
+            });
+            busPaymentIds.push({ id: charge.id, amount: item.amount });
+            incomeLines.push({
+              title: `TRANSPORT: ${student.name} ${student.surname} (${item.period})`,
+              amount: item.amount,
+              category: "Transport",
+            });
+          }
+        }
         const receipt = await tx.studentBillingReceipt.create({
           data: {
             schoolId,
@@ -359,7 +537,7 @@ export async function POST(request: NextRequest) {
             allocations: normalized,
           },
         });
-        for (const item of normalized.charges)
+        for (const item of [...normalized.charges, ...busPaymentIds])
           await tx.studentChargePayment.create({
             data: {
               schoolId,

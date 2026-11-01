@@ -20,6 +20,11 @@ type Billing = {
   halfBoundaryMonths: boolean;
   payments: { month: number; year: number; amount: number; status: string }[];
   charges: Charge[];
+  bus?: {
+    startPeriod: string;
+    academicYear: string;
+    monthlyAmount: number;
+  } | null;
 };
 export default function StudentBillingModal({
   studentId,
@@ -62,6 +67,7 @@ export default function StudentBillingModal({
     {},
   );
   const [chosen, setChosen] = useState<string[]>([]);
+  const [busMonths, setBusMonths] = useState<Record<string, string>>({});
   const [paidOn, setPaidOn] = useState(() =>
     new Date().toLocaleDateString("en-CA", { timeZone: "Africa/Tunis" }),
   );
@@ -90,11 +96,50 @@ export default function StudentBillingModal({
       })
       .then((value) => {
         setData(value);
+        const firstUnpaidMonth = getSchoolYearMonths().find((candidate) => {
+          const [name, yearLabel] = candidate.split(" ");
+          const number = MONTHS.indexOf(name) + 1;
+          const paid =
+            value.payments.find(
+              (payment) =>
+                payment.month === number && payment.year === Number(yearLabel),
+            )?.amount || 0;
+          return (
+            tuitionForMonth(
+              value.tuitionFee,
+              number,
+              value.halfBoundaryMonths,
+            ) -
+              paid >
+            0
+          );
+        });
+        setMonth((current) => {
+          const currentParts = current.split(" ");
+          const currentNumber = MONTHS.indexOf(currentParts[0]) + 1;
+          const currentPaid =
+            value.payments.find(
+              (payment) =>
+                payment.month === currentNumber &&
+                payment.year === Number(currentParts[1]),
+            )?.amount || 0;
+          return getSchoolYearMonths().includes(current) && currentNumber > 0 &&
+            tuitionForMonth(
+              value.tuitionFee,
+              currentNumber,
+              value.halfBoundaryMonths,
+            ) -
+              currentPaid >
+              0
+            ? current
+            : firstUnpaidMonth || "";
+        });
         setChosen(
           initialChargeId &&
             value.charges.some(
               (charge) =>
                 charge.id === initialChargeId &&
+                !(value.bus && charge.kind === "TRANSPORT") &&
                 charge.amount > charge.paidAmount,
             )
             ? [initialChargeId]
@@ -102,6 +147,26 @@ export default function StudentBillingModal({
         );
         setChargeAmounts({});
         setExtraTuition({});
+        const initialBus = value.bus
+          ? value.charges.find(
+              (charge) =>
+                charge.id === initialChargeId &&
+                charge.kind === "TRANSPORT" &&
+                charge.amount > charge.paidAmount &&
+                /^\d{4}-\d{2}$/.test(charge.period),
+            )
+          : null;
+        setBusMonths(
+          initialBus
+            ? {
+                [initialBus.period]: String(
+                  Math.round(
+                    (initialBus.amount - initialBus.paidAmount) * 1000,
+                  ) / 1000,
+                ),
+              }
+            : {},
+        );
         setReceipt(null);
         setIdempotencyKey(crypto.randomUUID());
       })
@@ -117,7 +182,7 @@ export default function StudentBillingModal({
   const existing = data?.payments.find(
     (p) => p.month === monthNo && p.year === year,
   );
-  const expected = data
+  const expected = data && monthNo > 0 && getSchoolYearMonths().includes(month)
     ? tuitionForMonth(data.tuitionFee, monthNo, data.halfBoundaryMonths)
     : 0;
   const due = Math.max(
@@ -129,7 +194,16 @@ export default function StudentBillingModal({
     setTuitionChecked(!initialChargeId && due > 0);
   }, [due, month, initialChargeId]);
   const dueCharges = useMemo(
-    () => data?.charges.filter((c) => c.amount - c.paidAmount > 0) || [],
+    () =>
+      data?.charges.filter(
+        (c) =>
+          c.amount - c.paidAmount > 0 &&
+          !(
+            data.bus &&
+            c.kind === "TRANSPORT" &&
+            /^\d{4}-\d{2}$/.test(c.period)
+          ),
+      ) || [],
     [data],
   );
   const tuitionDue = (monthYear: string) => {
@@ -159,6 +233,39 @@ export default function StudentBillingModal({
       !(candidate in extraTuition) &&
       tuitionDue(candidate) > 0,
   );
+  const unpaidTuitionMonths = getSchoolYearMonths().filter(
+    (candidate) => tuitionDue(candidate) > 0,
+  );
+  const schoolMonths = getSchoolYearMonths().map((label) => {
+    const [name, year] = label.split(" ");
+    return {
+      label,
+      period: `${year}-${String(MONTHS.indexOf(name) + 1).padStart(2, "0")}`,
+    };
+  });
+  const busCharge = (period: string) =>
+    data?.charges.find(
+      (charge) => charge.kind === "TRANSPORT" && charge.period === period,
+    );
+  const busBalance = (period: string) => {
+    const charge = busCharge(period);
+    return Math.max(
+      0,
+      Math.round(
+        ((charge?.amount ?? data?.bus?.monthlyAmount ?? 0) -
+          (charge?.paidAmount ?? 0)) *
+          1000,
+      ) / 1000,
+    );
+  };
+  const availableBusMonths = data?.bus
+    ? schoolMonths.filter(
+        ({ period }) =>
+          period >= data.bus!.startPeriod &&
+          !(period in busMonths) &&
+          busBalance(period) > 0,
+      )
+    : [];
   const chosenCharges = dueCharges.filter((c) => chosen.includes(c.id));
   const total =
     Math.round(
@@ -176,6 +283,10 @@ export default function StudentBillingModal({
                 ".",
               ),
             ) || 0),
+          0,
+        ) +
+        Object.values(busMonths).reduce(
+          (sum, amount) => sum + (Number(amount.replace(",", ".")) || 0),
           0,
         )) *
         1000,
@@ -206,6 +317,10 @@ export default function StudentBillingModal({
       Number.isFinite(value) && value > 0 && value <= c.amount - c.paidAmount
     );
   });
+  const validBus = Object.entries(busMonths).every(([period, amount]) => {
+    const value = Number(amount.replace(",", "."));
+    return Number.isFinite(value) && value > 0 && value <= busBalance(period);
+  });
   const send = async () => {
     if (!data || busy) return;
     setBusy(true);
@@ -234,6 +349,13 @@ export default function StudentBillingModal({
           ),
         ),
       }));
+      const advanceBus: { period: string; amount: number }[] = [];
+      for (const [period, amount] of Object.entries(busMonths)) {
+        const value = Number(amount.replace(",", "."));
+        const existingBus = busCharge(period);
+        if (existingBus) charges.push({ id: existingBus.id, amount: value });
+        else advanceBus.push({ period, amount: value });
+      }
       const response = await fetch("/api/admin/student-billing", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -242,6 +364,7 @@ export default function StudentBillingModal({
           idempotencyKey,
           tuition,
           charges,
+          advanceBus,
           paidOn,
           paymentMethod: method,
         }),
@@ -412,119 +535,233 @@ export default function StudentBillingModal({
                       "اختر ما تدفعه العائلة اليوم",
                     )}
                   </p>
-                  <section className="mt-3 rounded-xl border p-4">
-                    <label className="flex items-center gap-3 font-semibold">
-                      <input
-                        type="checkbox"
-                        checked={tuitionChecked}
-                        disabled={due <= 0}
-                        onChange={(e) => setTuitionChecked(e.target.checked)}
-                      />
-                      {t("Scolarité", "Tuition", "التمدرس")}
-                    </label>
-                    <div className="mt-3 flex items-center gap-3">
-                      <select
-                        className="min-w-0 flex-1 rounded-lg border p-2 text-sm"
-                        value={month}
-                        onChange={(e) => setMonth(e.target.value)}
-                      >
-                        {getSchoolYearMonths()
-                          .filter((m) => !(m in extraTuition))
-                          .map((m) => (
-                            <option key={m} value={m}>
-                              {m}
-                            </option>
-                          ))}
-                      </select>
-                      <span className="text-xs text-slate-500">
-                        {t("Reste", "Due", "المتبقي")}: {due} TND
-                      </span>
-                    </div>
-                    {tuitionChecked && (
-                      <label className="mt-3 block text-sm">
-                        {t("Montant reçu", "Amount received", "المبلغ المقبوض")}
+                  {unpaidTuitionMonths.length > 0 && (
+                    <section className="mt-3 rounded-xl border p-4">
+                      <label className="flex items-center gap-3 font-semibold">
                         <input
-                          inputMode="decimal"
-                          className="mt-1 w-full rounded-lg border p-2"
-                          value={tuitionAmount}
-                          onChange={(e) => setTuitionAmount(e.target.value)}
+                          type="checkbox"
+                          checked={tuitionChecked}
+                          disabled={due <= 0}
+                          onChange={(e) => setTuitionChecked(e.target.checked)}
                         />
+                        {t("Scolarité", "Tuition", "التمدرس")}
                       </label>
-                    )}
-                    {Object.entries(extraTuition).map(([monthYear, amount]) => (
-                      <div
-                        key={monthYear}
-                        className="mt-3 flex items-end gap-2 rounded-lg bg-slate-50 p-2"
-                      >
-                        <div className="min-w-0 flex-1 text-sm">
-                          <span className="font-medium">{monthYear}</span>
-                          <span className="ml-2 text-xs text-slate-500">
-                            {t("Reste", "Due", "المتبقي")}:{" "}
-                            {tuitionDue(monthYear)} TND
-                          </span>
-                          <input
-                            aria-label={`${t("Montant reçu", "Amount received", "المبلغ المقبوض")} ${monthYear}`}
-                            inputMode="decimal"
-                            className="mt-1 w-full rounded-lg border bg-white p-2"
-                            value={amount}
-                            onChange={(e) =>
-                              setExtraTuition((previous) => ({
-                                ...previous,
-                                [monthYear]: e.target.value,
-                              }))
-                            }
-                          />
-                        </div>
-                        <button
-                          type="button"
-                          className="rounded-lg border bg-white px-3 py-2 text-sm"
-                          onClick={() =>
-                            setExtraTuition((previous) => {
-                              const next = { ...previous };
-                              delete next[monthYear];
-                              return next;
-                            })
-                          }
+                      <div className="mt-3 flex items-center gap-3">
+                        <select
+                          className="min-w-0 flex-1 rounded-lg border p-2 text-sm"
+                          value={month}
+                          onChange={(e) => setMonth(e.target.value)}
                         >
-                          {t("Retirer", "Remove", "إزالة")}
-                        </button>
+                          {unpaidTuitionMonths
+                            .filter((m) => m === month || !(m in extraTuition))
+                            .map((m) => (
+                              <option key={m} value={m}>
+                                {m}
+                              </option>
+                            ))}
+                        </select>
+                        <span className="text-xs text-slate-500">
+                          {t("Reste", "Due", "المتبقي")}: {due} TND
+                        </span>
                       </div>
-                    ))}
-                    {availableExtraMonths.length > 0 && (
-                      <select
-                        aria-label={t(
-                          "Ajouter un autre mois",
-                          "Add another month",
-                          "إضافة شهر آخر",
-                        )}
-                        className="mt-3 w-full rounded-lg border bg-white p-2 text-sm text-blue-700"
-                        value=""
-                        onChange={(e) => {
-                          if (e.target.value)
-                            setExtraTuition((previous) => ({
-                              ...previous,
-                              [e.target.value]: String(
-                                tuitionDue(e.target.value),
-                              ),
-                            }));
-                        }}
-                      >
-                        <option value="">
-                          +{" "}
+                      {tuitionChecked && (
+                        <label className="mt-3 block text-sm">
                           {t(
+                            "Montant reçu",
+                            "Amount received",
+                            "المبلغ المقبوض",
+                          )}
+                          <input
+                            inputMode="decimal"
+                            className="mt-1 w-full rounded-lg border p-2"
+                            value={tuitionAmount}
+                            onChange={(e) => setTuitionAmount(e.target.value)}
+                          />
+                        </label>
+                      )}
+                      {Object.entries(extraTuition).map(
+                        ([monthYear, amount]) => (
+                          <div
+                            key={monthYear}
+                            className="mt-3 flex items-end gap-2 rounded-lg bg-slate-50 p-2"
+                          >
+                            <div className="min-w-0 flex-1 text-sm">
+                              <span className="font-medium">{monthYear}</span>
+                              <span className="ml-2 text-xs text-slate-500">
+                                {t("Reste", "Due", "المتبقي")}:{" "}
+                                {tuitionDue(monthYear)} TND
+                              </span>
+                              <input
+                                aria-label={`${t("Montant reçu", "Amount received", "المبلغ المقبوض")} ${monthYear}`}
+                                inputMode="decimal"
+                                className="mt-1 w-full rounded-lg border bg-white p-2"
+                                value={amount}
+                                onChange={(e) =>
+                                  setExtraTuition((previous) => ({
+                                    ...previous,
+                                    [monthYear]: e.target.value,
+                                  }))
+                                }
+                              />
+                            </div>
+                            <button
+                              type="button"
+                              className="rounded-lg border bg-white px-3 py-2 text-sm"
+                              onClick={() =>
+                                setExtraTuition((previous) => {
+                                  const next = { ...previous };
+                                  delete next[monthYear];
+                                  return next;
+                                })
+                              }
+                            >
+                              {t("Retirer", "Remove", "إزالة")}
+                            </button>
+                          </div>
+                        ),
+                      )}
+                      {availableExtraMonths.length > 0 && (
+                        <select
+                          aria-label={t(
                             "Ajouter un autre mois",
                             "Add another month",
                             "إضافة شهر آخر",
                           )}
-                        </option>
-                        {availableExtraMonths.map((candidate) => (
-                          <option key={candidate} value={candidate}>
-                            {candidate}
+                          className="mt-3 w-full rounded-lg border bg-white p-2 text-sm text-blue-700"
+                          value=""
+                          onChange={(e) => {
+                            if (e.target.value)
+                              setExtraTuition((previous) => ({
+                                ...previous,
+                                [e.target.value]: String(
+                                  tuitionDue(e.target.value),
+                                ),
+                              }));
+                          }}
+                        >
+                          <option value="">
+                            +{" "}
+                            {t(
+                              "Ajouter un autre mois",
+                              "Add another month",
+                              "إضافة شهر آخر",
+                            )}
                           </option>
+                          {availableExtraMonths.map((candidate) => (
+                            <option key={candidate} value={candidate}>
+                              {candidate}
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                    </section>
+                  )}
+                  {data.bus && (
+                    <section className="mt-4 rounded-xl border border-blue-100 bg-blue-50/40 p-4">
+                      <div className="flex items-center justify-between gap-2">
+                        <div>
+                          <h3 className="font-semibold text-slate-900">
+                            {t(
+                              "Abonnement transport",
+                              "Bus subscription",
+                              "اشتراك النقل",
+                            )}
+                          </h3>
+                          <p className="text-xs text-slate-500">
+                            {t(
+                              "Choisissez les mois à régler, même à l’avance.",
+                              "Choose months to pay, including future months.",
+                              "اختر الأشهر للدفع، بما فيها الأشهر القادمة.",
+                            )}
+                          </p>
+                        </div>
+                        <span className="whitespace-nowrap text-sm font-semibold text-blue-700">
+                          {data.bus.monthlyAmount} TND /{" "}
+                          {t("mois", "month", "شهر")}
+                        </span>
+                      </div>
+                      {Object.entries(busMonths)
+                        .sort(([a], [b]) => a.localeCompare(b))
+                        .map(([period, amount]) => (
+                          <div
+                            key={period}
+                            className="mt-3 flex flex-wrap items-end gap-2 rounded-lg border bg-white p-3"
+                          >
+                            <label className="min-w-32 flex-1 text-sm font-medium">
+                              {schoolMonths.find(
+                                (item) => item.period === period,
+                              )?.label || period}
+                              <span className="ml-2 text-xs font-normal text-slate-500">
+                                {t("Reste", "Due", "المتبقي")}:{" "}
+                                {busBalance(period)} TND
+                              </span>
+                              <input
+                                aria-label={`${t("Montant reçu", "Amount received", "المبلغ المقبوض")} ${period}`}
+                                inputMode="decimal"
+                                value={amount}
+                                onChange={(e) =>
+                                  setBusMonths((previous) => ({
+                                    ...previous,
+                                    [period]: e.target.value,
+                                  }))
+                                }
+                                className="mt-1 w-full rounded-lg border p-2"
+                              />
+                            </label>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setBusMonths((previous) => {
+                                  const next = { ...previous };
+                                  delete next[period];
+                                  return next;
+                                })
+                              }
+                              className="rounded-lg border px-3 py-2 text-sm"
+                            >
+                              {t("Retirer", "Remove", "إزالة")}
+                            </button>
+                          </div>
                         ))}
-                      </select>
-                    )}
-                  </section>
+                      {availableBusMonths.length > 0 ? (
+                        <select
+                          aria-label={t(
+                            "Ajouter un mois de transport",
+                            "Add a bus month",
+                            "إضافة شهر نقل",
+                          )}
+                          value=""
+                          onChange={(e) => {
+                            if (e.target.value)
+                              setBusMonths((previous) => ({
+                                ...previous,
+                                [e.target.value]: String(
+                                  busBalance(e.target.value),
+                                ),
+                              }));
+                          }}
+                          className="mt-3 w-full rounded-lg border bg-white p-2 text-sm text-blue-700"
+                        >
+                          <option value="">
+                            + {t("Ajouter un mois", "Add a month", "إضافة شهر")}
+                          </option>
+                          {availableBusMonths.map(({ period, label }) => (
+                            <option key={period} value={period}>
+                              {label} · {busBalance(period)} TND
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <p className="mt-3 text-sm text-emerald-700">
+                          {t(
+                            "Tous les mois de l’abonnement sont réglés.",
+                            "All subscription months are paid.",
+                            "تم دفع جميع أشهر الاشتراك.",
+                          )}
+                        </p>
+                      )}
+                    </section>
+                  )}
                   {dueCharges.length > 0 && (
                     <div className="mt-4 space-y-2">
                       <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -705,6 +942,22 @@ export default function StudentBillingModal({
                             </strong>
                           </p>
                         ))}
+                        {Object.entries(busMonths)
+                          .sort(([a], [b]) => a.localeCompare(b))
+                          .map(([period, amount]) => (
+                            <p
+                              key={period}
+                              className="flex justify-between gap-2"
+                            >
+                              <span>
+                                {t("Transport", "Bus", "النقل")} ·{" "}
+                                {schoolMonths.find(
+                                  (item) => item.period === period,
+                                )?.label || period}
+                              </span>
+                              <strong>{amount} TND</strong>
+                            </p>
+                          ))}
                         <p className="flex justify-between gap-2 border-t pt-2 font-semibold">
                           <span>{t("Total", "Total", "المجموع")}</span>
                           <strong>{total} TND</strong>
@@ -741,6 +994,7 @@ export default function StudentBillingModal({
                         !validTuition ||
                         !validExtraTuition ||
                         !validCharges ||
+                        !validBus ||
                         !paidOn
                       }
                       onClick={() => {

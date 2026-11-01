@@ -50,6 +50,7 @@ export async function GET(
     const allocations = receipt.allocations as {
       tuition?: Allocation[];
       charges?: Allocation[];
+      advanceBus?: { period: string; amount: number }[];
     };
     const tuition = Array.isArray(allocations.tuition)
       ? allocations.tuition
@@ -98,6 +99,13 @@ export async function GET(
           amount: item.amount,
         };
       }),
+      ...(Array.isArray(allocations.advanceBus)
+        ? allocations.advanceBus
+        : []
+      ).map((item) => ({
+        label: `Transport · ${item.period}`,
+        amount: item.amount,
+      })),
     ].filter((line) => Number.isFinite(line.amount) && line.amount > 0);
 
     const { pdf, filename } = await renderStudentBillingReceiptPdf({
