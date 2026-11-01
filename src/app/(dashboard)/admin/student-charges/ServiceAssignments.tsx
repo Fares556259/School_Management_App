@@ -25,9 +25,11 @@ export default function ServiceAssignments({
     "available" | "assigned" | "all"
   >("available");
   const [selected, setSelected] = useState<string[]>([]);
+  const [studentPage, setStudentPage] = useState(1);
   useEffect(() => {
     setKind(initialKind);
     setSelected([]);
+    setStudentPage(1);
   }, [initialKind]);
   const [startPeriod, setStartPeriod] = useState(() =>
     new Date()
@@ -91,42 +93,36 @@ export default function ServiceAssignments({
       ).sort(),
     [data.students],
   );
+  const assignmentMap = useMemo(
+    () =>
+      new Map(
+        data.services
+          .filter((a) => a.kind === kind)
+          .map((a) => [a.studentId, a]),
+      ),
+    [data.services, kind],
+  );
   const filtered = useMemo(
     () =>
       data.students.filter(
         (s) =>
           (assignmentFilter === "all" ||
             (assignmentFilter === "assigned"
-              ? data.services.some(
-                  (assignment) =>
-                    assignment.kind === kind &&
-                    assignment.studentId === s.id &&
-                    assignment.active,
-                )
-              : !data.services.some(
-                  (assignment) =>
-                    assignment.kind === kind &&
-                    assignment.studentId === s.id &&
-                    assignment.active,
-                ))) &&
+              ? !!assignmentMap.get(s.id)?.active
+              : !assignmentMap.get(s.id)?.active)) &&
           (!className || s.class?.name === className) &&
           (!query ||
             `${s.name} ${s.surname} ${s.class?.name || ""}`
               .toLocaleLowerCase()
               .includes(query.toLocaleLowerCase())),
       ),
-    [data.students, data.services, kind, assignmentFilter, className, query],
+    [data.students, assignmentMap, assignmentFilter, className, query],
   );
-  const visibleStudents = filtered;
-  const activeAssignments = data.services.filter(
-    (a) =>
-      a.active &&
-      a.kind === kind &&
-      (!className || a.student.class?.name === className) &&
-      (!query ||
-        `${a.student.name} ${a.student.surname} ${a.student.class?.name || ""}`
-          .toLocaleLowerCase()
-          .includes(query.toLocaleLowerCase())),
+  const pageSize = 20;
+  const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const visibleStudents = filtered.slice(
+    (studentPage - 1) * pageSize,
+    studentPage * pageSize,
   );
   const balanceByService = new Map(
     data.serviceBalances.map((balance) => [
@@ -140,10 +136,10 @@ export default function ServiceAssignments({
     ]),
   );
   const selectedSet = new Set(selected);
-  const assignmentMap = new Map(
-    data.services.filter((a) => a.kind === kind).map((a) => [a.studentId, a]),
+  const eligibleStudents = filtered.filter(
+    (student) => !assignmentMap.get(student.id)?.active,
   );
-  const bulkCandidates = filtered.filter(
+  const bulkCandidates = visibleStudents.filter(
     (s) => !assignmentMap.get(s.id)?.active,
   );
   const toggle = (id: string) =>
@@ -213,6 +209,7 @@ export default function ServiceAssignments({
         throw new Error(result.error || "Unable to save");
       setReview(null);
       setSelected([]);
+      setStudentPage(1);
       await onSaved();
       setNotice(
         t(
@@ -271,6 +268,7 @@ export default function ServiceAssignments({
               setSelected([]);
               setDiscountType("");
               setDiscountValue("0");
+              setStudentPage(1);
             }}
           >
             <option value="TRANSPORT">{t("Transport", "Bus", "النقل")}</option>
@@ -298,7 +296,11 @@ export default function ServiceAssignments({
               )}
               className="w-full rounded-xl border py-3 pl-10 pr-3"
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                setSelected([]);
+                setStudentPage(1);
+              }}
               placeholder={t(
                 "Rechercher un élève…",
                 "Search students…",
@@ -310,7 +312,11 @@ export default function ServiceAssignments({
             aria-label={t("Classe", "Class", "القسم")}
             className="rounded-xl border p-3"
             value={className}
-            onChange={(e) => setClassName(e.target.value)}
+            onChange={(e) => {
+              setClassName(e.target.value);
+              setSelected([]);
+              setStudentPage(1);
+            }}
           >
             <option value="">
               {t("Toutes les classes", "All classes", "كل الأقسام")}
@@ -353,8 +359,8 @@ export default function ServiceAssignments({
           </span>
           <span className="text-slate-500">
             {t(
-              "Le tarif se règle dans Tarifs & activation.",
-              "Set the price in Rates & activation.",
+              "Le tarif se règle dans Tarifs & services.",
+              "Set the price in Fees & services.",
               "اضبط المعلوم في الإعدادات.",
             )}
           </span>
@@ -375,6 +381,7 @@ export default function ServiceAssignments({
               onClick={() => {
                 setAssignmentFilter(value);
                 setSelected([]);
+                setStudentPage(1);
               }}
               className={`rounded-full px-3 py-1.5 text-sm font-medium ${assignmentFilter === value ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-600"}`}
             >
@@ -386,15 +393,66 @@ export default function ServiceAssignments({
             </button>
           ))}
         </div>
-        <div className="mt-3 max-h-96 overflow-auto rounded-xl border">
-          <label className="sticky top-0 flex cursor-pointer items-center gap-3 border-b bg-slate-50 px-4 py-3 text-sm font-semibold">
-            <input type="checkbox" checked={allVisible} onChange={toggleAll} />
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-sm text-slate-500">
+          <span>
+            {filtered.length} {t("élèves", "students", "تلاميذ")} ·{" "}
+            {t("Page", "Page", "صفحة")} {studentPage}/{pageCount}
+          </span>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              aria-label={t(
+                "Page précédente",
+                "Previous page",
+                "الصفحة السابقة",
+              )}
+              disabled={studentPage === 1}
+              onClick={() => setStudentPage((page) => page - 1)}
+              className="rounded-lg border px-3 py-1.5 disabled:opacity-40"
+            >
+              ←
+            </button>
+            <button
+              type="button"
+              aria-label={t("Page suivante", "Next page", "الصفحة التالية")}
+              disabled={studentPage >= pageCount}
+              onClick={() => setStudentPage((page) => page + 1)}
+              className="rounded-lg border px-3 py-1.5 disabled:opacity-40"
+            >
+              →
+            </button>
+          </div>
+        </div>
+        {assignmentFilter !== "assigned" && filtered.length > pageSize && (
+          <button
+            type="button"
+            onClick={() =>
+              setSelected(eligibleStudents.map((student) => student.id))
+            }
+            className="mt-2 text-sm font-semibold text-blue-700 hover:underline"
+          >
             {t(
-              "Sélectionner tous les résultats affichés",
-              "Select all matching students",
-              "تحديد كل التلاميذ الظاهرين",
+              "Ou sélectionner tous les élèves filtrés",
+              "Or select all filtered students",
+              "أو تحديد جميع التلاميذ المصفّين",
             )}{" "}
-            ({filtered.length})
+            ({eligibleStudents.length})
+          </button>
+        )}
+        <div className="mt-3 overflow-hidden rounded-xl border">
+          <label className="flex cursor-pointer items-center gap-3 border-b bg-slate-50 px-4 py-3 text-sm font-semibold">
+            <input
+              type="checkbox"
+              checked={allVisible}
+              disabled={bulkCandidates.length === 0}
+              onChange={toggleAll}
+            />
+            {t(
+              "Sélectionner cette page",
+              "Select this page",
+              "تحديد هذه الصفحة",
+            )}{" "}
+            ({bulkCandidates.length})
           </label>
           {visibleStudents.map((s) => {
             const assigned = assignmentMap.get(s.id);
@@ -417,8 +475,24 @@ export default function ServiceAssignments({
                   </span>
                 </span>
                 {assigned?.active ? (
-                  <span className="rounded-full bg-emerald-50 px-2 py-1 text-xs text-emerald-700">
-                    {t("Inscrit", "Assigned", "مسجل")}
+                  <span className="text-end text-xs text-slate-600">
+                    <span className="block font-semibold text-emerald-700">
+                      {t("Inscrit", "Assigned", "مسجل")} · {assigned.monthlyFee}{" "}
+                      TND
+                    </span>
+                    {assigned.discountType && (
+                      <span className="block">
+                        {t("Réduction", "Discount", "تخفيض")}{" "}
+                        {assigned.discountValue}
+                        {assigned.discountType === "PERCENT" ? "%" : " TND"}
+                      </span>
+                    )}
+                    {(balanceByService.get(`${s.id}:${kind}`) || 0) > 0 && (
+                      <span className="block text-amber-700">
+                        {t("À encaisser", "Due", "للاستخلاص")}{" "}
+                        {balanceByService.get(`${s.id}:${kind}`)} TND
+                      </span>
+                    )}
                   </span>
                 ) : null}
               </label>
@@ -525,48 +599,6 @@ export default function ServiceAssignments({
               {t("Arrêter ce service", "Stop service", "إيقاف الخدمة")}
             </button>
           )}
-        </div>
-      </div>
-      <div className="rounded-2xl border bg-white p-5">
-        <h3 className="font-semibold">
-          {t(
-            "Élèves bénéficiant des services",
-            "Students using services",
-            "التلاميذ المستفيدون من الخدمات",
-          )}
-        </h3>
-        <p className="mt-1 text-sm text-slate-500">
-          {activeAssignments.length}{" "}
-          {t("affectations actives", "active assignments", "إسناد نشط")}
-        </p>
-        <div className="mt-3 grid gap-2 sm:grid-cols-2">
-          {activeAssignments.map((a) => (
-            <div key={a.id} className="rounded-xl border p-3 text-sm">
-              <strong>
-                {a.student.name} {a.student.surname}
-              </strong>
-              <span className="ml-2 text-slate-500">
-                {a.student.class?.name}
-              </span>
-              <p className="mt-1 text-slate-600">
-                {serviceName} · {a.monthlyFee} TND{" "}
-                {a.discountType
-                  ? `· ${t("réduction", "discount", "تخفيض")} ${a.discountValue}${a.discountType === "PERCENT" ? "%" : " TND"}`
-                  : ""}
-              </p>
-              <p
-                className={`mt-1 text-xs font-semibold ${(balanceByService.get(`${a.studentId}:${a.kind}`) || 0) > 0 ? "text-amber-700" : "text-emerald-700"}`}
-              >
-                {(balanceByService.get(`${a.studentId}:${a.kind}`) || 0) > 0
-                  ? `${t("À encaisser", "To collect", "للاستخلاص")}: ${balanceByService.get(`${a.studentId}:${a.kind}`)} TND`
-                  : t(
-                      "Aucun solde émis",
-                      "No issued balance",
-                      "لا يوجد رصيد صادر",
-                    )}
-              </p>
-            </div>
-          ))}
         </div>
       </div>
       {review && (

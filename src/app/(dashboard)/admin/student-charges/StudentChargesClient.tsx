@@ -108,6 +108,9 @@ export default function StudentChargesClient() {
   const [tab, setTab] = useState<"charges" | "services" | "settings">(
     "settings",
   );
+  const [editingFee, setEditingFee] = useState<
+    "REGISTRATION" | "TRANSPORT" | "GARDE"
+  >("TRANSPORT");
   const [selectedServiceKind, setSelectedServiceKind] = useState("TRANSPORT");
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("DUE");
@@ -386,33 +389,35 @@ export default function StudentChargesClient() {
           )}
         </p>
       )}
-      <div className="grid grid-cols-3 gap-2 sm:gap-3">
-        {[
-          [text("Facturé", "Billed", "المستحق"), data?.summary.billed],
-          [text("Encaissé", "Collected", "المقبوض"), data?.summary.paid],
-          [
-            data?.config.registrationReconciliationYear === data?.academicYear
-              ? text("À rapprocher", "To reconcile", "للمطابقة")
-              : text("Reste à encaisser", "Outstanding", "المتبقي"),
-            Math.max(
-              0,
-              (data?.summary.billed || 0) - (data?.summary.paid || 0),
-            ),
-          ],
-        ].map(([label, value], index) => (
-          <div
-            key={String(label)}
-            className="rounded-2xl border bg-white p-3 sm:p-5"
-          >
-            <span className="text-xs text-slate-500 sm:text-sm">{label}</span>
-            <p
-              className={`mt-2 text-lg font-semibold sm:text-2xl ${index === 2 ? "text-amber-700" : "text-slate-900"}`}
+      {tab === "charges" && (
+        <div className="grid grid-cols-3 gap-2 sm:gap-3">
+          {[
+            [text("Facturé", "Billed", "المستحق"), data?.summary.billed],
+            [text("Encaissé", "Collected", "المقبوض"), data?.summary.paid],
+            [
+              data?.config.registrationReconciliationYear === data?.academicYear
+                ? text("À rapprocher", "To reconcile", "للمطابقة")
+                : text("Reste à encaisser", "Outstanding", "المتبقي"),
+              Math.max(
+                0,
+                (data?.summary.billed || 0) - (data?.summary.paid || 0),
+              ),
+            ],
+          ].map(([label, value], index) => (
+            <div
+              key={String(label)}
+              className="rounded-2xl border bg-white p-3 sm:p-5"
             >
-              {data ? currency(Number(value)) : "—"}
-            </p>
-          </div>
-        ))}
-      </div>
+              <span className="text-xs text-slate-500 sm:text-sm">{label}</span>
+              <p
+                className={`mt-2 text-lg font-semibold sm:text-2xl ${index === 2 ? "text-amber-700" : "text-slate-900"}`}
+              >
+                {data ? currency(Number(value)) : "—"}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
       <nav
         aria-label={text(
           "Rubriques financières",
@@ -425,25 +430,21 @@ export default function StudentChargesClient() {
           <button
             key={key}
             onClick={() => setTab(key)}
-            className={`whitespace-nowrap rounded-xl px-4 py-2 text-sm font-semibold ${tab === key ? "bg-blue-600 text-white" : "bg-white text-slate-600"}`}
+            className={`whitespace-nowrap rounded-xl px-4 py-2 text-sm font-semibold transition-colors ${tab === key ? "bg-slate-900 text-white" : "bg-white text-slate-600 hover:bg-slate-100"}`}
           >
             {key === "settings"
               ? text(
-                  "1 · Tarifs & catégories",
-                  "1 · Prices & categories",
-                  "١ · الأسعار والأصناف",
+                  "Tarifs & services",
+                  "Fees & services",
+                  "المعاليم والخدمات",
                 )
               : key === "services"
                 ? text(
-                    "2 · Attribuer aux élèves",
-                    "2 · Assign students",
-                    "٢ · إسناد التلاميذ",
+                    "Élèves inscrits",
+                    "Student subscriptions",
+                    "اشتراكات التلاميذ",
                   )
-                : text(
-                    "3 · Suivre & encaisser",
-                    "3 · Track & collect",
-                    "٣ · المتابعة والقبض",
-                  )}
+                : text("Paiements", "Payments", "الدفعات")}
           </button>
         ))}
       </nav>
@@ -654,13 +655,13 @@ export default function StudentChargesClient() {
                         <p className="mt-1 text-sm text-slate-600">
                           {title(charge.kind)} · {charge.period}
                         </p>
-                        <p className="mt-1 text-xs text-slate-500">
-                          {text("Encaissé", "Collected", "المقبوض")}{" "}
-                          {currency(charge.paidAmount)}{" "}
-                          <span className="mx-1 text-slate-300">/</span>{" "}
-                          {text("Facturé", "Billed", "المستحق")}{" "}
-                          {currency(charge.amount)}
-                        </p>
+                        {charge.paidAmount > 0 && (
+                          <p className="mt-1 text-xs text-slate-500">
+                            {text("Encaissé", "Collected", "المقبوض")}{" "}
+                            {currency(charge.paidAmount)} /{" "}
+                            {currency(charge.amount)}
+                          </p>
+                        )}
                         {charge.payments.length > 0 && (
                           <details className="mt-2 text-xs text-slate-500">
                             <summary className="cursor-pointer font-medium text-blue-700">
@@ -808,8 +809,61 @@ export default function StudentChargesClient() {
         />
       ) : (
         <div className="space-y-5">
+          <div className="grid gap-3 sm:grid-cols-3">
+            {(["REGISTRATION", "TRANSPORT", "GARDE"] as const).map((fee) => {
+              const feePrice =
+                fee === "REGISTRATION"
+                  ? registrationFee
+                  : fee === "TRANSPORT"
+                    ? transportFee
+                    : gardeFee;
+              const assigned = data.services.filter(
+                (service) => service.kind === fee && service.active,
+              ).length;
+              const frequency =
+                fee === "REGISTRATION"
+                  ? "YEARLY"
+                  : fee === "TRANSPORT"
+                    ? transportFrequency
+                    : gardeFrequency;
+              return (
+                <button
+                  key={fee}
+                  type="button"
+                  aria-pressed={editingFee === fee}
+                  onClick={() => setEditingFee(fee)}
+                  className={`rounded-2xl border bg-white p-4 text-start transition-colors hover:border-blue-300 ${editingFee === fee ? "border-blue-500 ring-2 ring-blue-100" : "border-slate-200"}`}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <strong>{title(fee)}</strong>
+                    {editingFee === fee && (
+                      <Check size={17} className="text-blue-600" />
+                    )}
+                  </div>
+                  <div className="mt-3 text-xl font-semibold text-slate-900">
+                    {fee === "REGISTRATION" && !registrationEnabled
+                      ? text("Désactivé", "Disabled", "معطّل")
+                      : feePrice.trim()
+                        ? currency(Number(feePrice.replace(",", ".")))
+                        : text(
+                            "Prix non défini",
+                            "Price not set",
+                            "السعر غير محدد",
+                          )}
+                  </div>
+                  <p className="mt-1 text-xs text-slate-500">
+                    {frequency === "YEARLY"
+                      ? text("Une fois par an", "Once a year", "مرة في السنة")
+                      : text("Chaque mois", "Every month", "كل شهر")}
+                    {fee !== "REGISTRATION" &&
+                      ` · ${assigned} ${text("élèves", "students", "تلاميذ")}`}
+                  </p>
+                </button>
+              );
+            })}
+          </div>
           <form
-            className="space-y-6 rounded-2xl border bg-white p-6"
+            className="space-y-5 rounded-2xl border bg-white p-5 sm:p-6"
             onSubmit={(event) => {
               event.preventDefault();
               reviewSettings();
@@ -817,86 +871,99 @@ export default function StudentChargesClient() {
           >
             <h2 className="flex items-center gap-2 font-semibold">
               <Receipt size={20} />
-              {text("Tarifs existants", "Existing fees", "المعاليم الحالية")}
+              {title(editingFee)}
             </h2>
             <p className="text-sm text-slate-500">
               {text(
-                "Définissez d’abord les prix et la périodicité. Attribuez ensuite les services aux élèves dans l’étape 2.",
-                "Set prices and billing schedules first. Then assign services to students in step 2.",
-                "حدد الأسعار ودورية الدفع أولاً، ثم أسند الخدمات للتلاميذ في الخطوة الثانية.",
+                "Modifiez le tarif ici, puis gérez les élèves inscrits à ce service.",
+                "Edit this fee, then manage the students using the service.",
+                "عدّل المعلوم هنا، ثم أدر التلاميذ المسجلين في الخدمة.",
               )}
             </p>
-            <div className="grid gap-4 lg:grid-cols-3">
-              <section className="rounded-2xl border border-blue-200 bg-blue-50/40 p-5">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <h3 className="font-semibold text-slate-900">
-                      {title("REGISTRATION")}
-                    </h3>
-                    <p className="mt-1 text-xs leading-5 text-slate-600">
-                      {text(
-                        "Une fois par élève et par année scolaire.",
-                        "Once per student each school year.",
-                        "مرة واحدة لكل تلميذ في السنة الدراسية.",
+            <div className="max-w-2xl">
+              {editingFee === "REGISTRATION" && (
+                <section className="rounded-2xl border border-blue-200 bg-blue-50/40 p-5">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <h3 className="font-semibold text-slate-900">
+                        {title("REGISTRATION")}
+                      </h3>
+                      <p className="mt-1 text-xs leading-5 text-slate-600">
+                        {text(
+                          "Une fois par élève et par année scolaire.",
+                          "Once per student each school year.",
+                          "مرة واحدة لكل تلميذ في السنة الدراسية.",
+                        )}
+                      </p>
+                    </div>
+                    <input
+                      aria-label={text(
+                        "Activer l’inscription",
+                        "Enable registration",
+                        "تفعيل التسجيل",
                       )}
-                    </p>
+                      type="checkbox"
+                      checked={registrationEnabled}
+                      onChange={(event) =>
+                        setRegistrationEnabled(event.target.checked)
+                      }
+                      className="mt-1 h-5 w-5"
+                    />
                   </div>
-                  <input
-                    aria-label={text(
-                      "Activer l’inscription",
-                      "Enable registration",
-                      "تفعيل التسجيل",
-                    )}
-                    type="checkbox"
-                    checked={registrationEnabled}
-                    onChange={(event) =>
-                      setRegistrationEnabled(event.target.checked)
-                    }
-                    className="mt-1 h-5 w-5"
-                  />
-                </div>
-                <label className="mt-5 block text-sm font-medium text-slate-700">
-                  {text(
-                    "Prix par élève",
-                    "Price per student",
-                    "السعر لكل تلميذ",
-                  )}{" "}
-                  · TND
-                  <input
-                    className={`${input} mt-2`}
-                    inputMode="decimal"
-                    required
-                    value={registrationFee}
-                    onChange={(event) => setRegistrationFee(event.target.value)}
-                  />
-                </label>
-                <label className="mt-5 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900">
-                  <input
-                    type="checkbox"
-                    checked={hideCurrentRegistrationFromParents}
-                    onChange={(event) =>
-                      setHideCurrentRegistrationFromParents(
-                        event.target.checked,
-                      )
-                    }
-                    className="mt-0.5 h-4 w-4 shrink-0"
-                  />
-                  <span>
-                    <strong className="block">
-                      {text(
-                        "Rapprochement des paiements déjà reçus",
-                        "Reconcile fees already collected",
-                        "مطابقة المعاليم المقبوضة سابقاً",
-                      )}
-                    </strong>
+                  <label className="mt-5 block text-sm font-medium text-slate-700">
                     {text(
-                      "Masquer les frais impayés aux parents pendant la saisie. Désactivez après vérification.",
-                      "Hide unpaid fees from parents while recording earlier payments. Turn off after checking.",
-                      "إخفاء المعاليم غير المسددة عن الأولياء أثناء تسجيل الدفعات السابقة، ثم أوقف الإخفاء بعد المراجعة.",
-                    )}
-                  </span>
-                </label>
-              </section>
+                      "Prix par élève",
+                      "Price per student",
+                      "السعر لكل تلميذ",
+                    )}{" "}
+                    · TND
+                    <input
+                      className={`${input} mt-2`}
+                      inputMode="decimal"
+                      required
+                      value={registrationFee}
+                      onChange={(event) =>
+                        setRegistrationFee(event.target.value)
+                      }
+                    />
+                  </label>
+                  <details className="mt-5 rounded-xl border bg-white p-3 text-sm">
+                    <summary className="cursor-pointer font-medium text-slate-700">
+                      {text(
+                        "Paiements reçus avant SnapSchool",
+                        "Payments collected before SnapSchool",
+                        "دفعات قُبضت قبل سناب سكول",
+                      )}
+                    </summary>
+                    <label className="mt-3 flex items-start gap-3 text-xs leading-5 text-slate-600">
+                      <input
+                        type="checkbox"
+                        checked={hideCurrentRegistrationFromParents}
+                        onChange={(event) =>
+                          setHideCurrentRegistrationFromParents(
+                            event.target.checked,
+                          )
+                        }
+                        className="mt-0.5 h-4 w-4 shrink-0"
+                      />
+                      <span>
+                        <strong className="block">
+                          {text(
+                            "Rapprochement des paiements déjà reçus",
+                            "Reconcile fees already collected",
+                            "مطابقة المعاليم المقبوضة سابقاً",
+                          )}
+                        </strong>
+                        {text(
+                          "Masquer les frais impayés aux parents pendant la saisie. Désactivez après vérification.",
+                          "Hide unpaid fees from parents while recording earlier payments. Turn off after checking.",
+                          "إخفاء المعاليم غير المسددة عن الأولياء أثناء تسجيل الدفعات السابقة، ثم أوقف الإخفاء بعد المراجعة.",
+                        )}
+                      </span>
+                    </label>
+                  </details>
+                </section>
+              )}
               {(
                 [
                   [
@@ -923,81 +990,101 @@ export default function StudentChargesClient() {
                     ).length,
                   ],
                 ] as const
-              ).map(
-                ([
-                  label,
-                  value,
-                  setValue,
-                  frequency,
-                  setFrequency,
-                  pending,
-                  assigned,
-                ]) => (
-                  <section
-                    key={label}
-                    className="rounded-2xl border border-slate-200 p-5"
-                  >
-                    <h3 className="font-semibold text-slate-900">{label}</h3>
-                    <p className="mt-1 text-xs text-slate-500">
-                      {assigned}{" "}
-                      {text(
-                        "élèves inscrits",
-                        "students assigned",
-                        "تلاميذ مسجلون",
-                      )}
-                    </p>
-                    <label className="mt-5 block text-sm font-medium text-slate-700">
-                      {text(
-                        "Prix par élève",
-                        "Price per student",
-                        "السعر لكل تلميذ",
-                      )}{" "}
-                      · TND
-                      <input
-                        className={`${input} mt-2`}
-                        inputMode="decimal"
-                        value={value}
-                        onChange={(event) => setValue(event.target.value)}
-                        placeholder={text("Non défini", "Not set", "غير محدد")}
-                      />
-                    </label>
-                    <label className="mt-4 block text-sm font-medium text-slate-700">
-                      {text(
-                        "Comment facturer ?",
-                        "How is it charged?",
-                        "كيف تتم الفوترة؟",
-                      )}
-                      <select
-                        className={`${input} mt-2`}
-                        value={frequency}
-                        onChange={(event) => setFrequency(event.target.value)}
-                      >
-                        <option value="MONTHLY">
-                          {text("Chaque mois", "Every month", "كل شهر")}
-                        </option>
-                        <option value="YEARLY">
-                          {text(
-                            "Une fois par année scolaire",
-                            "Once per school year",
-                            "مرة في السنة الدراسية",
-                          )}
-                        </option>
-                      </select>
-                    </label>
-                    {pending && (
-                      <p className="mt-2 text-xs text-amber-700">
+              )
+                .filter(([label]) => label === title(editingFee))
+                .map(
+                  ([
+                    label,
+                    value,
+                    setValue,
+                    frequency,
+                    setFrequency,
+                    pending,
+                    assigned,
+                  ]) => (
+                    <section
+                      key={label}
+                      className="rounded-2xl border border-slate-200 p-5"
+                    >
+                      <h3 className="font-semibold text-slate-900">{label}</h3>
+                      <p className="mt-1 text-xs text-slate-500">
+                        {assigned}{" "}
                         {text(
-                          "Changement prévu pour la prochaine année scolaire",
-                          "Schedule changes next school year",
-                          "تتغير الدورية السنة الدراسية القادمة",
+                          "élèves inscrits",
+                          "students assigned",
+                          "تلاميذ مسجلون",
                         )}
                       </p>
-                    )}
-                  </section>
-                ),
-              )}
+                      <label className="mt-5 block text-sm font-medium text-slate-700">
+                        {text(
+                          "Prix par élève",
+                          "Price per student",
+                          "السعر لكل تلميذ",
+                        )}{" "}
+                        · TND
+                        <input
+                          className={`${input} mt-2`}
+                          inputMode="decimal"
+                          value={value}
+                          onChange={(event) => setValue(event.target.value)}
+                          placeholder={text(
+                            "Non défini",
+                            "Not set",
+                            "غير محدد",
+                          )}
+                        />
+                      </label>
+                      <label className="mt-4 block text-sm font-medium text-slate-700">
+                        {text(
+                          "Comment facturer ?",
+                          "How is it charged?",
+                          "كيف تتم الفوترة؟",
+                        )}
+                        <select
+                          className={`${input} mt-2`}
+                          value={frequency}
+                          onChange={(event) => setFrequency(event.target.value)}
+                        >
+                          <option value="MONTHLY">
+                            {text("Chaque mois", "Every month", "كل شهر")}
+                          </option>
+                          <option value="YEARLY">
+                            {text(
+                              "Une fois par année scolaire",
+                              "Once per school year",
+                              "مرة في السنة الدراسية",
+                            )}
+                          </option>
+                        </select>
+                      </label>
+                      {pending && (
+                        <p className="mt-2 text-xs text-amber-700">
+                          {text(
+                            "Changement prévu pour la prochaine année scolaire",
+                            "Schedule changes next school year",
+                            "تتغير الدورية السنة الدراسية القادمة",
+                          )}
+                        </p>
+                      )}
+                      <button
+                        type="button"
+                        className="mt-5 text-sm font-semibold text-blue-700 hover:underline"
+                        onClick={() => {
+                          setSelectedServiceKind(editingFee);
+                          setTab("services");
+                        }}
+                      >
+                        {text(
+                          "Gérer les élèves inscrits →",
+                          "Manage assigned students →",
+                          "إدارة التلاميذ المسجلين ←",
+                        )}
+                      </button>
+                    </section>
+                  ),
+                )}
             </div>
-            <p className="text-sm leading-6 text-slate-500">
+            <p className="text-xs leading-5 text-slate-500">
               {text(
                 "Les tarifs de transport et de garde servent de valeurs par défaut. Aucun élève n’est inscrit automatiquement à ces services. Modifier un tarif ne change pas les échéances déjà émises.",
                 "Transport and care prices are defaults. Students are never assigned automatically. Changing a price does not change charges already issued.",
