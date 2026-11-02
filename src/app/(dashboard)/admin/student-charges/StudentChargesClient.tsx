@@ -833,6 +833,10 @@ export default function StudentChargesClient() {
           data={data}
           onSaved={load}
           initialKind={selectedServiceKind}
+          onEditService={(kind) => {
+            if (kind === "TRANSPORT" || kind === "GARDE") setEditingFee(kind);
+            setTab("settings");
+          }}
         />
       ) : (
         <div className="space-y-5">
