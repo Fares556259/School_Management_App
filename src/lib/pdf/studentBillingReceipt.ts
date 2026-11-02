@@ -43,21 +43,36 @@ export async function renderStudentBillingReceiptPdf({
     // Keep the receipt downloadable if the optional font asset is unavailable.
   }
   const width = doc.internal.pageSize.getWidth();
+  const height = doc.internal.pageSize.getHeight();
   const left = 20;
+  const right = width - left;
+  const receiptNumber = receipt.id.slice(-10).toUpperCase();
+  const writeName = (value: string, x: number, position: number) => {
+    doc.setFont(/[\u0600-\u06FF]/.test(value) ? nameFont : "helvetica", "normal");
+    doc.text(value, x, position);
+    doc.setFont("helvetica", "normal");
+  };
   let y = 49;
   const header = () => {
     doc.setFillColor(21, 75, 164);
-    doc.rect(0, 0, width, 5, "F");
+    doc.rect(0, 0, width, 2, "F");
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(16);
+    doc.setFontSize(15);
     doc.setTextColor(23, 43, 76);
-    doc.setFont(nameFont, "normal");
-    doc.text(school?.schoolName || "SnapSchool", left, 19);
+    writeName(school?.schoolName || "SnapSchool", left, 18);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
     doc.setTextColor(92, 106, 124);
     if (school?.address) doc.text(school.address, left, 25);
     if (school?.phone) doc.text(school.phone, left, 30);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.setTextColor(21, 75, 164);
+    doc.text("REÇU DE PAIEMENT", right, 18, { align: "right" });
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(92, 106, 124);
+    doc.text(`N° ${receiptNumber}`, right, 25, { align: "right" });
     doc.setDrawColor(217, 225, 235);
     doc.line(left, 35, width - left, 35);
   };
@@ -65,31 +80,50 @@ export async function renderStudentBillingReceiptPdf({
   doc.setFont("helvetica", "bold");
   doc.setFontSize(18);
   doc.setTextColor(23, 43, 76);
-  doc.text("REÇU DE PAIEMENT", left, y);
-  y += 11;
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(10);
-  doc.setTextColor(62, 74, 91);
+  doc.text("Reçu de paiement", left, y);
+  y += 8;
   const paymentDate = new Intl.DateTimeFormat("fr-FR", {
     timeZone: "Africa/Tunis",
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
   }).format(receipt.paidAt);
-  doc.text(`Date : ${paymentDate}`, left, y);
-  doc.text(`Mode : ${receipt.paymentMethod}`, width - left, y, {
+  doc.setFillColor(240, 246, 253);
+  doc.roundedRect(left, y, width - left * 2, 28, 2.5, 2.5, "F");
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8);
+  doc.setTextColor(92, 106, 124);
+  doc.text("MONTANT REÇU", left + 6, y + 7);
+  doc.text("DATE DE PAIEMENT", right - 5, y + 7, { align: "right" });
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(19);
+  doc.setTextColor(21, 75, 164);
+  doc.text(formatAmount(receipt.amount), left + 6, y + 21);
+  doc.setFontSize(10);
+  doc.setTextColor(23, 43, 76);
+  doc.text(paymentDate, right - 5, y + 14, { align: "right" });
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.setTextColor(92, 106, 124);
+  doc.text(`Mode : ${receipt.paymentMethod}`, right - 5, y + 22, {
     align: "right",
   });
-  y += 8;
-  doc.text("Élève :", left, y);
-  doc.setFont(nameFont, "normal");
-  doc.text(`${student.name} ${student.surname}`, left + 14, y);
-  doc.setFont("helvetica", "normal");
+  y += 38;
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8);
+  doc.setTextColor(92, 106, 124);
+  doc.text("ÉLÈVE", left, y);
   if (student.class?.name)
-    doc.text(`Classe : ${student.class.name}`, width - left, y, {
-      align: "right",
-    });
-  y += 9;
+    doc.text("CLASSE", right, y, { align: "right" });
+  y += 7;
+  doc.setFontSize(11);
+  doc.setTextColor(23, 43, 76);
+  writeName(`${student.name} ${student.surname}`, left, y);
+  if (student.class?.name) {
+    doc.setFont("helvetica", "bold");
+    doc.text(student.class.name, right, y, { align: "right" });
+  }
+  y += 12;
   if (student.parent) {
     const parent = student.parent;
     const addressLines = parent.address
@@ -103,25 +137,31 @@ export async function renderStudentBillingReceiptPdf({
     doc.setFontSize(9);
     doc.setTextColor(48, 61, 82);
     doc.text("PARENT / TUTEUR ENREGISTRÉ", left + 5, y + 7);
-    doc.setFont(nameFont, "normal");
     doc.setFontSize(11);
-    doc.text(`${parent.name} ${parent.surname}`, left + 5, y + 14);
+    writeName(`${parent.name} ${parent.surname}`, left + 5, y + 14);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
     doc.setTextColor(83, 97, 116);
     doc.text(`Téléphone : ${parent.phone}`, left + 5, y + 21);
     if (addressLines.length) {
-      doc.setFont(nameFont, "normal");
+      doc.setFont(/[\u0600-\u06FF]/.test(parent.address) ? nameFont : "helvetica", "normal");
       doc.text(addressLines, left + 5, y + 27);
     }
-    y += boxHeight + 12;
+    y += boxHeight + 11;
   } else {
-    y += 7;
+    y += 3;
   }
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(11);
+  doc.setTextColor(23, 43, 76);
+  doc.text("Détail du paiement", left, y);
+  y += 8;
   doc.setFillColor(241, 246, 252);
   doc.roundedRect(left, y - 7, width - left * 2, 11, 2, 2, "F");
   doc.setFont("helvetica", "bold");
-  doc.text("DÉTAIL DU PAIEMENT", left + 4, y);
+  doc.setFontSize(8.5);
+  doc.setTextColor(92, 106, 124);
+  doc.text("DÉSIGNATION", left + 4, y);
   doc.text("MONTANT", width - left - 4, y, { align: "right" });
   y += 11;
   doc.setFont("helvetica", "normal");
@@ -131,10 +171,14 @@ export async function renderStudentBillingReceiptPdf({
       header();
       y = 48;
     }
+    doc.setFontSize(10);
+    doc.setTextColor(23, 43, 76);
     doc.text(line.label, left + 4, y);
+    doc.setFont("helvetica", "bold");
     doc.text(formatAmount(line.amount), width - left - 4, y, {
       align: "right",
     });
+    doc.setFont("helvetica", "normal");
     doc.setDrawColor(235, 239, 244);
     doc.line(left + 4, y + 3, width - left - 4, y + 3);
     y += 11;
@@ -144,24 +188,32 @@ export async function renderStudentBillingReceiptPdf({
     header();
     y = 48;
   }
-  y += 5;
+  y += 6;
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(13);
-  doc.setTextColor(21, 75, 164);
+  doc.setFontSize(12);
+  doc.setTextColor(23, 43, 76);
   doc.text("TOTAL REÇU", left + 4, y);
+  doc.setFontSize(14);
+  doc.setTextColor(21, 75, 164);
   doc.text(formatAmount(receipt.amount), width - left - 4, y, {
     align: "right",
   });
-  y += 17;
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(8);
-  doc.setTextColor(115, 127, 144);
-  doc.text(`Référence : ${receipt.id}`, left, y);
-  doc.text(
-    "Document établi à partir du paiement enregistré dans SnapSchool.",
-    left,
-    y + 6,
-  );
+  const pageCount = doc.getNumberOfPages();
+  for (let page = 1; page <= pageCount; page++) {
+    doc.setPage(page);
+    doc.setDrawColor(217, 225, 235);
+    doc.line(left, height - 27, right, height - 27);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(115, 127, 144);
+    doc.text(`Référence : ${receipt.id}`, left, height - 20);
+    doc.text(
+      "Document établi à partir du paiement enregistré dans SnapSchool.",
+      left,
+      height - 14,
+    );
+    doc.text(`${page} / ${pageCount}`, right, height - 14, { align: "right" });
+  }
   const pdf = new Uint8Array(doc.output("arraybuffer"));
   const filename = `Recu-${paymentDate.replaceAll("/", "-")}-${receipt.id.slice(-8)}.pdf`;
   return { pdf, filename };
