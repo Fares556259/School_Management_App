@@ -109,8 +109,8 @@ export default function StudentChargesClient() {
     "settings",
   );
   const [editingFee, setEditingFee] = useState<
-    "REGISTRATION" | "TRANSPORT" | "GARDE"
-  >("TRANSPORT");
+    "REGISTRATION" | "TRANSPORT" | "GARDE" | null
+  >(null);
   const [selectedServiceKind, setSelectedServiceKind] = useState("TRANSPORT");
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("DUE");
@@ -361,7 +361,7 @@ export default function StudentChargesClient() {
     });
   return (
     <div
-      className="mx-auto w-full max-w-7xl space-y-6 p-4 md:p-8"
+      className="mx-auto w-full max-w-7xl space-y-4 p-4 md:p-8"
       dir={locale === "ar" ? "rtl" : "ltr"}
     >
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -377,13 +377,15 @@ export default function StudentChargesClient() {
               "التسجيل والخدمات",
             )}
           </h1>
-          <p className="mt-2 text-sm text-slate-600">
-            {text(
-              "Des frais distincts de la scolarité, avec un suivi clair pour chaque élève.",
-              "Separate from tuition, with a clear ledger for every student.",
-              "معاليم مستقلة عن التمدرس وسجل واضح لكل تلميذ.",
-            )}
-          </p>
+          {tab !== "settings" && (
+            <p className="mt-2 text-sm text-slate-600">
+              {text(
+                "Des frais distincts de la scolarité, avec un suivi clair pour chaque élève.",
+                "Separate from tuition, with a clear ledger for every student.",
+                "معاليم مستقلة عن التمدرس وسجل واضح لكل تلميذ.",
+              )}
+            </p>
+          )}
         </div>
         <button
           onClick={refresh}
@@ -403,19 +405,27 @@ export default function StudentChargesClient() {
         </p>
       )}
       {notice && (
-        <p
+        <div
           role="status"
-          className="rounded-xl bg-emerald-50 p-3 text-sm text-emerald-700"
+          className="flex items-center justify-between gap-3 rounded-xl bg-emerald-50 px-3 py-2 text-sm text-emerald-700"
         >
-          {notice}
-        </p>
+          <span>{notice}</span>
+          <button
+            type="button"
+            onClick={() => setNotice("")}
+            aria-label={text("Fermer", "Dismiss", "إغلاق")}
+            className="rounded p-1 hover:bg-emerald-100"
+          >
+            <X size={16} />
+          </button>
+        </div>
       )}
       {data?.config.registrationReconciliationYear === data?.academicYear && (
-        <p className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">
+        <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
           {text(
-            "Rapprochement des inscriptions en cours. Enregistrez les frais déjà reçus avec leur date réelle. Les inscriptions non soldées restent masquées aux parents jusqu’à la fin du rapprochement.",
-            "Registration reconciliation is in progress. Record fees already received with their actual payment date. Unpaid registration charges stay hidden from parents until reconciliation is complete.",
-            "مطابقة معاليم التسجيل جارية. سجّل المعاليم المقبوضة بتاريخ دفعها الفعلي. تبقى المعاليم غير المسددة مخفية عن الأولياء حتى انتهاء المطابقة.",
+            "Inscriptions en rapprochement · Les frais impayés restent masqués aux parents.",
+            "Registration reconciliation in progress · Unpaid fees are hidden from parents.",
+            "مطابقة معاليم التسجيل جارية · المعاليم غير المسددة مخفية عن الأولياء.",
           )}
         </p>
       )}
@@ -842,370 +852,356 @@ export default function StudentChargesClient() {
           }}
         />
       ) : (
-        <div className="space-y-5">
-          <div className="grid items-start gap-4 lg:grid-cols-[minmax(240px,0.7fr)_minmax(0,1.8fr)]">
-            <div className="rounded-2xl border bg-white p-3">
-              <div className="flex items-center justify-between gap-2 px-2 pb-3">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  {text("Choisir un tarif", "Choose a fee", "اختر معلوماً")}
-                </p>
-                {changedFeeCount > 0 && (
-                  <span className="rounded-full bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700">
-                    {changedFeeCount}{" "}
-                    {text("à vérifier", "to review", "للمراجعة")}
-                  </span>
-                )}
-              </div>
-              <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-1">
-                {(["REGISTRATION", "TRANSPORT", "GARDE"] as const).map(
-                  (fee) => {
-                    const feePrice =
-                      fee === "REGISTRATION"
-                        ? registrationFee
-                        : fee === "TRANSPORT"
-                          ? transportFee
-                          : gardeFee;
-                    const assigned = data.services.filter(
-                      (service) => service.kind === fee && service.active,
-                    ).length;
-                    const frequency =
-                      fee === "REGISTRATION"
-                        ? "YEARLY"
-                        : fee === "TRANSPORT"
-                          ? transportFrequency
-                          : gardeFrequency;
-                    return (
-                      <button
-                        key={fee}
-                        type="button"
-                        aria-pressed={editingFee === fee}
-                        onClick={() => setEditingFee(fee)}
-                        className={`rounded-xl border p-3 text-start transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600 ${editingFee === fee ? "border-blue-500 bg-blue-50/70" : "border-transparent bg-slate-50 hover:border-slate-200 hover:bg-white"}`}
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <strong className="text-sm text-slate-900">
-                            {title(fee)}
-                          </strong>
-                          {editingFee === fee && (
-                            <Check size={17} className="text-blue-600" />
-                          )}
-                        </div>
-                        <div className="mt-1.5 text-base font-semibold text-slate-900">
-                          {fee === "REGISTRATION" && !registrationEnabled
-                            ? text("Désactivé", "Disabled", "معطّل")
-                            : feePrice.trim()
-                              ? currency(Number(feePrice.replace(",", ".")))
-                              : text(
-                                  "Prix non défini",
-                                  "Price not set",
-                                  "السعر غير محدد",
-                                )}
-                        </div>
-                        <p className="mt-0.5 text-xs text-slate-500">
-                          {frequency === "YEARLY"
-                            ? text(
-                                "Une fois par an",
-                                "Once a year",
-                                "مرة في السنة",
-                              )
-                            : text("Chaque mois", "Every month", "كل شهر")}
-                          {fee !== "REGISTRATION" &&
-                            ` · ${assigned} ${text("élèves", "students", "تلاميذ")}`}
-                          {feeChanged(fee) && (
-                            <span className="font-semibold text-blue-700">
-                              {` · ${text("Modifié", "Changed", "تم التعديل")}`}
-                            </span>
-                          )}
-                        </p>
-                      </button>
-                    );
-                  },
-                )}
-              </div>
+        <div className="mx-auto max-w-3xl space-y-4">
+          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+            <div className="flex items-center justify-between gap-3 px-4 py-3 sm:px-5">
+              <h2 className="font-semibold text-slate-900">
+                {text("Tarifs de l’école", "School fees", "معاليم المدرسة")}
+              </h2>
+              {changedFeeCount > 0 && (
+                <span className="text-xs font-medium text-blue-700">
+                  {changedFeeCount}{" "}
+                  {text("à enregistrer", "unsaved", "غير محفوظ")}
+                </span>
+              )}
             </div>
-            <form
-              className="rounded-2xl border bg-white p-5 sm:p-6"
-              onSubmit={(event) => {
-                event.preventDefault();
-                if (settingsChanged) reviewSettings();
-              }}
-            >
-              <div className="flex flex-wrap items-start justify-between gap-3 border-b pb-4">
-                <div>
-                  <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                    {text("Modifier le tarif", "Edit fee", "تعديل المعلوم")}
-                  </p>
-                  <h2 className="mt-1 flex items-center gap-2 text-xl font-semibold text-slate-900">
-                    <Receipt size={19} aria-hidden="true" />
-                    {title(editingFee)}
-                  </h2>
-                  <p className="mt-1 text-sm text-slate-500">
-                    {editingFee === "REGISTRATION"
-                      ? text(
-                          "Une fois par élève et par année scolaire.",
-                          "Once per student each school year.",
-                          "مرة لكل تلميذ في السنة الدراسية.",
-                        )
-                      : `${data.services.filter((service) => service.kind === editingFee && service.active).length} ${text("élèves inscrits", "students assigned", "تلاميذ مسجلون")}`}
-                  </p>
-                </div>
-                {editingFee !== "REGISTRATION" && (
+            {(["REGISTRATION", "TRANSPORT", "GARDE"] as const).map((fee) => {
+              const feePrice =
+                fee === "REGISTRATION"
+                  ? registrationFee
+                  : fee === "TRANSPORT"
+                    ? transportFee
+                    : gardeFee;
+              const assigned = data.services.filter(
+                (service) => service.kind === fee && service.active,
+              ).length;
+              const frequency =
+                fee === "REGISTRATION"
+                  ? "YEARLY"
+                  : fee === "TRANSPORT"
+                    ? transportFrequency
+                    : gardeFrequency;
+              const selected = editingFee === fee;
+              return (
+                <section key={fee} className="border-t border-slate-200">
                   <button
                     type="button"
-                    className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50"
-                    onClick={() => {
-                      setSelectedServiceKind(editingFee);
-                      setTab("services");
-                    }}
+                    aria-expanded={selected}
+                    onClick={() => setEditingFee(selected ? null : fee)}
+                    className={`flex w-full items-center justify-between gap-4 px-4 py-4 text-start transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600 sm:px-5 ${selected ? "bg-blue-50/60" : "hover:bg-slate-50"}`}
                   >
-                    {text(
-                      "Gérer les élèves",
-                      "Manage students",
-                      "إدارة التلاميذ",
-                    )}
-                  </button>
-                )}
-              </div>
-              <div className="mt-5 max-w-2xl">
-                {editingFee === "REGISTRATION" && (
-                  <section>
-                    <label className="flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-800">
-                      {text(
-                        "Activer les frais d’inscription",
-                        "Enable registration fee",
-                        "تفعيل معلوم التسجيل",
-                      )}
-                      <input
-                        type="checkbox"
-                        checked={registrationEnabled}
-                        onChange={(event) =>
-                          setRegistrationEnabled(event.target.checked)
-                        }
-                        className="h-5 w-5 accent-blue-600"
-                      />
-                    </label>
-                    <label className="mt-4 block text-sm font-medium text-slate-700">
-                      {text(
-                        "Prix par élève",
-                        "Price per student",
-                        "السعر لكل تلميذ",
-                      )}{" "}
-                      · TND
-                      <input
-                        className={`${input} mt-2`}
-                        inputMode="decimal"
-                        required
-                        value={registrationFee}
-                        onChange={(event) =>
-                          setRegistrationFee(event.target.value)
-                        }
-                      />
-                    </label>
-                    <details className="mt-4 rounded-xl border bg-slate-50/60 p-3 text-sm">
-                      <summary className="cursor-pointer font-medium text-slate-700">
-                        {text(
-                          "Paiements reçus avant SnapSchool",
-                          "Payments collected before SnapSchool",
-                          "دفعات قُبضت قبل سناب سكول",
+                    <span className="min-w-0">
+                      <span className="flex items-center gap-2 font-semibold text-slate-900">
+                        {title(fee)}
+                        {feeChanged(fee) && (
+                          <span
+                            className="h-2 w-2 rounded-full bg-blue-600"
+                            aria-label={text(
+                              "Modifié",
+                              "Changed",
+                              "تم التعديل",
+                            )}
+                          />
                         )}
-                      </summary>
-                      <label className="mt-3 flex items-start gap-3 text-xs leading-5 text-slate-600">
-                        <input
-                          type="checkbox"
-                          checked={hideCurrentRegistrationFromParents}
-                          onChange={(event) =>
-                            setHideCurrentRegistrationFromParents(
-                              event.target.checked,
+                      </span>
+                      <span className="mt-0.5 block text-xs text-slate-500">
+                        {frequency === "YEARLY"
+                          ? text(
+                              "Une fois par an",
+                              "Once a year",
+                              "مرة في السنة",
                             )
-                          }
-                          className="mt-0.5 h-4 w-4 shrink-0"
-                        />
-                        <span>
-                          <strong className="block">
-                            {text(
-                              "Rapprochement des paiements déjà reçus",
-                              "Reconcile fees already collected",
-                              "مطابقة المعاليم المقبوضة سابقاً",
-                            )}
-                          </strong>
-                          {text(
-                            "Masquer les frais impayés aux parents pendant la saisie. Désactivez après vérification.",
-                            "Hide unpaid fees from parents while recording earlier payments. Turn off after checking.",
-                            "إخفاء المعاليم غير المسددة عن الأولياء أثناء تسجيل الدفعات السابقة، ثم أوقف الإخفاء بعد المراجعة.",
-                          )}
-                        </span>
-                      </label>
-                    </details>
-                  </section>
-                )}
-                {(
-                  [
-                    [
-                      "TRANSPORT",
-                      transportFee,
-                      setTransportFee,
-                      transportFrequency,
-                      setTransportFrequency,
-                      data.config.transportNextFrequency,
-                    ],
-                    [
-                      "GARDE",
-                      gardeFee,
-                      setGardeFee,
-                      gardeFrequency,
-                      setGardeFrequency,
-                      data.config.gardeNextFrequency,
-                    ],
-                  ] as const
-                )
-                  .filter(([fee]) => fee === editingFee)
-                  .map(
-                    ([
-                      fee,
-                      value,
-                      setValue,
-                      frequency,
-                      setFrequency,
-                      pending,
-                    ]) => (
-                      <section key={fee} className="space-y-5">
-                        <label className="block text-sm font-semibold text-slate-800">
-                          {text(
-                            "Prix par élève",
-                            "Price per student",
-                            "السعر لكل تلميذ",
-                          )}
-                          <span className="mt-2 flex max-w-sm items-center rounded-xl border border-slate-200 bg-white focus-within:ring-2 focus-within:ring-blue-500">
-                            <input
-                              className="min-w-0 flex-1 rounded-xl bg-transparent px-4 py-3 text-lg font-semibold outline-none"
-                              inputMode="decimal"
-                              value={value}
-                              onChange={(event) => setValue(event.target.value)}
-                              placeholder={text(
-                                "Non défini",
-                                "Not set",
-                                "غير محدد",
+                          : text("Chaque mois", "Every month", "كل شهر")}
+                        {fee !== "REGISTRATION" &&
+                          ` · ${assigned} ${text("élèves", "students", "تلاميذ")}`}
+                      </span>
+                    </span>
+                    <span className="flex shrink-0 items-center gap-3">
+                      <span className="text-sm font-semibold text-slate-900">
+                        {fee === "REGISTRATION" && !registrationEnabled
+                          ? text("Désactivé", "Disabled", "معطّل")
+                          : feePrice.trim()
+                            ? currency(Number(feePrice.replace(",", ".")))
+                            : text(
+                                "Prix non défini",
+                                "Price not set",
+                                "السعر غير محدد",
                               )}
-                            />
-                            <span className="pe-4 text-sm font-semibold text-slate-500">
-                              TND
-                            </span>
-                          </span>
-                        </label>
-                        <fieldset>
-                          <legend className="text-sm font-semibold text-slate-800">
-                            {text(
-                              "Rythme de facturation",
-                              "Billing frequency",
-                              "دورية الفوترة",
-                            )}
-                          </legend>
-                          <div className="mt-2 grid gap-3 sm:grid-cols-2">
-                            {(["MONTHLY", "YEARLY"] as const).map((option) => (
-                              <label
-                                key={option}
-                                className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition-colors ${frequency === option ? "border-blue-500 bg-blue-50/70" : "border-slate-200 hover:bg-slate-50"}`}
-                              >
+                      </span>
+                      <ChevronRight
+                        size={18}
+                        className={`text-slate-400 transition-transform ${selected ? "rotate-90" : ""}`}
+                        aria-hidden="true"
+                      />
+                    </span>
+                  </button>
+                  {selected && (
+                    <form
+                      className="border-t border-blue-100 bg-slate-50/50 px-4 py-4 sm:px-5"
+                      onSubmit={(event) => {
+                        event.preventDefault();
+                        if (settingsChanged) reviewSettings();
+                      }}
+                    >
+                      {fee !== "REGISTRATION" && (
+                        <button
+                          type="button"
+                          className="text-sm font-semibold text-blue-700 hover:underline"
+                          onClick={() => {
+                            setSelectedServiceKind(fee);
+                            setTab("services");
+                          }}
+                        >
+                          {text(
+                            "Gérer les élèves inscrits →",
+                            "Manage assigned students →",
+                            "إدارة التلاميذ المسجلين ←",
+                          )}
+                        </button>
+                      )}
+                      <div className="mt-5 max-w-2xl">
+                        {editingFee === "REGISTRATION" && (
+                          <section>
+                            <label className="flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-800">
+                              {text(
+                                "Activer les frais d’inscription",
+                                "Enable registration fee",
+                                "تفعيل معلوم التسجيل",
+                              )}
+                              <input
+                                type="checkbox"
+                                checked={registrationEnabled}
+                                onChange={(event) =>
+                                  setRegistrationEnabled(event.target.checked)
+                                }
+                                className="h-5 w-5 accent-blue-600"
+                              />
+                            </label>
+                            <label className="mt-4 block text-sm font-medium text-slate-700">
+                              {text(
+                                "Prix par élève",
+                                "Price per student",
+                                "السعر لكل تلميذ",
+                              )}{" "}
+                              · TND
+                              <input
+                                className={`${input} mt-2`}
+                                inputMode="decimal"
+                                required
+                                value={registrationFee}
+                                onChange={(event) =>
+                                  setRegistrationFee(event.target.value)
+                                }
+                              />
+                            </label>
+                            <details className="mt-4 rounded-xl border bg-slate-50/60 p-3 text-sm">
+                              <summary className="cursor-pointer font-medium text-slate-700">
+                                {text(
+                                  "Paiements reçus avant SnapSchool",
+                                  "Payments collected before SnapSchool",
+                                  "دفعات قُبضت قبل سناب سكول",
+                                )}
+                              </summary>
+                              <label className="mt-3 flex items-start gap-3 text-xs leading-5 text-slate-600">
                                 <input
-                                  type="radio"
-                                  name={`frequency-${fee}`}
-                                  value={option}
-                                  checked={frequency === option}
-                                  onChange={() => setFrequency(option)}
-                                  className="mt-1 h-4 w-4 accent-blue-600"
+                                  type="checkbox"
+                                  checked={hideCurrentRegistrationFromParents}
+                                  onChange={(event) =>
+                                    setHideCurrentRegistrationFromParents(
+                                      event.target.checked,
+                                    )
+                                  }
+                                  className="mt-0.5 h-4 w-4 shrink-0"
                                 />
                                 <span>
-                                  <strong className="block text-sm text-slate-900">
-                                    {option === "MONTHLY"
-                                      ? text(
-                                          "Chaque mois",
-                                          "Every month",
-                                          "كل شهر",
-                                        )
-                                      : text(
-                                          "Une fois par an",
-                                          "Once a year",
-                                          "مرة في السنة",
-                                        )}
+                                  <strong className="block">
+                                    {text(
+                                      "Rapprochement des paiements déjà reçus",
+                                      "Reconcile fees already collected",
+                                      "مطابقة المعاليم المقبوضة سابقاً",
+                                    )}
                                   </strong>
-                                  <span className="mt-1 block text-xs leading-5 text-slate-600">
-                                    {option === "MONTHLY"
-                                      ? text(
-                                          "Une échéance pour chaque mois de service.",
-                                          "One charge for each service month.",
-                                          "معلوم لكل شهر من الخدمة.",
-                                        )
-                                      : text(
-                                          "Une seule échéance par année scolaire.",
-                                          "One charge per school year.",
-                                          "معلوم واحد لكل سنة دراسية.",
-                                        )}
-                                  </span>
+                                  {text(
+                                    "Masquer les frais impayés aux parents pendant la saisie. Désactivez après vérification.",
+                                    "Hide unpaid fees from parents while recording earlier payments. Turn off after checking.",
+                                    "إخفاء المعاليم غير المسددة عن الأولياء أثناء تسجيل الدفعات السابقة، ثم أوقف الإخفاء بعد المراجعة.",
+                                  )}
                                 </span>
                               </label>
-                            ))}
-                          </div>
-                        </fieldset>
-                        {(pending ||
-                          frequency !==
-                            (fee === "TRANSPORT"
-                              ? data.config.transportFrequency
-                              : data.config.gardeFrequency)) && (
-                          <p className="rounded-xl bg-amber-50 px-4 py-3 text-xs leading-5 text-amber-900">
-                            {text(
-                              "Le changement de périodicité prendra effet la prochaine année scolaire.",
-                              "A frequency change takes effect next school year.",
-                              "يبدأ تغيير دورية الفوترة في السنة الدراسية القادمة.",
-                            )}
-                          </p>
+                            </details>
+                          </section>
                         )}
-                      </section>
-                    ),
+                        {(
+                          [
+                            [
+                              "TRANSPORT",
+                              transportFee,
+                              setTransportFee,
+                              transportFrequency,
+                              setTransportFrequency,
+                              data.config.transportNextFrequency,
+                            ],
+                            [
+                              "GARDE",
+                              gardeFee,
+                              setGardeFee,
+                              gardeFrequency,
+                              setGardeFrequency,
+                              data.config.gardeNextFrequency,
+                            ],
+                          ] as const
+                        )
+                          .filter(([fee]) => fee === editingFee)
+                          .map(
+                            ([
+                              fee,
+                              value,
+                              setValue,
+                              frequency,
+                              setFrequency,
+                              pending,
+                            ]) => (
+                              <section key={fee} className="space-y-5">
+                                <label className="block text-sm font-semibold text-slate-800">
+                                  {text(
+                                    "Prix par élève",
+                                    "Price per student",
+                                    "السعر لكل تلميذ",
+                                  )}
+                                  <span className="mt-2 flex max-w-sm items-center rounded-xl border border-slate-200 bg-white focus-within:ring-2 focus-within:ring-blue-500">
+                                    <input
+                                      className="min-w-0 flex-1 rounded-xl bg-transparent px-4 py-3 text-lg font-semibold outline-none"
+                                      inputMode="decimal"
+                                      value={value}
+                                      onChange={(event) =>
+                                        setValue(event.target.value)
+                                      }
+                                      placeholder={text(
+                                        "Non défini",
+                                        "Not set",
+                                        "غير محدد",
+                                      )}
+                                    />
+                                    <span className="pe-4 text-sm font-semibold text-slate-500">
+                                      TND
+                                    </span>
+                                  </span>
+                                </label>
+                                <fieldset>
+                                  <legend className="text-sm font-semibold text-slate-800">
+                                    {text(
+                                      "Rythme de facturation",
+                                      "Billing frequency",
+                                      "دورية الفوترة",
+                                    )}
+                                  </legend>
+                                  <div className="mt-2 flex flex-wrap gap-2">
+                                    {(["MONTHLY", "YEARLY"] as const).map(
+                                      (option) => (
+                                        <label
+                                          key={option}
+                                          className={`flex cursor-pointer items-center gap-2 rounded-xl border px-4 py-2.5 transition-colors ${frequency === option ? "border-blue-500 bg-blue-50/70" : "border-slate-200 bg-white hover:bg-slate-50"}`}
+                                        >
+                                          <input
+                                            type="radio"
+                                            name={`frequency-${fee}`}
+                                            value={option}
+                                            checked={frequency === option}
+                                            onChange={() =>
+                                              setFrequency(option)
+                                            }
+                                            className="h-4 w-4 accent-blue-600"
+                                          />
+                                          <span className="text-sm font-medium text-slate-900">
+                                            {option === "MONTHLY"
+                                              ? text(
+                                                  "Chaque mois",
+                                                  "Every month",
+                                                  "كل شهر",
+                                                )
+                                              : text(
+                                                  "Une fois par an",
+                                                  "Once a year",
+                                                  "مرة في السنة",
+                                                )}
+                                          </span>
+                                        </label>
+                                      ),
+                                    )}
+                                  </div>
+                                </fieldset>
+                                {(pending ||
+                                  frequency !==
+                                    (fee === "TRANSPORT"
+                                      ? data.config.transportFrequency
+                                      : data.config.gardeFrequency)) && (
+                                  <p className="rounded-xl bg-amber-50 px-4 py-3 text-xs leading-5 text-amber-900">
+                                    {text(
+                                      "Le changement de périodicité prendra effet la prochaine année scolaire.",
+                                      "A frequency change takes effect next school year.",
+                                      "يبدأ تغيير دورية الفوترة في السنة الدراسية القادمة.",
+                                    )}
+                                  </p>
+                                )}
+                              </section>
+                            ),
+                          )}
+                      </div>
+                      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-4">
+                        <span className="text-xs text-slate-500">
+                          {feeChanged(fee)
+                            ? text(
+                                "Modification à vérifier",
+                                "Change ready to review",
+                                "تعديل جاهز للمراجعة",
+                              )
+                            : text(
+                                "Aucune modification",
+                                "No changes",
+                                "لا توجد تعديلات",
+                              )}
+                        </span>
+                        {settingsChanged && (
+                          <button disabled={busy} className={button}>
+                            {text(
+                              "Vérifier et enregistrer",
+                              "Review and save",
+                              "مراجعة وحفظ",
+                            )}
+                          </button>
+                        )}
+                      </div>
+                    </form>
                   )}
-              </div>
-              <p className="mt-5 max-w-2xl text-xs leading-5 text-slate-500">
-                {editingFee === "REGISTRATION"
-                  ? text(
-                      "Le tarif s’applique aux nouvelles inscriptions. Les échéances déjà émises ne changent pas.",
-                      "This fee applies to new registrations. Existing charges stay unchanged.",
-                      "ينطبق المعلوم على التسجيلات الجديدة. لا تتغير الاستحقاقات الصادرة سابقاً.",
-                    )
-                  : text(
-                      "Ce tarif sert de valeur par défaut pour les élèves inscrits. Les échéances déjà émises ne changent pas.",
-                      "This is the default price for assigned students. Existing charges stay unchanged.",
-                      "هذا السعر افتراضي للتلاميذ المسجلين. لا تتغير الاستحقاقات الصادرة سابقاً.",
-                    )}
-              </p>
-              <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t pt-4">
-                <span className="text-xs text-slate-500">
-                  {settingsChanged
-                    ? `${changedFeeCount} ${text("tarif(s) à vérifier avant l’enregistrement", "fee setting(s) to review before saving", "معاليم للمراجعة قبل الحفظ")}`
-                    : text(
-                        "Tous les tarifs sont à jour.",
-                        "All fees are up to date.",
-                        "جميع المعاليم محدّثة.",
-                      )}
-                </span>
-                {settingsChanged && (
-                  <button disabled={busy} className={button}>
-                    {text(
-                      "Vérifier et enregistrer",
-                      "Review and save",
-                      "مراجعة وحفظ",
-                    )}
-                  </button>
-                )}
-              </div>
-            </form>
+                </section>
+              );
+            })}
           </div>
-          <CustomCategories
-            data={data}
-            onSaved={load}
-            onAssign={(selectedKind) => {
-              setSelectedServiceKind(selectedKind);
-              setTab("services");
-            }}
-          />
+          <details className="group">
+            <summary className="flex cursor-pointer list-none items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-4 font-semibold text-slate-900 hover:bg-slate-50 sm:px-5">
+              <span>
+                {text("Autres catégories", "Other categories", "أصناف أخرى")}
+                {data.categories.length > 0
+                  ? ` · ${data.categories.length}`
+                  : ""}
+              </span>
+              <ChevronRight
+                size={18}
+                className="text-slate-400 transition-transform group-open:rotate-90"
+                aria-hidden="true"
+              />
+            </summary>
+            <div className="mt-3">
+              <CustomCategories
+                data={data}
+                onSaved={load}
+                onAssign={(selectedKind) => {
+                  setSelectedServiceKind(selectedKind);
+                  setTab("services");
+                }}
+              />
+            </div>
+          </details>
         </div>
       )}
       <dialog
