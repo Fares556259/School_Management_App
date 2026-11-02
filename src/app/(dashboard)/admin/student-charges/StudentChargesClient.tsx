@@ -180,6 +180,9 @@ export default function StudentChargesClient() {
     feeChanged("REGISTRATION") ||
     feeChanged("TRANSPORT") ||
     feeChanged("GARDE");
+  const changedFeeCount = (
+    ["REGISTRATION", "TRANSPORT", "GARDE"] as const
+  ).filter((fee) => feeChanged(fee)).length;
   const load = useCallback(
     async (signal?: AbortSignal) => {
       const params = new URLSearchParams({
@@ -842,9 +845,17 @@ export default function StudentChargesClient() {
         <div className="space-y-5">
           <div className="grid items-start gap-4 lg:grid-cols-[minmax(240px,0.7fr)_minmax(0,1.8fr)]">
             <div className="rounded-2xl border bg-white p-3">
-              <p className="px-2 pb-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                {text("Choisir un tarif", "Choose a fee", "اختر معلوماً")}
-              </p>
+              <div className="flex items-center justify-between gap-2 px-2 pb-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  {text("Choisir un tarif", "Choose a fee", "اختر معلوماً")}
+                </p>
+                {changedFeeCount > 0 && (
+                  <span className="rounded-full bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700">
+                    {changedFeeCount}{" "}
+                    {text("à vérifier", "to review", "للمراجعة")}
+                  </span>
+                )}
+              </div>
               <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-1">
                 {(["REGISTRATION", "TRANSPORT", "GARDE"] as const).map(
                   (fee) => {
@@ -1057,57 +1068,94 @@ export default function StudentChargesClient() {
                       setFrequency,
                       pending,
                     ]) => (
-                      <section key={fee} className="space-y-4">
-                        <label className="block text-sm font-medium text-slate-700">
+                      <section key={fee} className="space-y-5">
+                        <label className="block text-sm font-semibold text-slate-800">
                           {text(
                             "Prix par élève",
                             "Price per student",
                             "السعر لكل تلميذ",
-                          )}{" "}
-                          · TND
-                          <input
-                            className={`${input} mt-2`}
-                            inputMode="decimal"
-                            value={value}
-                            onChange={(event) => setValue(event.target.value)}
-                            placeholder={text(
-                              "Non défini",
-                              "Not set",
-                              "غير محدد",
-                            )}
-                          />
-                        </label>
-                        <label className="block text-sm font-medium text-slate-700">
-                          {text(
-                            "Comment facturer ?",
-                            "How is it charged?",
-                            "كيف تتم الفوترة؟",
                           )}
-                          <select
-                            className={`${input} mt-2`}
-                            value={frequency}
-                            onChange={(event) =>
-                              setFrequency(event.target.value)
-                            }
-                          >
-                            <option value="MONTHLY">
-                              {text("Chaque mois", "Every month", "كل شهر")}
-                            </option>
-                            <option value="YEARLY">
-                              {text(
-                                "Une fois par année scolaire",
-                                "Once per school year",
-                                "مرة في السنة الدراسية",
+                          <span className="mt-2 flex max-w-sm items-center rounded-xl border border-slate-200 bg-white focus-within:ring-2 focus-within:ring-blue-500">
+                            <input
+                              className="min-w-0 flex-1 rounded-xl bg-transparent px-4 py-3 text-lg font-semibold outline-none"
+                              inputMode="decimal"
+                              value={value}
+                              onChange={(event) => setValue(event.target.value)}
+                              placeholder={text(
+                                "Non défini",
+                                "Not set",
+                                "غير محدد",
                               )}
-                            </option>
-                          </select>
+                            />
+                            <span className="pe-4 text-sm font-semibold text-slate-500">
+                              TND
+                            </span>
+                          </span>
                         </label>
-                        {pending && (
-                          <p className="mt-2 text-xs text-amber-700">
+                        <fieldset>
+                          <legend className="text-sm font-semibold text-slate-800">
                             {text(
-                              "Changement prévu pour la prochaine année scolaire",
-                              "Schedule changes next school year",
-                              "تتغير الدورية السنة الدراسية القادمة",
+                              "Rythme de facturation",
+                              "Billing frequency",
+                              "دورية الفوترة",
+                            )}
+                          </legend>
+                          <div className="mt-2 grid gap-3 sm:grid-cols-2">
+                            {(["MONTHLY", "YEARLY"] as const).map((option) => (
+                              <label
+                                key={option}
+                                className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition-colors ${frequency === option ? "border-blue-500 bg-blue-50/70" : "border-slate-200 hover:bg-slate-50"}`}
+                              >
+                                <input
+                                  type="radio"
+                                  name={`frequency-${fee}`}
+                                  value={option}
+                                  checked={frequency === option}
+                                  onChange={() => setFrequency(option)}
+                                  className="mt-1 h-4 w-4 accent-blue-600"
+                                />
+                                <span>
+                                  <strong className="block text-sm text-slate-900">
+                                    {option === "MONTHLY"
+                                      ? text(
+                                          "Chaque mois",
+                                          "Every month",
+                                          "كل شهر",
+                                        )
+                                      : text(
+                                          "Une fois par an",
+                                          "Once a year",
+                                          "مرة في السنة",
+                                        )}
+                                  </strong>
+                                  <span className="mt-1 block text-xs leading-5 text-slate-600">
+                                    {option === "MONTHLY"
+                                      ? text(
+                                          "Une échéance pour chaque mois de service.",
+                                          "One charge for each service month.",
+                                          "معلوم لكل شهر من الخدمة.",
+                                        )
+                                      : text(
+                                          "Une seule échéance par année scolaire.",
+                                          "One charge per school year.",
+                                          "معلوم واحد لكل سنة دراسية.",
+                                        )}
+                                  </span>
+                                </span>
+                              </label>
+                            ))}
+                          </div>
+                        </fieldset>
+                        {(pending ||
+                          frequency !==
+                            (fee === "TRANSPORT"
+                              ? data.config.transportFrequency
+                              : data.config.gardeFrequency)) && (
+                          <p className="rounded-xl bg-amber-50 px-4 py-3 text-xs leading-5 text-amber-900">
+                            {text(
+                              "Le changement de périodicité prendra effet la prochaine année scolaire.",
+                              "A frequency change takes effect next school year.",
+                              "يبدأ تغيير دورية الفوترة في السنة الدراسية القادمة.",
                             )}
                           </p>
                         )}
@@ -1128,16 +1176,25 @@ export default function StudentChargesClient() {
                       "هذا السعر افتراضي للتلاميذ المسجلين. لا تتغير الاستحقاقات الصادرة سابقاً.",
                     )}
               </p>
-              <div className="mt-5 flex justify-end border-t pt-4">
-                <button disabled={busy || !settingsChanged} className={button}>
+              <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t pt-4">
+                <span className="text-xs text-slate-500">
                   {settingsChanged
-                    ? text(
-                        "Vérifier les modifications",
-                        "Review changes",
-                        "مراجعة التغييرات",
-                      )
-                    : text("Aucune modification", "No changes", "لا تغييرات")}
-                </button>
+                    ? `${changedFeeCount} ${text("tarif(s) à vérifier avant l’enregistrement", "fee setting(s) to review before saving", "معاليم للمراجعة قبل الحفظ")}`
+                    : text(
+                        "Tous les tarifs sont à jour.",
+                        "All fees are up to date.",
+                        "جميع المعاليم محدّثة.",
+                      )}
+                </span>
+                {settingsChanged && (
+                  <button disabled={busy} className={button}>
+                    {text(
+                      "Vérifier et enregistrer",
+                      "Review and save",
+                      "مراجعة وحفظ",
+                    )}
+                  </button>
+                )}
               </div>
             </form>
           </div>
