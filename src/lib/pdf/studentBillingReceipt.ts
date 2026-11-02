@@ -3,7 +3,10 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 
 function formatAmount(value: number) {
-  return `${value.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 3 })} TND`;
+  const amount = value
+    .toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 3 })
+    .replace(/[\u00a0\u202f]/g, " ");
+  return `${amount} TND`;
 }
 
 type ReceiptLine = { label: string; amount: number };
@@ -47,9 +50,9 @@ export async function renderStudentBillingReceiptPdf({
   const left = 20;
   const right = width - left;
   const receiptNumber = receipt.id.slice(-10).toUpperCase();
-  const writeName = (value: string, x: number, position: number) => {
+  const writeName = (value: string, x: number, position: number, maxWidth?: number) => {
     doc.setFont(/[\u0600-\u06FF]/.test(value) ? nameFont : "helvetica", "normal");
-    doc.text(value, x, position);
+    doc.text(maxWidth ? doc.splitTextToSize(value, maxWidth)[0] : value, x, position);
     doc.setFont("helvetica", "normal");
   };
   let y = 49;
@@ -59,7 +62,7 @@ export async function renderStudentBillingReceiptPdf({
     doc.setFont("helvetica", "bold");
     doc.setFontSize(15);
     doc.setTextColor(23, 43, 76);
-    writeName(school?.schoolName || "SnapSchool", left, 18);
+    writeName(school?.schoolName || "SnapSchool", left, 18, 110);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
     doc.setTextColor(92, 106, 124);
@@ -118,7 +121,7 @@ export async function renderStudentBillingReceiptPdf({
   y += 7;
   doc.setFontSize(11);
   doc.setTextColor(23, 43, 76);
-  writeName(`${student.name} ${student.surname}`, left, y);
+  writeName(`${student.name} ${student.surname}`, left, y, 120);
   if (student.class?.name) {
     doc.setFont("helvetica", "bold");
     doc.text(student.class.name, right, y, { align: "right" });
@@ -138,7 +141,7 @@ export async function renderStudentBillingReceiptPdf({
     doc.setTextColor(48, 61, 82);
     doc.text("PARENT / TUTEUR ENREGISTRÉ", left + 5, y + 7);
     doc.setFontSize(11);
-    writeName(`${parent.name} ${parent.surname}`, left + 5, y + 14);
+    writeName(`${parent.name} ${parent.surname}`, left + 5, y + 14, 120);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
     doc.setTextColor(83, 97, 116);
@@ -198,6 +201,54 @@ export async function renderStudentBillingReceiptPdf({
   doc.text(formatAmount(receipt.amount), width - left - 4, y, {
     align: "right",
   });
+  // A detachable paper record is useful when the school keeps a physical ledger.
+  let stubY = Math.max(y + 14, 212);
+  if (stubY + 49 > height - 29) {
+    doc.addPage();
+    header();
+    stubY = 51;
+  }
+  doc.setDrawColor(152, 165, 183);
+  doc.setLineDashPattern([1.5, 1.5], 0);
+  doc.line(left, stubY, right, stubY);
+  doc.setLineDashPattern([], 0);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7);
+  doc.setTextColor(115, 127, 144);
+  doc.text("DÉTACHER ICI", right, stubY - 2, { align: "right" });
+  doc.setDrawColor(217, 225, 235);
+  doc.roundedRect(left, stubY + 4, width - left * 2, 45, 2, 2, "S");
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
+  doc.setTextColor(23, 43, 76);
+  doc.text("TALON À CONSERVER PAR L'ÉCOLE", left + 5, stubY + 11);
+  doc.setFontSize(8);
+  doc.setTextColor(21, 75, 164);
+  doc.text(`N° ${receiptNumber}`, right - 5, stubY + 11, { align: "right" });
+  doc.setDrawColor(235, 239, 244);
+  doc.line(left + 5, stubY + 15, right - 5, stubY + 15);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8);
+  doc.setTextColor(62, 74, 91);
+  doc.text("Élève :", left + 5, stubY + 22);
+  writeName(`${student.name} ${student.surname}`, left + 20, stubY + 22, 88);
+  if (student.parent) {
+    doc.text("Parent :", left + 5, stubY + 29);
+    writeName(`${student.parent.name} ${student.parent.surname}`, left + 20, stubY + 29, 88);
+  }
+  doc.text("Objet :", left + 5, stubY + 36);
+  const purpose = lines.map((line) => line.label).join(" ; ") || "Paiement";
+  const purposeLines = doc.splitTextToSize(purpose, 88);
+  doc.text(`${purposeLines[0]}${purposeLines.length > 1 ? "..." : ""}`, left + 20, stubY + 36);
+  doc.setFont("helvetica", "bold");
+  doc.text(formatAmount(receipt.amount), left + 5, stubY + 44);
+  doc.setFont("helvetica", "normal");
+  doc.text(`${paymentDate} · ${receipt.paymentMethod}`, left + 44, stubY + 44);
+  doc.setDrawColor(217, 225, 235);
+  doc.rect(right - 48, stubY + 19, 43, 25, "S");
+  doc.setFontSize(7);
+  doc.setTextColor(115, 127, 144);
+  doc.text("CACHET / SIGNATURE", right - 26.5, stubY + 23, { align: "center" });
   const pageCount = doc.getNumberOfPages();
   for (let page = 1; page <= pageCount; page++) {
     doc.setPage(page);
