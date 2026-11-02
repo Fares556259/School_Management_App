@@ -24,6 +24,7 @@ import { Pencil, Trash2, Loader2, UploadCloud, CheckCircle2, Eye, FileText } fro
 import { useLanguage } from "@/lib/translations/LanguageContext";
 import { ProofViewerModal } from "./ProofViewerModal";
 import { compressImageFiles } from "@/lib/imageCompression";
+import { getSchoolYearMonths, MONTHS } from "@/lib/dateUtils";
 
 const parseImgs = (val: any): string[] => {
   if (!val) return [];
@@ -211,6 +212,7 @@ export default function CrudFormModal({
   const [error, setError] = useState("");
   const [imgs, setImgs] = useState<string[]>(parseImgs(data?.img));
   const [isSpecialTuition, setIsSpecialTuition] = useState<boolean>(data?.customTuition != null);
+  const [tuitionOverrides, setTuitionOverrides] = useState<Record<string, string>>({});
 
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewActiveIdx, setPreviewActiveIdx] = useState(0);
@@ -273,6 +275,7 @@ export default function CrudFormModal({
       setCheckingPhone(false);
       if (phoneDebounceRef.current) clearTimeout(phoneDebounceRef.current);
       setStudents([]);
+      setTuitionOverrides({});
     } else {
       setImgs(parseImgs(data?.img));
       setIsSpecialTuition(data?.customTuition != null);
@@ -351,6 +354,18 @@ export default function CrudFormModal({
     });
 
     if (hasValidationError) return;
+    if (entity === "student" && mode === "create") {
+      const parsedOverrides: Record<string, number> = {};
+      for (const [period, raw] of Object.entries(tuitionOverrides)) {
+        const amount = Number(raw.replace(',', '.'));
+        if (!raw.trim() || !Number.isFinite(amount) || amount < 0 || amount > 1000000 || Math.abs(amount * 1000 - Math.round(amount * 1000)) > 0.00001) {
+          setError(locale === 'fr' ? `Saisissez un montant valide pour ${period}.` : locale === 'ar' ? `أدخل مبلغًا صحيحًا لشهر ${period}.` : `Enter a valid amount for ${period}.`);
+          return;
+        }
+        parsedOverrides[period] = amount;
+      }
+      values.tuitionOverrides = parsedOverrides;
+    }
 
     // Guard against duplicate phone numbers
     if ((entity === "parent" || entity === "teacher" || entity === "staff") && (phoneExists.exists || checkingPhone)) {
@@ -903,6 +918,26 @@ export default function CrudFormModal({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">{fields.map(renderField)}</div>
         )}
         </fieldset>
+        {entity === 'student' && mode === 'create' && (
+          <section className="border-t border-ink-100 py-6" aria-label={locale === 'fr' ? 'Tarifs par mois' : locale === 'ar' ? 'معلوم كل شهر' : 'Monthly tuition'}>
+            <h3 className="text-sm font-semibold text-ink-900">{locale === 'fr' ? 'Tarifs par mois' : locale === 'ar' ? 'معلوم كل شهر' : 'Monthly tuition'}</h3>
+            <p className="mt-1 text-xs leading-5 text-ink-500">{locale === 'fr' ? 'Le tarif de la classe s’applique par défaut. Modifiez seulement les mois à facturer autrement, y compris 0 DT.' : locale === 'ar' ? 'يُطبّق معلوم القسم تلقائيًا. غيّر فقط الأشهر ذات المبلغ المختلف، ويمكن إدخال 0 د.ت.' : 'The class rate applies by default. Change only months with a different amount, including 0 TND.'}</p>
+            <div className="mt-4 grid gap-2 sm:grid-cols-2">
+              {getSchoolYearMonths().map((label) => {
+                const [name, year] = label.split(' ');
+                const period = `${year}-${String(MONTHS.indexOf(name) + 1).padStart(2, '0')}`;
+                const custom = period in tuitionOverrides;
+                return <div key={period} className="flex items-center gap-3 rounded-lg border border-ink-200 bg-white px-3 py-2">
+                  <label className="flex min-w-0 flex-1 items-center gap-2 text-sm text-ink-800">
+                    <input type="checkbox" checked={custom} onChange={(event) => setTuitionOverrides((current) => { const next = { ...current }; if (event.target.checked) next[period] = ''; else delete next[period]; return next; })} />
+                    <span>{new Date(Number(year), MONTHS.indexOf(name)).toLocaleDateString(locale === 'ar' ? 'ar-TN' : locale === 'fr' ? 'fr-FR' : 'en-US', { month: 'long', year: 'numeric' })}</span>
+                  </label>
+                  {custom ? <div className="flex items-center gap-1"><input aria-label={`${label} tuition in TND`} type="text" inputMode="decimal" value={tuitionOverrides[period]} onChange={(event) => setTuitionOverrides((current) => ({ ...current, [period]: event.target.value }))} className="w-20 rounded-md border border-ink-200 px-2 py-1 text-end text-sm focus:border-brand-500 focus:outline-none" /><span className="text-xs text-ink-500">DT</span></div> : <span className="text-xs text-ink-500">{locale === 'fr' ? 'Normal' : locale === 'ar' ? 'عادي' : 'Standard'}</span>}
+                </div>;
+              })}
+            </div>
+          </section>
+        )}
 
       {/* CHILDREN SECTION FOR PARENT ENROLLMENT */}
       {entity === "parent" && mode === "create" && (

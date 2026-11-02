@@ -1,6 +1,6 @@
 import { tuitionBalance, roundMoney, schoolMonth } from "@/lib/agent/dataAccuracy";
 import { getHalfBoundaryMonths } from '@/lib/serverTuition';
-import { tuitionForMonth } from '@/lib/tuitionPolicy';
+import { studentTuitionForMonth } from '@/lib/tuitionPolicy';
 import {ensureAnnualRegistration} from '@/lib/studentCharges';
 import prisma from "@/lib/prisma";
 import { MONTHS, getSchoolYearMonths, formatMonthFrench } from "@/lib/dateUtils";
@@ -247,7 +247,7 @@ export async function getStudentProfileTool(
     const yearVal = parseInt(yStr);
 
     const payment = payments.find((p) => p.month === monthIdx && p.year === yearVal);
-    const balance = tuitionBalance(student,payment,monthIdx,halfBoundaryMonths);
+    const balance = tuitionBalance(student,payment,monthIdx,halfBoundaryMonths,yearVal);
     const amountPaid = balance.received;
     const remainingDue = balance.due;
     const isPaid = remainingDue === 0;
@@ -394,6 +394,7 @@ export async function getParentsTool(
             name: true,
             surname: true,
             customTuition: true,
+            tuitionOverrides: true,
             class: { select: { id: true, name: true } },
             level: { select: { id: true, tuitionFee: true } },
             payments: {
@@ -421,14 +422,14 @@ export async function getParentsTool(
     const paidChildren: any[] = [];
 
     const childrenInfo = p.students.map((s) => {
-      const fee = tuitionForMonth(s.customTuition ?? s.level?.tuitionFee ?? 450, targetMonth, halfBoundaryMonths);
+      const fee = studentTuitionForMonth(s, targetMonth, targetYear, halfBoundaryMonths);
       familyTotalMonthlyFees += fee;
 
       const currentMonthPayment = s.payments.find(
         (pay) => pay.month === targetMonth && pay.year === targetYear
       );
 
-      const balance = tuitionBalance(s,currentMonthPayment,targetMonth,halfBoundaryMonths);
+      const balance = tuitionBalance(s,currentMonthPayment,targetMonth,halfBoundaryMonths,targetYear);
       const currentPaid = balance.received;
       const isCurrentPaid = balance.due === 0;
       const remainingForCurrentMonth = balance.due;
@@ -440,7 +441,7 @@ export async function getParentsTool(
             (pay.year < targetYear || (pay.year === targetYear && pay.month < targetMonth)) &&
             pay.status !== "PAID"
         )
-        .reduce((acc, pay) => acc + tuitionBalance(s,pay,pay.month,halfBoundaryMonths).due, 0);
+        .reduce((acc, pay) => acc + tuitionBalance(s,pay,pay.month,halfBoundaryMonths,pay.year).due, 0);
 
       const childTotalUnpaid = remainingForCurrentMonth + pastDeferredGap;
       familyTotalPaid += currentPaid;

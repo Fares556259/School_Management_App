@@ -21,6 +21,7 @@ interface IncomesListClientProps {
   role?: string;
   p: number;
   category?: string;
+  receiptId?: string;
 }
 
 export default function IncomesListClient({
@@ -31,6 +32,7 @@ export default function IncomesListClient({
   role,
   p,
   category,
+  receiptId,
 }: IncomesListClientProps) {
   const { t, locale } = useLanguage();
   const [clientSearch, setClientSearch] = useState("");
@@ -43,17 +45,26 @@ export default function IncomesListClient({
     setOptimisticData(data);
   }, [data]);
 
-  const handleOptimisticUpdate = (values: any, mode: "create" | "update" | "delete", id?: number | string) => {
+  const handleOptimisticUpdate = (
+    values: any,
+    mode: "create" | "update" | "delete",
+    id?: number | string,
+  ) => {
     if (mode === "create") {
-      setOptimisticData(prev => [{
-        id: Math.random(),
-        ...values,
-        date: values.date || new Date().toISOString(),
-      }, ...prev]);
+      setOptimisticData((prev) => [
+        {
+          id: Math.random(),
+          ...values,
+          date: values.date || new Date().toISOString(),
+        },
+        ...prev,
+      ]);
     } else if (mode === "update" && id) {
-      setOptimisticData(prev => prev.map(item => item.id === id ? { ...item, ...values } : item));
+      setOptimisticData((prev) =>
+        prev.map((item) => (item.id === id ? { ...item, ...values } : item)),
+      );
     } else if (mode === "delete" && id) {
-      setOptimisticData(prev => prev.filter(item => item.id !== id));
+      setOptimisticData((prev) => prev.filter((item) => item.id !== id));
     }
   };
 
@@ -89,12 +100,18 @@ export default function IncomesListClient({
 
   const getCategoryColor = (cat: string) => {
     const c = cat.toLowerCase();
-    if (c.includes("tuition")) return "text-emerald-700 bg-emerald-50 border-emerald-200";
-    if (c.includes("recovery") || c.includes("recouvrement")) return "text-blue-700 bg-blue-50 border-blue-200";
-    if (c.includes("partial") || c.includes("partiel")) return "text-orange-700 bg-orange-50 border-orange-200";
-    if (c.includes("donation")) return "text-indigo-700 bg-indigo-50 border-indigo-200";
-    if (c.includes("event")) return "text-fuchsia-700 bg-fuchsia-50 border-fuchsia-200";
-    if (c.includes("grant")) return "text-amber-700 bg-amber-50 border-amber-200";
+    if (c.includes("tuition"))
+      return "text-emerald-700 bg-emerald-50 border-emerald-200";
+    if (c.includes("recovery") || c.includes("recouvrement"))
+      return "text-blue-700 bg-blue-50 border-blue-200";
+    if (c.includes("partial") || c.includes("partiel"))
+      return "text-orange-700 bg-orange-50 border-orange-200";
+    if (c.includes("donation"))
+      return "text-indigo-700 bg-indigo-50 border-indigo-200";
+    if (c.includes("event"))
+      return "text-fuchsia-700 bg-fuchsia-50 border-fuchsia-200";
+    if (c.includes("grant"))
+      return "text-amber-700 bg-amber-50 border-amber-200";
     return "text-slate-700 bg-slate-50 border-slate-200";
   };
 
@@ -166,14 +183,25 @@ export default function IncomesListClient({
         </div>
       </td>
       <td className="p-4 hidden md:table-cell">
-        <span className={`inline-block whitespace-nowrap px-2.5 py-1 rounded-md text-[10px] font-bold border uppercase tracking-wider ${getCategoryColor(item.category)}`}>
-          {t.categories[item.category.toUpperCase() as keyof typeof t.categories] || item.category}
+        <span
+          className={`inline-block whitespace-nowrap px-2.5 py-1 rounded-md text-[10px] font-bold border uppercase tracking-wider ${getCategoryColor(item.category)}`}
+        >
+          {t.categories[
+            item.category.toUpperCase() as keyof typeof t.categories
+          ] || item.category}
         </span>
       </td>
       <td className="p-4 hidden md:table-cell whitespace-nowrap">
         <div className="flex items-center gap-2 text-slate-500 text-sm font-medium">
           <Calendar className="w-3.5 h-3.5 opacity-70 shrink-0" />
-          {new Date(item.date).toLocaleDateString(locale === "ar" ? "ar-EG-u-nu-latn" : locale === "fr" ? "fr-FR" : "en-US", { year: 'numeric', month: 'short', day: 'numeric' })}
+          {new Date(item.date).toLocaleDateString(
+            locale === "ar"
+              ? "ar-EG-u-nu-latn"
+              : locale === "fr"
+                ? "fr-FR"
+                : "en-US",
+            { year: "numeric", month: "short", day: "numeric" },
+          )}
         </div>
       </td>
       <td className="p-4">
@@ -188,8 +216,20 @@ export default function IncomesListClient({
           <FinanceDetailsModal type="income" item={item} />
           {role === "admin" && (
             <>
-              <CrudFormModal entity="income" mode="update" data={item} id={item.id} relatedData={relatedData} onSuccess={handleOptimisticUpdate} />
-              <CrudFormModal entity="income" mode="delete" id={item.id} onSuccess={handleOptimisticUpdate} />
+              <CrudFormModal
+                entity="income"
+                mode="update"
+                data={item}
+                id={item.id}
+                relatedData={relatedData}
+                onSuccess={handleOptimisticUpdate}
+              />
+              <CrudFormModal
+                entity="income"
+                mode="delete"
+                id={item.id}
+                onSuccess={handleOptimisticUpdate}
+              />
             </>
           )}
         </div>
@@ -198,10 +238,14 @@ export default function IncomesListClient({
   );
 
   // Compute stats
-  
+
   // 1. Base filter (Search + Category) - used for computing stats
   const baseFilteredData = optimisticData.filter((item: any) => {
-    if (clientCategory && item.category?.toLowerCase() !== clientCategory.toLowerCase()) return false;
+    if (
+      clientCategory &&
+      item.category?.toLowerCase() !== clientCategory.toLowerCase()
+    )
+      return false;
     if (clientSearch) {
       const s = clientSearch.toLowerCase();
       const matchesTitle = item.title?.toLowerCase().includes(s);
@@ -228,16 +272,19 @@ export default function IncomesListClient({
     const d = new Date(income.date);
     const m = d.getMonth();
     const y = d.getFullYear();
-    
+
     if (y === targetYear) {
       ytdTotal += income.amount;
       if (m === targetMonth) {
         thisMonthTotal += income.amount;
-      } else if (m === targetMonth - 1 || (targetMonth === 0 && m === 11 && y === targetYear - 1)) {
+      } else if (
+        m === targetMonth - 1 ||
+        (targetMonth === 0 && m === 11 && y === targetYear - 1)
+      ) {
         lastMonthTotal += income.amount;
       }
     } else if (targetMonth === 0 && m === 11 && y === targetYear - 1) {
-       lastMonthTotal += income.amount;
+      lastMonthTotal += income.amount;
     }
   });
 
@@ -250,126 +297,246 @@ export default function IncomesListClient({
 
   const ITEM_PER_PAGE = 10;
   const totalPages = Math.max(1, Math.ceil(tableData.length / ITEM_PER_PAGE));
-  const safePage = Math.min((p && !isNaN(p) && p > 0) ? p : 1, totalPages);
-  const paginatedData = tableData.slice((safePage - 1) * ITEM_PER_PAGE, safePage * ITEM_PER_PAGE);
+  const safePage = Math.min(p && !isNaN(p) && p > 0 ? p : 1, totalPages);
+  const paginatedData = tableData.slice(
+    (safePage - 1) * ITEM_PER_PAGE,
+    safePage * ITEM_PER_PAGE,
+  );
   const displayCount = tableData.length;
 
-
-  const percentChange = lastMonthTotal === 0 
-    ? 100 
-    : Math.round(((thisMonthTotal - lastMonthTotal) / lastMonthTotal) * 100);
+  const percentChange =
+    lastMonthTotal === 0
+      ? 100
+      : Math.round(((thisMonthTotal - lastMonthTotal) / lastMonthTotal) * 100);
 
   return (
     <div className="bg-white p-6 rounded-2xl flex-1 m-4 mt-0 shadow-sm border border-slate-100 relative overflow-hidden">
       {/* BACKGROUND DECORATION */}
       <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-lamaPurpleLight/30 to-transparent rounded-full blur-3xl -z-10 pointer-events-none" />
-      
+
       {/* TOP */}
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4 border-b border-slate-100 pb-5">
         <div>
           <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
             {t.incomesPage.pageTitle}
-            <span className="bg-slate-100 text-slate-500 text-xs px-2 py-0.5 rounded-full font-medium ml-2">{displayCount}</span>
+            <span className="bg-slate-100 text-slate-500 text-xs px-2 py-0.5 rounded-full font-medium ml-2">
+              {displayCount}
+            </span>
           </h1>
           <p className="text-sm text-slate-500 mt-1 flex items-center gap-1.5">
             <Info className="w-4 h-4 opacity-70" />
             {t.incomesPage.pageDesc}
           </p>
         </div>
-        <div className="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto">
-          <TableSearch clientSideOnly onChangeImmediate={(val) => setClientSearch(val)} />
-          <div className="flex items-center gap-3 self-end md:self-auto">
-            
-            <select
-              className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 focus:outline-none focus:border-lamaSky focus:ring-1 focus:ring-lamaSky transition-all shadow-sm"
-              value={clientMonthKey}
-              onChange={(e) => setClientMonthKey(e.target.value)}
-            >
-              <option value="">{locale === 'ar' ? 'كل الأشهر' : locale === 'fr' ? 'Tous les mois' : 'All months'}</option>
-              {getSchoolYearMonths().map(m => {
-                const [mName, yStr] = m.split(" ");
-                const mIdx = MONTHS.indexOf(mName);
-                const translatedMonth = t.months?.[mIdx] || mName;
-                return (
-                  <option key={m} value={m}>{translatedMonth} {yStr}</option>
-                );
-              })}
-            </select>
-    
-            <FinanceExportButton data={allData} filename="Incomes" />
-            {role === "admin" && <CrudFormModal entity="income" mode="create" relatedData={relatedData} onSuccess={handleOptimisticUpdate} />}
+        {!receiptId && (
+          <div className="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto">
+            <TableSearch
+              clientSideOnly
+              onChangeImmediate={(val) => setClientSearch(val)}
+            />
+            <div className="flex items-center gap-3 self-end md:self-auto">
+              <select
+                className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 focus:outline-none focus:border-lamaSky focus:ring-1 focus:ring-lamaSky transition-all shadow-sm"
+                value={clientMonthKey}
+                onChange={(e) => setClientMonthKey(e.target.value)}
+              >
+                <option value="">
+                  {locale === "ar"
+                    ? "كل الأشهر"
+                    : locale === "fr"
+                      ? "Tous les mois"
+                      : "All months"}
+                </option>
+                {getSchoolYearMonths().map((m) => {
+                  const [mName, yStr] = m.split(" ");
+                  const mIdx = MONTHS.indexOf(mName);
+                  const translatedMonth = t.months?.[mIdx] || mName;
+                  return (
+                    <option key={m} value={m}>
+                      {translatedMonth} {yStr}
+                    </option>
+                  );
+                })}
+              </select>
+
+              <FinanceExportButton data={allData} filename="Incomes" />
+              {role === "admin" && (
+                <CrudFormModal
+                  entity="income"
+                  mode="create"
+                  relatedData={relatedData}
+                  onSuccess={handleOptimisticUpdate}
+                />
+              )}
+            </div>
           </div>
-        </div>
+        )}
       </div>
+
+      {receiptId && (
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+          <div>
+            <p className="font-semibold text-emerald-900">
+              {locale === "ar"
+                ? "مداخيل هذه الدفعة"
+                : locale === "fr"
+                  ? "Revenus de ce paiement"
+                  : "Income from this payment"}
+            </p>
+            <p className="mt-1 text-sm text-emerald-800">
+              {count}{" "}
+              {locale === "ar"
+                ? "بنود"
+                : locale === "fr"
+                  ? "lignes"
+                  : "entries"}{" "}
+              ·{" "}
+              {data
+                .reduce((sum, item) => sum + item.amount, 0)
+                .toLocaleString("en-US")}{" "}
+              TND
+            </p>
+          </div>
+          <Link
+            href="/list/incomes"
+            className="rounded-lg border border-emerald-300 bg-white px-4 py-2 text-sm font-semibold text-emerald-800 hover:bg-emerald-100"
+          >
+            {locale === "ar"
+              ? "جميع المداخيل"
+              : locale === "fr"
+                ? "Tous les revenus"
+                : "All income"}
+          </Link>
+        </div>
+      )}
 
       {/* SUMMARY CARDS */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-white border border-slate-100 p-5 rounded-xl shadow-sm flex flex-col relative overflow-hidden group hover:border-emerald-200 transition-colors">
-          <div className="absolute right-0 top-0 w-16 h-16 bg-emerald-50 rounded-bl-full -z-10 group-hover:scale-110 transition-transform" />
-          <span className="text-sm font-semibold text-slate-500 mb-2">{t.incomesPage.totalThisMonth}</span>
-          <div className="flex items-end gap-3">
-            <span className="text-3xl font-bold text-slate-800">{thisMonthTotal.toLocaleString("en-US").replace(/,/g, " ")} <span className="text-xl font-medium text-slate-400">DT</span></span>
-            <span className={`text-sm font-semibold mb-1 flex items-center gap-0.5 ${percentChange >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
-              {percentChange >= 0 ? "+" : ""}{percentChange}%
-            </span>
+      {!receiptId && (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div className="bg-white border border-slate-100 p-5 rounded-xl shadow-sm flex flex-col relative overflow-hidden group hover:border-emerald-200 transition-colors">
+              <div className="absolute right-0 top-0 w-16 h-16 bg-emerald-50 rounded-bl-full -z-10 group-hover:scale-110 transition-transform" />
+              <span className="text-sm font-semibold text-slate-500 mb-2">
+                {t.incomesPage.totalThisMonth}
+              </span>
+              <div className="flex items-end gap-3">
+                <span className="text-3xl font-bold text-slate-800">
+                  {thisMonthTotal.toLocaleString("en-US").replace(/,/g, " ")}{" "}
+                  <span className="text-xl font-medium text-slate-400">DT</span>
+                </span>
+                <span
+                  className={`text-sm font-semibold mb-1 flex items-center gap-0.5 ${percentChange >= 0 ? "text-emerald-600" : "text-rose-600"}`}
+                >
+                  {percentChange >= 0 ? "+" : ""}
+                  {percentChange}%
+                </span>
+              </div>
+            </div>
+            <div className="bg-white border border-slate-100 p-5 rounded-xl shadow-sm flex flex-col relative overflow-hidden group hover:border-blue-200 transition-colors">
+              <div className="absolute right-0 top-0 w-16 h-16 bg-blue-50 rounded-bl-full -z-10 group-hover:scale-110 transition-transform" />
+              <span className="text-sm font-semibold text-slate-500 mb-2">
+                {t.incomesPage.totalLastMonth}
+              </span>
+              <div className="flex items-end gap-3">
+                <span className="text-3xl font-bold text-slate-800">
+                  {lastMonthTotal.toLocaleString("en-US").replace(/,/g, " ")}{" "}
+                  <span className="text-xl font-medium text-slate-400">DT</span>
+                </span>
+              </div>
+            </div>
+            <div className="bg-white border border-slate-100 p-5 rounded-xl shadow-sm flex flex-col relative overflow-hidden group hover:border-fuchsia-200 transition-colors">
+              <div className="absolute right-0 top-0 w-16 h-16 bg-fuchsia-50 rounded-bl-full -z-10 group-hover:scale-110 transition-transform" />
+              <span className="text-sm font-semibold text-slate-500 mb-2">
+                {t.incomesPage.totalYTD}
+              </span>
+              <div className="flex items-end gap-3">
+                <span className="text-3xl font-bold text-slate-800">
+                  {ytdTotal.toLocaleString("en-US").replace(/,/g, " ")}{" "}
+                  <span className="text-xl font-medium text-slate-400">DT</span>
+                </span>
+              </div>
+            </div>
           </div>
-        </div>
-        <div className="bg-white border border-slate-100 p-5 rounded-xl shadow-sm flex flex-col relative overflow-hidden group hover:border-blue-200 transition-colors">
-          <div className="absolute right-0 top-0 w-16 h-16 bg-blue-50 rounded-bl-full -z-10 group-hover:scale-110 transition-transform" />
-          <span className="text-sm font-semibold text-slate-500 mb-2">{t.incomesPage.totalLastMonth}</span>
-          <div className="flex items-end gap-3">
-            <span className="text-3xl font-bold text-slate-800">{lastMonthTotal.toLocaleString("en-US").replace(/,/g, " ")} <span className="text-xl font-medium text-slate-400">DT</span></span>
-          </div>
-        </div>
-        <div className="bg-white border border-slate-100 p-5 rounded-xl shadow-sm flex flex-col relative overflow-hidden group hover:border-fuchsia-200 transition-colors">
-          <div className="absolute right-0 top-0 w-16 h-16 bg-fuchsia-50 rounded-bl-full -z-10 group-hover:scale-110 transition-transform" />
-          <span className="text-sm font-semibold text-slate-500 mb-2">{t.incomesPage.totalYTD}</span>
-          <div className="flex items-end gap-3">
-            <span className="text-3xl font-bold text-slate-800">{ytdTotal.toLocaleString("en-US").replace(/,/g, " ")} <span className="text-xl font-medium text-slate-400">DT</span></span>
-          </div>
-        </div>
-      </div>
 
-      {/* QUICK CATEGORY TABS */}
-      <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hide">
-        <Link prefetch={true} href="#" onClick={(e) => { e.preventDefault(); setClientCategory(""); }} className={`px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all ${!clientCategory ? "bg-slate-800 text-white shadow-md" : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"}`}>
-          {t.incomesPage.allIncomes}
-        </Link>
-        {(relatedData?.category || []).map((catObj) => {
-          const val = catObj.value;
-          let label = val;
-          let activeClass = "bg-slate-600 text-white shadow-md";
-          
-          if (val.toLowerCase() === "tuition" || val.toLowerCase() === "frais scolaires") {
-             label = t.incomesPage.tuition || val;
-             activeClass = "bg-emerald-600 text-white shadow-md";
-          } else if (val.toLowerCase() === "recovery" || val.toLowerCase() === "recouvrement") {
-             label = locale === "ar" ? "استرداد" : locale === "fr" ? "Recouvrement" : "Recovery";
-             activeClass = "bg-blue-600 text-white shadow-md";
-          } else if (val.toLowerCase() === "partial" || val.toLowerCase() === "partiel") {
-             label = locale === "ar" ? "جزئي" : locale === "fr" ? "Partiel" : "Partial";
-             activeClass = "bg-orange-600 text-white shadow-md";
-          } else if (val.toLowerCase() === "donation" || val.toLowerCase() === "dons") {
-             label = t.incomesPage.donations || val;
-             activeClass = "bg-indigo-600 text-white shadow-md";
-          } else if (val.toLowerCase() === "event" || val.toLowerCase() === "événements" || val.toLowerCase() === "evenements") {
-             label = t.incomesPage.events || val;
-             activeClass = "bg-fuchsia-600 text-white shadow-md";
-          } else if (val.toLowerCase() === "subvention" || val.toLowerCase() === "subventions") {
-             activeClass = "bg-amber-600 text-white shadow-md";
-          }
-          
-          return (
-            <button 
-              key={val} 
-              onClick={() => setClientCategory(val)} 
-              className={`px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all ${clientCategory === val ? activeClass : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"}`}
+          {/* QUICK CATEGORY TABS */}
+          <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hide">
+            <Link
+              prefetch={true}
+              href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                setClientCategory("");
+              }}
+              className={`px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all ${!clientCategory ? "bg-slate-800 text-white shadow-md" : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"}`}
             >
-              {label}
-            </button>
-          );
-        })}
-      </div>
+              {t.incomesPage.allIncomes}
+            </Link>
+            {(relatedData?.category || []).map((catObj) => {
+              const val = catObj.value;
+              let label = val;
+              let activeClass = "bg-slate-600 text-white shadow-md";
+
+              if (
+                val.toLowerCase() === "tuition" ||
+                val.toLowerCase() === "frais scolaires"
+              ) {
+                label = t.incomesPage.tuition || val;
+                activeClass = "bg-emerald-600 text-white shadow-md";
+              } else if (
+                val.toLowerCase() === "recovery" ||
+                val.toLowerCase() === "recouvrement"
+              ) {
+                label =
+                  locale === "ar"
+                    ? "استرداد"
+                    : locale === "fr"
+                      ? "Recouvrement"
+                      : "Recovery";
+                activeClass = "bg-blue-600 text-white shadow-md";
+              } else if (
+                val.toLowerCase() === "partial" ||
+                val.toLowerCase() === "partiel"
+              ) {
+                label =
+                  locale === "ar"
+                    ? "جزئي"
+                    : locale === "fr"
+                      ? "Partiel"
+                      : "Partial";
+                activeClass = "bg-orange-600 text-white shadow-md";
+              } else if (
+                val.toLowerCase() === "donation" ||
+                val.toLowerCase() === "dons"
+              ) {
+                label = t.incomesPage.donations || val;
+                activeClass = "bg-indigo-600 text-white shadow-md";
+              } else if (
+                val.toLowerCase() === "event" ||
+                val.toLowerCase() === "événements" ||
+                val.toLowerCase() === "evenements"
+              ) {
+                label = t.incomesPage.events || val;
+                activeClass = "bg-fuchsia-600 text-white shadow-md";
+              } else if (
+                val.toLowerCase() === "subvention" ||
+                val.toLowerCase() === "subventions"
+              ) {
+                activeClass = "bg-amber-600 text-white shadow-md";
+              }
+
+              return (
+                <button
+                  key={val}
+                  onClick={() => setClientCategory(val)}
+                  className={`px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all ${clientCategory === val ? activeClass : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"}`}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
 
       {/* LIST */}
       <div className="bg-white rounded-xl border border-slate-100 overflow-hidden shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)]">

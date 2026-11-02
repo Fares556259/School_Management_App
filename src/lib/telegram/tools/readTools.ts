@@ -71,6 +71,7 @@ export async function getStudentsTool(
         surname: true,
         phone: true,
         customTuition: true,
+        tuitionOverrides: true,
         class: {
           select: { id: true, name: true },
         },
@@ -247,6 +248,7 @@ export async function getPaymentsTool(
       name: true,
       surname: true,
       customTuition: true,
+      tuitionOverrides: true,
       class: { select: { id: true, name: true } },
       level: { select: { id: true, level: true, tuitionFee: true } },
       parent: { select: { id: true, name: true, surname: true, phone: true } },
@@ -280,7 +282,7 @@ export async function getPaymentsTool(
 
   for (const s of students) {
     const payment = s.payments?.[0];
-    const balance = tuitionBalance(s, payment, month, halfBoundaryMonths);
+    const balance = tuitionBalance(s, payment, month, halfBoundaryMonths, year);
     const tuitionFee = balance.fee;
     const baseInfo = {
       studentId: s.id,
@@ -333,8 +335,8 @@ export async function getPaymentsTool(
     } else {
       const studentCards = students.map((s) => {
         const payment = s.payments?.[0];
-        const fee = tuitionBalance(s, undefined, month, halfBoundaryMonths).fee;
-        const balance = tuitionBalance(s,payment,month,halfBoundaryMonths);
+        const fee = tuitionBalance(s, undefined, month, halfBoundaryMonths, year).fee;
+        const balance = tuitionBalance(s,payment,month,halfBoundaryMonths,year);
         const paidAmt = balance.received;
         const dueAmt = balance.due;
         const statusBadge = dueAmt === 0 ? "🟢 À JOUR (Soldé)" : paidAmt > 0 ? `🟡 PARTIEL (Reste ${dueAmt} DT)` : "🔴 NON PAYÉ (0 DT)";
@@ -482,6 +484,7 @@ export async function getFinancialSummaryTool(
       select: {
         id: true,
         customTuition: true,
+        tuitionOverrides: true,
         level: { select: { tuitionFee: true } },
         payments: {
           where: { month, year, userType: "STUDENT" },
@@ -500,7 +503,7 @@ export async function getFinancialSummaryTool(
   let unpaidStudentsCount = 0;
 
   for (const student of allStudents) {
-    const due = tuitionBalance(student,student.payments?.[0],month,halfBoundaryMonths).due;
+    const due = tuitionBalance(student,student.payments?.[0],month,halfBoundaryMonths,year).due;
     unpaidTuition += due;
     if (due > 0) unpaidStudentsCount++;
   }

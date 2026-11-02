@@ -21,7 +21,7 @@ import { Student, Class, Level, Payment } from "@prisma/client";
 import { getUserAvatar } from "@/lib/avatar";
 
 import ShareParentLinkModal from "@/components/ShareParentLinkModal";
-import { tuitionForMonth } from '@/lib/tuitionPolicy';
+import { studentTuitionForMonth } from '@/lib/tuitionPolicy';
 import BulkStudentImport from "./BulkStudentImport";
 import { Share2 } from "lucide-react";
 
@@ -141,14 +141,10 @@ export default function StudentListClient({
       const currentPayment = item.payments?.find((p: any) => p.month === monthIdx && p.year === yearVal);
       const statusUpper = currentPayment?.status ? String(currentPayment.status).toUpperCase() : "";
 
-      const tuition = tuitionForMonth(item.customTuition ?? item.level?.tuitionFee ?? 0, monthIdx, halfBoundaryMonths);
+      const tuition = studentTuitionForMonth(item, monthIdx, yearVal, halfBoundaryMonths);
       const amountPaid = ['PAID', 'PARTIAL'].includes(statusUpper) ? currentPayment?.amount || 0 : 0;
-      const deferred = currentPayment?.deferredAmount;
-      const remaining = (deferred !== undefined && deferred !== null)
-        ? deferred
-        : (tuition > 0 ? Math.max(0, tuition - amountPaid) : (statusUpper === "PARTIAL" ? 1 : 0));
-
-      const isPaid = (statusUpper === "PAID" || (tuition > 0 && amountPaid >= tuition)) && remaining <= 0;
+      const remaining = Math.max(0, tuition - amountPaid);
+      const isPaid = remaining <= 0;
       const isPartial = !isPaid && (statusUpper === "PARTIAL" || (amountPaid > 0 && remaining > 0));
       const isUnpaid = !isPaid && !isPartial;
 
@@ -183,24 +179,18 @@ export default function StudentListClient({
   const displayPaidThisMonth = summaryBaseData.filter(item => {
     const currentPayment = item.payments?.find((p: any) => p.month === sumMonthIdx && p.year === sumYearVal);
     const statusUpper = currentPayment?.status ? String(currentPayment.status).toUpperCase() : "";
-    const tuition = tuitionForMonth(item.customTuition ?? item.level?.tuitionFee ?? 0, sumMonthIdx, halfBoundaryMonths);
+    const tuition = studentTuitionForMonth(item, sumMonthIdx, sumYearVal, halfBoundaryMonths);
     const amountPaid = ['PAID', 'PARTIAL'].includes(statusUpper) ? currentPayment?.amount || 0 : 0;
-    const deferred = currentPayment?.deferredAmount;
-    const remaining = (deferred !== undefined && deferred !== null)
-      ? deferred
-      : (tuition > 0 ? Math.max(0, tuition - amountPaid) : (statusUpper === "PARTIAL" ? 1 : 0));
-    return (statusUpper === "PAID" || (tuition > 0 && amountPaid >= tuition)) && remaining <= 0;
+    const remaining = Math.max(0, tuition - amountPaid);
+    return remaining <= 0;
   }).length;
   const displayPartialThisMonth = summaryBaseData.filter(item => {
     const currentPayment = item.payments?.find((p: any) => p.month === sumMonthIdx && p.year === sumYearVal);
     const statusUpper = currentPayment?.status ? String(currentPayment.status).toUpperCase() : "";
-    const tuition = tuitionForMonth(item.customTuition ?? item.level?.tuitionFee ?? 0, sumMonthIdx, halfBoundaryMonths);
+    const tuition = studentTuitionForMonth(item, sumMonthIdx, sumYearVal, halfBoundaryMonths);
     const amountPaid = ['PAID', 'PARTIAL'].includes(statusUpper) ? currentPayment?.amount || 0 : 0;
-    const deferred = currentPayment?.deferredAmount;
-    const remaining = (deferred !== undefined && deferred !== null)
-      ? deferred
-      : (tuition > 0 ? Math.max(0, tuition - amountPaid) : (statusUpper === "PARTIAL" ? 1 : 0));
-    const isPaid = (statusUpper === "PAID" || (tuition > 0 && amountPaid >= tuition)) && remaining <= 0;
+    const remaining = Math.max(0, tuition - amountPaid);
+    const isPaid = remaining <= 0;
     return !isPaid && (statusUpper === "PARTIAL" || (amountPaid > 0 && remaining > 0));
   }).length;
 
@@ -236,14 +226,10 @@ export default function StudentListClient({
     );
 
     const statusUpper = currentPayment?.status ? String(currentPayment.status).toUpperCase() : "";
-    const tuition = tuitionForMonth(item.customTuition ?? item.level?.tuitionFee ?? 0, sumMonthIdx, halfBoundaryMonths);
+    const tuition = studentTuitionForMonth(item, monthIdx, yearVal, halfBoundaryMonths);
     const amountPaid = ['PAID', 'PARTIAL'].includes(statusUpper) ? currentPayment?.amount || 0 : 0;
-    const deferred = currentPayment?.deferredAmount;
-    const remaining = (deferred !== undefined && deferred !== null)
-      ? deferred
-      : (tuition > 0 ? Math.max(0, tuition - amountPaid) : (statusUpper === "PARTIAL" ? 1 : 0));
-
-    const isPaidThisMonth = (statusUpper === "PAID" || (tuition > 0 && amountPaid >= tuition)) && remaining <= 0;
+    const remaining = Math.max(0, tuition - amountPaid);
+    const isPaidThisMonth = remaining <= 0;
     const isPartialThisMonth = !isPaidThisMonth && (statusUpper === "PARTIAL" || (amountPaid > 0 && remaining > 0));
 
     return (

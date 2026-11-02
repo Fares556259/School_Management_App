@@ -67,6 +67,7 @@ model Student {
   birthday      DateTime
   levelId       Int
   customTuition Float?
+  tuitionOverrides Json?
   nationalId    String?
 
   schoolId      String         @default("default_school")

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import prisma from '../lib/prisma';
-import { tuitionForMonth, tuitionMonthlyBalance } from '../lib/tuitionPolicy';
+import { tuitionForMonth, tuitionMonthlyBalance, studentTuitionForMonth } from '../lib/tuitionPolicy';
 import { calculateStudentPaymentAllocation } from '../lib/telegram/tools/writeTools';
 import { getSchoolYearMonths, MONTHS } from '../lib/dateUtils';
 
@@ -18,6 +18,12 @@ async function main() {
   assert.equal(tuitionMonthlyBalance(170,6,true,{status:'PENDING',amount:170}).due,85);
   assert.equal(tuitionMonthlyBalance(170,9,true,{status:'PARTIAL',amount:30}).due,55);
   assert.throws(()=>tuitionForMonth(-1,9,true)); assert.throws(()=>tuitionForMonth(170,13,true));
+  const scheduled = {customTuition:170, tuitionOverrides:{'2026-09':40,'2026-11':0,'2027-06':75}};
+  assert.equal(studentTuitionForMonth(scheduled,9,2026,true),40);
+  assert.equal(studentTuitionForMonth(scheduled,10,2026,true),170);
+  assert.equal(studentTuitionForMonth(scheduled,11,2026,true),0);
+  assert.equal(studentTuitionForMonth(scheduled,6,2027,true),75);
+  assert.equal(studentTuitionForMonth(scheduled,9,2027,true),85);
   const restores:(()=>void)[]=[];
   const replace=(target:any,key:string,value:any)=>{const old=target[key];target[key]=value;restores.push(()=>target[key]=old);};
   try {

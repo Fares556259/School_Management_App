@@ -1,6 +1,6 @@
 import prisma from "@/lib/prisma";
 import { getHalfBoundaryMonths } from '@/lib/serverTuition';
-import { tuitionForMonth } from '@/lib/tuitionPolicy';
+import { studentTuitionForMonth } from '@/lib/tuitionPolicy';
 import { MONTHS, formatMonthFrench } from "@/lib/dateUtils";
 import { invalidateTenantTags } from "@/lib/cache";
 import { createAnnouncementNotifications } from "@/lib/notifications";
@@ -62,7 +62,7 @@ export async function calculateStudentPaymentAllocation(
       const yVal = parseInt(yStr);
       const payment = existingPayments.find((p) => p.month === mIdx && p.year === yVal);
       const paid = payment && ['PAID', 'PARTIAL'].includes(payment.status) ? payment.amount : 0;
-      return paid < tuitionForMonth(tuitionFee, mIdx, halfBoundaryMonths);
+      return paid < studentTuitionForMonth(student, mIdx, yVal, halfBoundaryMonths);
     });
     if (earliestIdx !== -1) {
       currentIdx = earliestIdx;
@@ -91,7 +91,7 @@ export async function calculateStudentPaymentAllocation(
 
     const existing = existingPayments.find((p) => p.month === monthIdx && p.year === yearVal);
     const alreadyPaid = existing && ['PAID', 'PARTIAL'].includes(existing.status) ? existing.amount : 0;
-    const monthlyFee = tuitionForMonth(tuitionFee, monthIdx, halfBoundaryMonths);
+    const monthlyFee = studentTuitionForMonth(student, monthIdx, yearVal, halfBoundaryMonths);
     const remainingForMonth = Math.max(0, monthlyFee - alreadyPaid);
 
     // If already fully paid, skip to next month

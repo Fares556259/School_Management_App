@@ -15,6 +15,7 @@ import {
   isCustomChargeKind,
 } from "@/lib/studentCharges";
 import { invalidateTenantTags } from "@/lib/cache";
+import { revalidatePath } from "next/cache";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -252,6 +253,15 @@ export async function POST(request: NextRequest) {
         paidOn: body.paidOn,
       });
       invalidateTenantTags(schoolId, "finance", "dashboard", "incomes");
+      try {
+        revalidatePath("/list/incomes");
+        revalidatePath("/admin/finance");
+      } catch (error) {
+        console.warn(
+          "[StudentCharges] Income cache revalidation skipped:",
+          error,
+        );
+      }
       return NextResponse.json({ success: true, ...result });
     }
     if (body.action === "categoryCreate" || body.action === "categoryUpdate") {

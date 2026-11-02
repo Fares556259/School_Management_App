@@ -1,6 +1,6 @@
 import prisma from "@/lib/prisma";
 import { getHalfBoundaryMonths } from '@/lib/serverTuition';
-import { tuitionForMonth } from '@/lib/tuitionPolicy';
+import { studentTuitionForMonth } from '@/lib/tuitionPolicy';
 import { getCachedTenantData } from "@/lib/cache";
 import { getRole } from "@/lib/role";
 import { getSchoolId } from "@/lib/school";
@@ -511,7 +511,7 @@ const FinancePage = async (
           ) : (
             <div className="flex flex-col gap-2 max-h-80 overflow-y-auto pr-2">
               {unpaidStudents.map((s: any) => {
-                const tuitionAmount = tuitionForMonth(s.customTuition ?? s.level?.tuitionFee ?? 450, now.getMonth() + 1, halfBoundaryMonths);
+                const tuitionAmount = studentTuitionForMonth(s, now.getMonth() + 1, now.getFullYear(), halfBoundaryMonths);
                 return (
                   <Link
                     key={s.id}

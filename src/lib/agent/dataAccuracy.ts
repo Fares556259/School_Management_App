@@ -1,4 +1,4 @@
-import { tuitionMonthlyBalance } from '@/lib/tuitionPolicy';
+import { studentTuitionForMonth } from '@/lib/tuitionPolicy';
 /** Tunisia's school calendar is UTC+1, independent of the server's timezone. */
 export function schoolDate(now = new Date()): string {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Tunis', year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
@@ -18,17 +18,10 @@ export function schoolMonth(month?: number, year?: number, now = new Date()) {
   return { month: m, year: y, range: { gte: start, lt: schoolDayRange(next).gte } };
 }
 export const roundMoney = (amount: number) => Math.round((amount + Number.EPSILON) * 1000) / 1000;
-export function tuitionBalance(student: { customTuition?: number | null; level?: { tuitionFee?: number | null } | null }, payment?: any, month = payment?.month ?? 1, halfBoundaryMonths = false) {
-  const fee = student.customTuition ?? student.level?.tuitionFee ?? 450;
-  if (halfBoundaryMonths && [6, 9].includes(month)) {
-    const { fee: adjustedFee, received, due } = tuitionMonthlyBalance(fee, month, true, payment);
-    return { fee: adjustedFee, received, due };
-  }
-  const received = payment && ['PAID', 'PARTIAL'].includes(payment.status) ? payment.amount : 0;
-  const due = payment?.status === 'PAID' ? 0 : payment?.status === 'PARTIAL'
-    ? (payment.deferredAmount ?? Math.max(0, fee - received))
-    : payment ? (payment.deferredAmount ?? payment.amount ?? fee) : fee;
-  return { fee, received: roundMoney(received), due: roundMoney(Math.max(0, due)) };
+export function tuitionBalance(student: { customTuition?: number | null; level?: { tuitionFee?: number | null } | null; tuitionOverrides?: unknown }, payment?: any, month = payment?.month ?? 1, halfBoundaryMonths = false, year = payment?.year ?? new Date().getFullYear()) {
+  const fee = studentTuitionForMonth(student, month, year, halfBoundaryMonths);
+  const received = payment && ['PAID', 'PARTIAL'].includes(payment.status) ? Number(payment.amount || 0) : 0;
+  return { fee, received: roundMoney(received), due: roundMoney(Math.max(0, fee - received)) };
 }
 export function isVerificationFollowup(message: string) {
   return /^(?:u sure|are you sure|you sure|tu es s[uû]r(?:e)?|t'es s[uû]r(?:e)?|s[uû]r(?:e)?|v[ée]rifie(?: encore)?|recheck|confirm the list|c'est tout|that's all|khw hedhou?m(?: eli ya[9q]raw)?|khw hedhom eli ya9raw|متأكد|متاك[دذ]|هاذم الكل)[\s?!.]*$/i.test(message.trim());

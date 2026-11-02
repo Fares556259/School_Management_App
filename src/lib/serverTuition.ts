@@ -11,6 +11,12 @@ export function tuitionFactorSql(schoolId: string, month: number) {
   return Prisma.sql`(CASE WHEN ${month} IN (6, 9) AND COALESCE((SELECT i."halfBoundaryMonths" FROM "Institution" i WHERE i."schoolId" = ${schoolId}), false) THEN 0.5 ELSE 1 END)`;
 }
 
+/** School-scoped expected amount, including a student's explicit calendar-month rate. */
+export function studentTuitionSql(schoolId: string, month: number, year: number) {
+  const period = `${year}-${String(month).padStart(2, '0')}`;
+  return Prisma.sql`COALESCE((s."tuitionOverrides" ->> ${period})::numeric, ROUND((COALESCE(s."customTuition", l."tuitionFee", 450) * ${tuitionFactorSql(schoolId, month)})::numeric, 3))`;
+}
+
 /** Reprice only expectations/statuses in the selected academic year, never receipts or collected money. */
 export async function reconcileTuitionPolicy(tx: Prisma.TransactionClient, schoolId: string, enabled: boolean, academicYear: string) {
   const match = academicYear.match(/^(\d{4})\D+(\d{4})$/);
@@ -18,7 +24,8 @@ export async function reconcileTuitionPolicy(tx: Prisma.TransactionClient, schoo
   const affected = await tx.$executeRaw`
     WITH repriced AS (
       SELECT p.id, p.status AS old_status, p.amount,
-        ROUND((COALESCE(s."customTuition", l."tuitionFee", 450) * ${enabled ? 0.5 : 1})::numeric, 3)::float AS fee
+        COALESCE((s."tuitionOverrides" ->> (p.year::text || '-' || LPAD(p.month::text, 2, '0')))::numeric,
+          ROUND((COALESCE(s."customTuition", l."tuitionFee", 450) * ${enabled ? 0.5 : 1})::numeric, 3))::float AS fee
       FROM "Payment" p JOIN "Student" s ON s.id = p."studentId" AND s."schoolId" = p."schoolId"
       LEFT JOIN "Level" l ON l.id = s."levelId" AND l."schoolId" = s."schoolId"
       WHERE p."schoolId" = ${schoolId} AND LOWER(p."userType") = 'student'

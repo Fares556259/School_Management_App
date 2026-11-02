@@ -1,9 +1,10 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Banknote, Download } from "lucide-react";
 import { MONTHS, getSchoolYearMonths } from "@/lib/dateUtils";
-import { tuitionForMonth } from "@/lib/tuitionPolicy";
+import { studentTuitionForMonth } from "@/lib/tuitionPolicy";
 import { useLanguage } from "@/lib/translations/LanguageContext";
 
 type Charge = {
@@ -17,6 +18,7 @@ type Charge = {
 };
 type Billing = {
   tuitionFee: number;
+  student: { customTuition?: number | null; level?: { tuitionFee?: number | null } | null; tuitionOverrides?: unknown };
   halfBoundaryMonths: boolean;
   payments: { month: number; year: number; amount: number; status: string }[];
   charges: Charge[];
@@ -105,11 +107,7 @@ export default function StudentBillingModal({
                 payment.month === number && payment.year === Number(yearLabel),
             )?.amount || 0;
           return (
-            tuitionForMonth(
-              value.tuitionFee,
-              number,
-              value.halfBoundaryMonths,
-            ) -
+            studentTuitionForMonth(value.student, number, Number(yearLabel), value.halfBoundaryMonths) -
               paid >
             0
           );
@@ -123,12 +121,9 @@ export default function StudentBillingModal({
                 payment.month === currentNumber &&
                 payment.year === Number(currentParts[1]),
             )?.amount || 0;
-          return getSchoolYearMonths().includes(current) && currentNumber > 0 &&
-            tuitionForMonth(
-              value.tuitionFee,
-              currentNumber,
-              value.halfBoundaryMonths,
-            ) -
+          return getSchoolYearMonths().includes(current) &&
+            currentNumber > 0 &&
+            studentTuitionForMonth(value.student, currentNumber, Number(currentParts[1]), value.halfBoundaryMonths) -
               currentPaid >
               0
             ? current
@@ -182,9 +177,10 @@ export default function StudentBillingModal({
   const existing = data?.payments.find(
     (p) => p.month === monthNo && p.year === year,
   );
-  const expected = data && monthNo > 0 && getSchoolYearMonths().includes(month)
-    ? tuitionForMonth(data.tuitionFee, monthNo, data.halfBoundaryMonths)
-    : 0;
+  const expected =
+    data && monthNo > 0 && getSchoolYearMonths().includes(month)
+      ? studentTuitionForMonth(data.student, monthNo, year, data.halfBoundaryMonths)
+      : 0;
   const due = Math.max(
     0,
     Math.round((expected - (existing?.amount || 0)) * 1000) / 1000,
@@ -217,11 +213,7 @@ export default function StudentBillingModal({
     return Math.max(
       0,
       Math.round(
-        (tuitionForMonth(
-          data.tuitionFee,
-          monthNumber,
-          data.halfBoundaryMonths,
-        ) -
+        (studentTuitionForMonth(data.student, monthNumber, Number(yearLabel), data.halfBoundaryMonths) -
           (paid?.amount || 0)) *
           1000,
       ) / 1000,
@@ -501,6 +493,13 @@ export default function StudentBillingModal({
                   )}
                 </p>
                 <p className="mt-2 text-sm">{receipt.total} TND</p>
+                <p className="mt-1 text-sm text-emerald-800">
+                  {t(
+                    "Les montants sont aussi visibles dans les revenus de l’école.",
+                    "These amounts are also listed in school income.",
+                    "تظهر هذه المبالغ أيضاً في مداخيل المدرسة.",
+                  )}
+                </p>
                 <div className="mt-4 flex flex-wrap gap-2">
                   <button
                     type="button"
@@ -517,6 +516,16 @@ export default function StudentBillingModal({
                           "تنزيل الوصل",
                         )}
                   </button>
+                  <Link
+                    href={`/list/incomes?receipt=${encodeURIComponent(receipt.id)}`}
+                    className="inline-flex items-center rounded-lg border border-emerald-300 bg-white px-4 py-2 font-semibold text-emerald-800 hover:bg-emerald-100"
+                  >
+                    {t(
+                      "Voir dans les revenus",
+                      "View in income",
+                      "عرض في المداخيل",
+                    )}
+                  </Link>
                   <button
                     className="rounded-lg border border-emerald-200 bg-white px-4 py-2 text-emerald-800"
                     onClick={() => setOpen(false)}

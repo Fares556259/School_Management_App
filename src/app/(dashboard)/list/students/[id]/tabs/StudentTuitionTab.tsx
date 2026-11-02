@@ -24,7 +24,7 @@ import { receiveStudentPayment, receiveMultipleStudentPayments } from "@/app/(da
 import { MONTHS } from "@/lib/dateUtils";
 import { useLanguage } from "@/lib/translations/LanguageContext";
 import { toast } from "react-toastify";
-import { tuitionForMonth } from '@/lib/tuitionPolicy';
+import { studentTuitionForMonth } from '@/lib/tuitionPolicy';
 
 interface PaymentRecord {
   id: number;
@@ -42,6 +42,7 @@ interface StudentTuitionTabProps {
   studentName: string;
   gradeLevel: number;
   customTuition?: number | null;
+  tuitionOverrides?: unknown;
   levelTuitionFee: number;
   payments: PaymentRecord[];
   isAdmin: boolean;
@@ -66,6 +67,7 @@ export default function StudentTuitionTab({
   studentName,
   gradeLevel,
   customTuition,
+  tuitionOverrides,
   levelTuitionFee,
   halfBoundaryMonths = false,
   payments: initialPayments,
@@ -111,8 +113,8 @@ export default function StudentTuitionTab({
     }
   };
 
-  const baseMonthlyRate = customTuition ?? levelTuitionFee;
-  const monthlyRate = tuitionForMonth(baseMonthlyRate, selectedMonth, halfBoundaryMonths);
+  const studentRate = useMemo(() => ({ customTuition, level: { tuitionFee: levelTuitionFee }, tuitionOverrides }), [customTuition, levelTuitionFee, tuitionOverrides]);
+  const monthlyRate = studentTuitionForMonth(studentRate, selectedMonth, selectedYear, halfBoundaryMonths);
   const currentPayment = payments.find(
     (p) => p.month === selectedMonth && p.year === selectedYear
   );
@@ -158,7 +160,7 @@ export default function StudentTuitionTab({
     })
     .reduce((sum, p) => sum + (p.amount || 0), 0);
 
-  const fullYearTuition = Math.round(ACADEMIC_MONTHS.reduce((sum, m) => sum + tuitionForMonth(baseMonthlyRate, m.month, halfBoundaryMonths), 0) * 1000) / 1000;
+  const fullYearTuition = Math.round(ACADEMIC_MONTHS.reduce((sum, m) => sum + studentTuitionForMonth(studentRate, m.month, academicStartYear + m.offsetYear, halfBoundaryMonths), 0) * 1000) / 1000;
   const remainingTuition = Math.max(0, fullYearTuition - totalPaidThisYear);
   const paidMonthsCount = ACADEMIC_MONTHS.filter((m) => {
     const y = academicStartYear + m.offsetYear;
@@ -249,7 +251,7 @@ export default function StudentTuitionTab({
       const mCfg = ACADEMIC_MONTHS[i];
       const y = academicStartYear + mCfg.offsetYear;
       const existing = payments.find((p) => p.month === mCfg.month && p.year === y);
-      const monthlyRate = tuitionForMonth(baseMonthlyRate, mCfg.month, halfBoundaryMonths);
+      const monthlyRate = studentTuitionForMonth(studentRate, mCfg.month, y, halfBoundaryMonths);
 
       const prevPaid = existing && ['PAID', 'PARTIAL'].includes(existing.status) ? existing.amount : 0;
       if (existing?.status === "PAID" && prevPaid >= monthlyRate) {
@@ -288,7 +290,7 @@ export default function StudentTuitionTab({
       unallocated: remainingCash,
       totalAllocated,
     };
-  }, [lumpSumAmount, multiMonthStartIdx, payments, academicStartYear, baseMonthlyRate, halfBoundaryMonths]);
+  }, [lumpSumAmount, multiMonthStartIdx, payments, academicStartYear, halfBoundaryMonths, studentRate]);
 
   // 3. SUBMIT MULTI-MONTH PAYMENT
   const handleConfirmMultiMonth = () => {
@@ -913,7 +915,7 @@ export default function StudentTuitionTab({
                             </span>
                             {isPPart && (
                               <span className="text-[9px] font-black px-1.5 py-0.2 rounded bg-amber-100 text-amber-800">
-                                {t.studentProfile.tuition.statusPartialBadge} ({fmt(p.amount)}/{fmt(tuitionForMonth(baseMonthlyRate, p.month, halfBoundaryMonths))})
+                                {t.studentProfile.tuition.statusPartialBadge} ({fmt(p.amount)}/{fmt(studentTuitionForMonth(studentRate, p.month, p.year, halfBoundaryMonths))})
                               </span>
                             )}
                           </div>

@@ -16,6 +16,7 @@ import { getStudentAdminSchool, normalizeStudentNationalId } from "./studentProf
 import bcrypt from "bcryptjs";
 import { generateTemporaryParentPassword } from "./temporaryPassword";
 import {ensureAnnualRegistration,syncStudentCharges} from './studentCharges';
+import { getSchoolYearMonths, MONTHS } from './dateUtils';
 
 // Runtime allowlists prevent caller-supplied tenant IDs and nested Prisma writes.
 function editableFields(data: any, keys: string[]): any {
@@ -288,12 +289,22 @@ export const createStudent = async (data: {
   classId?: number | null | string;
   levelId?: number;
   customTuition?: number | null;
+  tuitionOverrides?: Record<string, number>;
   nationalId?: string | null;
   img?: string | null;
 }) => {
   try {
     const schoolId = await getStudentAdminSchool();
     const nationalId = normalizeStudentNationalId(data.nationalId) ?? null;
+    const allowedPeriods = new Set(getSchoolYearMonths().map((label) => {
+      const [name, year] = label.split(' ');
+      return `${year}-${String(MONTHS.indexOf(name) + 1).padStart(2, '0')}`;
+    }));
+    const tuitionOverrides = data.tuitionOverrides ?? {};
+    if (Object.entries(tuitionOverrides).some(([period, amount]) =>
+      !allowedPeriods.has(period) || typeof amount !== 'number' || !Number.isFinite(amount) ||
+      amount < 0 || amount > 1000000 || Math.abs(amount * 1000 - Math.round(amount * 1000)) > 0.00001
+    )) throw new Error('Invalid monthly tuition schedule.');
     const id = crypto.randomUUID();
 
     // Auto-fetch levelId from class or resolve DB level PK
@@ -353,6 +364,7 @@ export const createStudent = async (data: {
         classId: finalClassId,
         levelId: finalLevelId,
         customTuition: data.customTuition ?? null,
+        tuitionOverrides,
         nationalId,
         img: data.img || (data.sex === "FEMALE" ? "/avatars/student_female.jpg" : "/avatars/student_male.jpg"),
       },

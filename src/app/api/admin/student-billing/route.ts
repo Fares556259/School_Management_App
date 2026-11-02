@@ -3,7 +3,7 @@ import prisma from "@/lib/prisma";
 import { getStudentAdminSchool } from "@/lib/studentProfile";
 import { getAuthenticatedUser } from "@/utils/supabase/server";
 import { parseMonthYear } from "@/lib/dateUtils";
-import { tuitionForMonth } from "@/lib/tuitionPolicy";
+import { studentTuitionForMonth } from "@/lib/tuitionPolicy";
 import { schoolDate, roundMoney } from "@/lib/agent/dataAccuracy";
 import { invalidateTenantTags } from "@/lib/cache";
 import { revalidatePath } from "next/cache";
@@ -67,6 +67,7 @@ export async function GET(request: NextRequest) {
         name: true,
         surname: true,
         customTuition: true,
+        tuitionOverrides: true,
         level: { select: { tuitionFee: true } },
       },
     });
@@ -290,6 +291,7 @@ export async function POST(request: NextRequest) {
             name: true,
             surname: true,
             customTuition: true,
+            tuitionOverrides: true,
             level: { select: { tuitionFee: true } },
           },
         });
@@ -310,7 +312,8 @@ export async function POST(request: NextRequest) {
             stableJson({
               ...(previous.allocations as Record<string, unknown>),
               advanceBus:
-                (previous.allocations as { advanceBus?: unknown }).advanceBus ?? [],
+                (previous.allocations as { advanceBus?: unknown }).advanceBus ??
+                [],
             }) !== stableJson(normalized) ||
             schoolDate(previous.paidAt) !== body.paidOn
           )
@@ -343,11 +346,7 @@ export async function POST(request: NextRequest) {
         }[] = [];
         for (const tuitionLine of normalized.tuition) {
           const parsed = parseMonthYear(tuitionLine.monthYear);
-          const expected = tuitionForMonth(
-            student.customTuition ?? student.level?.tuitionFee ?? 450,
-            parsed.month,
-            institution.halfBoundaryMonths,
-          );
+          const expected = studentTuitionForMonth(student, parsed.month, parsed.year, institution.halfBoundaryMonths);
           const existing = await tx.payment.findUnique({
             where: {
               studentId_month_year: {
@@ -526,6 +525,11 @@ export async function POST(request: NextRequest) {
             });
           }
         }
+        if (
+          roundMoney(incomeLines.reduce((sum, line) => sum + line.amount, 0)) !==
+          total
+        )
+          throw new Error("Income lines do not match the payment total");
         const receipt = await tx.studentBillingReceipt.create({
           data: {
             schoolId,
@@ -586,6 +590,8 @@ export async function POST(request: NextRequest) {
     );
     try {
       revalidatePath("/list/students");
+      revalidatePath("/list/incomes");
+      revalidatePath("/admin/finance");
     } catch (error) {
       console.warn("[StudentBilling] Cache revalidation skipped:", error);
     }

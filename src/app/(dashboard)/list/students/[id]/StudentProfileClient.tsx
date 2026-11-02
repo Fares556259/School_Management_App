@@ -813,6 +813,7 @@ export default function StudentProfileClient({
             studentName={studentFullName}
             gradeLevel={currentGradeLevel}
             customTuition={student.customTuition}
+            tuitionOverrides={student.tuitionOverrides}
             levelTuitionFee={currentLevelTuitionFee}
             halfBoundaryMonths={halfBoundaryMonths}
             payments={payments}

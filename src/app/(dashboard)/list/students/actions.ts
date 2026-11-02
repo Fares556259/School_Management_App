@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createAuditLog } from "@/lib/audit";
 import { parseMonthYear } from "@/lib/dateUtils";
 import { getHalfBoundaryMonths } from '@/lib/serverTuition';
-import { tuitionForMonth } from '@/lib/tuitionPolicy';
+import { studentTuitionForMonth } from '@/lib/tuitionPolicy';
 import { getStudentAdminSchool } from '@/lib/studentProfile';
 
 export const receiveStudentPayment = async (
@@ -29,12 +29,12 @@ export const receiveStudentPayment = async (
       getStudentAdminSchool(),
       prisma.student.findUnique({
         where: { id: studentId },
-        select: { schoolId: true, customTuition: true, level: { select: { tuitionFee: true } } }
+        select: { schoolId: true, customTuition: true, tuitionOverrides: true, level: { select: { tuitionFee: true } } }
       }),
     ]);
     if (!student || student.schoolId !== adminSchoolId) throw new Error('Student not found in this school.');
     const schoolId = adminSchoolId;
-    const expectedFee = tuitionForMonth(student.customTuition ?? student.level?.tuitionFee ?? 450, monthIdx, await getHalfBoundaryMonths(schoolId));
+    const expectedFee = studentTuitionForMonth(student, monthIdx, yearVal, await getHalfBoundaryMonths(schoolId));
     const actualPaid = paidAmount ?? expectedFee;
     if (!Number.isFinite(actualPaid) || actualPaid <= 0 || actualPaid > expectedFee) throw new Error('Invalid payment amount for this month.');
     const gap = Math.round((expectedFee - actualPaid) * 1000) / 1000;
@@ -162,7 +162,7 @@ export const receiveMultipleStudentPayments = async (
 
     const student = await prisma.student.findUnique({
       where: { id: studentId },
-      select: { schoolId: true, customTuition: true, level: { select: { tuitionFee: true } } }
+      select: { schoolId: true, customTuition: true, tuitionOverrides: true, level: { select: { tuitionFee: true } } }
     });
     if (!student || student.schoolId !== adminSchoolId) throw new Error('Student not found in this school.');
     const schoolId = adminSchoolId;
@@ -178,7 +178,7 @@ export const receiveMultipleStudentPayments = async (
         const parsed = parseMonthYear(pmt.monthYear);
         const monthIdx = parsed.month;
         const yearVal = parsed.year;
-        const fee = tuitionForMonth(student.customTuition ?? student.level?.tuitionFee ?? 450, monthIdx, halfBoundaryMonths);
+        const fee = studentTuitionForMonth(student, monthIdx, yearVal, halfBoundaryMonths);
         if (!Number.isFinite(pmt.amount) || pmt.amount <= 0 || pmt.amount > fee) throw new Error('Invalid payment amount for this month.');
         pmt.gap = Math.round((fee - pmt.amount) * 1000) / 1000;
         pmt.isPartial = pmt.gap > 0;
