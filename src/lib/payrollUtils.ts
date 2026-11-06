@@ -111,6 +111,21 @@ export function computeTeacherPaymentStatus(
   };
 }
 
+/** Payable choices use the calculated balance, including deductions and overtime. */
+export function getTeacherPayableMonths(
+  teacher: TeacherPayrollItem,
+  months: readonly string[],
+  closedMonths: readonly string[] = [],
+): string[] {
+  const closed = new Set(closedMonths);
+  return months.filter(key => {
+    if (closed.has(key)) return false;
+    const { month, year } = parseMonthYear(key);
+    const payroll = computeTeacherPaymentStatus(teacher, month, year);
+    return payroll.actualStatus !== "PAID" && payroll.remaining > 0;
+  });
+}
+
 export function computeTeacherRowStatus(row: Record<string, any>, month: number, year: number) {
   return computeTeacherPaymentStatus({ salary:Number(row.salary??0), hourlyRate:Number(row.hourlyRate??0), hoursPerMonth:Number(row.hoursPerMonth??0), payments:[{month,year,status:row.paymentStatus,amount:Number(row.paymentAmount??row.paidAmount??0),missedHours:Number(row.missedHours??0),overtimeHours:Number(row.overtimeHours??0),overtimeRate:row.overtimeRate===null||row.overtimeRate===undefined?null:Number(row.overtimeRate),img:row.paymentMeta}] },month,year);
 }

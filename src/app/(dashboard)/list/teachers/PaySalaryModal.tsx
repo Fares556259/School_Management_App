@@ -11,6 +11,7 @@ import {
 } from "@/lib/dateUtils";
 import {
   computeTeacherPaymentStatus,
+  getTeacherPayableMonths,
   TeacherPayrollItem,
 } from "@/lib/payrollUtils";
 import { useLanguage } from "@/lib/translations/LanguageContext";
@@ -196,9 +197,17 @@ function SalaryPaymentDialog({
   const router = useRouter();
   const dialog = useRef<HTMLDialogElement>(null);
   const [localPayments, setLocalPayments] = useState(payments);
-  const months = getSchoolYearMonths().filter((m) => !paidMonths.includes(m));
+  const months = getTeacherPayableMonths(
+    { salary, hourlyRate, hoursPerMonth, payments: localPayments },
+    getSchoolYearMonths(),
+    paidMonths,
+  );
   const [selectedMonth, setSelectedMonth] = useState(
-    monthName && months.includes(monthName) ? monthName : months[0] || "",
+    monthName &&
+      months.includes(monthName) &&
+      !isMonthBefore(months[0], monthName)
+      ? monthName
+      : months[0] || "",
   );
   const [busy, setBusy] = useState(false);
   const [overtimePending, setOvertimePending] = useState(false);
@@ -224,6 +233,8 @@ function SalaryPaymentDialog({
   const blocked = busy || overtimePending;
   const isSkipping = !!(
     selectedMonth &&
+    payroll &&
+    payroll.remaining > 0 &&
     months[0] &&
     isMonthBefore(months[0], selectedMonth)
   );
@@ -388,32 +399,61 @@ function SalaryPaymentDialog({
         </button>
       </header>
       <div className="space-y-5 px-6 py-5">
-        <label className="block text-sm font-medium text-slate-700">
-          {t.targetMonth}
-          <select
-            aria-label={t.targetMonth}
-            value={selectedMonth}
-            disabled={busy || overtimePending}
-            onChange={(event) => {
-              setSelectedMonth(event.target.value);
-              setAdjustment(null);
-              setOvertimePending(false);
-              setAddHours("");
-              setAdvanceInput("");
-              setError("");
-            }}
-            className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-3"
-          >
-            <option value="" disabled>
-              {t.selectMonth}
-            </option>
-            {months.map((m) => (
-              <option key={m} value={m}>
-                {monthLabel(m)}
+        {(months.length > 0 || payroll) && (
+          <label className="block text-sm font-medium text-slate-700">
+            {t.targetMonth}
+            <select
+              aria-label={t.targetMonth}
+              value={selectedMonth}
+              disabled={busy || overtimePending || months.length === 0}
+              onChange={(event) => {
+                setSelectedMonth(event.target.value);
+                setAdjustment(null);
+                setOvertimePending(false);
+                setAddHours("");
+                setAdvanceInput("");
+                setError("");
+              }}
+              className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-3"
+            >
+              <option value="" disabled>
+                {t.selectMonth}
               </option>
-            ))}
-          </select>
-        </label>
+              {selectedMonth && !months.includes(selectedMonth) && (
+                <option value={selectedMonth} disabled>
+                  {monthLabel(selectedMonth)} ·{" "}
+                  {tx("Soldé", "Settled", "مسدّد")}
+                </option>
+              )}
+              {months.map((m) => (
+                <option key={m} value={m}>
+                  {monthLabel(m)}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+        {!payroll && (
+          <div
+            role="status"
+            className="rounded-xl border border-emerald-200 bg-emerald-50 p-5 text-emerald-900"
+          >
+            <p className="font-semibold">
+              {tx(
+                "Aucun salaire à régler",
+                "No salary balance to pay",
+                "لا يوجد راتب متبقٍ للدفع",
+              )}
+            </p>
+            <p className="mt-2 text-sm">
+              {tx(
+                "Les mois soldés ne figurent pas dans les choix de paiement.",
+                "Settled months are excluded from payment choices.",
+                "لا تظهر الأشهر المسدّدة ضمن خيارات الدفع.",
+              )}
+            </p>
+          </div>
+        )}
         {payroll && (
           <>
             <dl className="space-y-2 rounded-xl bg-slate-50 p-4 text-sm">
@@ -446,7 +486,7 @@ function SalaryPaymentDialog({
               )}
               {payroll.amountPaid > 0 && (
                 <div className="flex justify-between gap-3 text-amber-700">
-                  <dt>{t.advancePaid}</dt>
+                  <dt>{tx("Déjà versé", "Already paid", "تم دفعه سابقاً")}</dt>
                   <dd>− {money(payroll.amountPaid)} TND</dd>
                 </div>
               )}
@@ -455,183 +495,210 @@ function SalaryPaymentDialog({
                 <dd>{money(payroll.remaining)} TND</dd>
               </div>
             </dl>
-            <section
-              aria-label={tx(
-                "Ajustements du salaire",
-                "Salary adjustments",
-                "تعديلات الراتب",
-              )}
-            >
-              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                {tx("Ajuster ce mois", "Adjust this month", "تعديل هذا الشهر")}
-              </h3>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  aria-expanded={adjustment === "overtime"}
-                  aria-controls="salary-overtime-panel"
-                  disabled={busy}
-                  onClick={() => {
-                    if (!overtimePending)
-                      setAdjustment(
-                        adjustment === "overtime" ? null : "overtime",
-                      );
-                  }}
-                  className={`rounded-lg border px-3 py-2 text-sm font-medium ${adjustment === "overtime" ? "border-emerald-300 bg-emerald-50 text-emerald-800" : "border-slate-200 text-slate-700 hover:bg-slate-50"}`}
-                >
-                  +{" "}
-                  {tx("Heures supplémentaires", "Overtime", "الساعات الإضافية")}
-                </button>
-                <button
-                  type="button"
-                  aria-expanded={adjustment === "absence"}
-                  aria-controls="salary-absence-panel"
-                  disabled={busy || overtimePending}
-                  onClick={() =>
-                    setAdjustment(adjustment === "absence" ? null : "absence")
-                  }
-                  className={`rounded-lg border px-3 py-2 text-sm font-medium disabled:opacity-40 ${adjustment === "absence" ? "border-rose-300 bg-rose-50 text-rose-800" : "border-slate-200 text-slate-700 hover:bg-slate-50"}`}
-                >
-                  − {t.missedHours}
-                </button>
-              </div>
-              {adjustment === "overtime" && (
-                <div id="salary-overtime-panel" className="mt-3">
-                  <TeacherOvertimeEditor
-                    key={selectedMonth}
-                    teacherId={teacherId}
-                    teacherName={teacherName}
-                    period={selectedMonth}
-                    hours={payroll.overtimeHours}
-                    recordedRate={payment?.overtimeRate}
-                    rate={
-                      hourlyRate && hourlyRate > 0
-                        ? hourlyRate
-                        : hoursPerMonth && hoursPerMonth > 0
-                          ? Math.round(
-                              (payroll.baseSalary / hoursPerMonth) * 1000,
-                            ) / 1000
-                          : 0
-                    }
-                    baseSalary={payroll.baseSalary}
-                    deduction={payroll.deduction}
-                    paidAmount={payroll.amountPaid}
-                    closed={busy || payroll.isPaid}
-                    onPendingChange={setOvertimePending}
-                    onSaved={(next) => {
-                      saveLocal(next);
-                      toast.success(
-                        tx(
-                          "Heures supplémentaires mises à jour.",
-                          "Overtime updated.",
-                          "تم تحديث الساعات الإضافية.",
-                        ),
-                      );
-                      router.refresh();
-                    }}
-                  />
-                </div>
-              )}
-              {adjustment === "absence" && (
-                <div id="salary-absence-panel" className="mt-3">
-                  <section className="rounded-xl border border-slate-200 p-4">
-                    <div className="mb-3 flex items-center justify-between gap-3">
-                      <h3 className="text-sm font-semibold">
-                        {t.missedHours} · {payroll.missedHours} h
-                      </h3>
-                      {payroll.missedHours > 0 && (
-                        <button
-                          type="button"
-                          onClick={() => saveMissedHours(0)}
-                          disabled={blocked || payroll.isPaid}
-                          className="text-xs font-medium text-rose-600 disabled:opacity-40"
-                        >
-                          {t.reset}
-                        </button>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <label className="flex-1">
-                        <span className="sr-only">{t.hoursToAdd}</span>
-                        <input
-                          type="number"
-                          inputMode="decimal"
-                          min="0"
-                          max="744"
-                          step="0.01"
-                          aria-label={t.hoursToAdd}
-                          disabled={blocked || payroll.isPaid}
-                          value={addHours}
-                          onChange={(event) => setAddHours(event.target.value)}
-                          placeholder={t.hoursToAdd}
-                          className="w-full rounded-lg border px-3 py-2 text-sm"
-                        />
-                      </label>
-                      <button
-                        type="button"
-                        disabled={
-                          blocked ||
-                          payroll.isPaid ||
-                          !Number.isFinite(Number(addHours)) ||
-                          Number(addHours) <= 0 ||
-                          Number(addHours) + payroll.missedHours > 744
-                        }
-                        onClick={() =>
-                          saveMissedHours(
-                            payroll.missedHours + Number(addHours),
-                          )
-                        }
-                        className="rounded-lg border px-3 py-2 text-sm font-medium disabled:opacity-40"
-                      >
-                        {t.add}
-                      </button>
-                    </div>
-                  </section>
-                </div>
-              )}
-            </section>
-            <fieldset>
-              <legend className="mb-2 text-sm font-medium text-slate-700">
+            {payroll.remaining <= 0 ? (
+              <div
+                role="status"
+                className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 font-semibold text-emerald-900"
+              >
                 {tx(
-                  "Que versez-vous aujourd’hui ?",
-                  "What are you paying today?",
-                  "ماذا ستدفع اليوم؟",
+                  "Ce mois est soldé. Aucun paiement supplémentaire n’est nécessaire.",
+                  "This month is settled. No additional payment is needed.",
+                  "هذا الشهر مسدّد. لا حاجة إلى دفع إضافي.",
                 )}
-              </legend>
-              <div className="grid grid-cols-2 gap-2">
-                {[false, true].map((advance) => (
-                  <label
-                    key={String(advance)}
-                    className={`flex cursor-pointer items-center gap-2 rounded-lg border p-3 text-sm font-medium ${advanceMode === advance ? "border-blue-500 bg-blue-50 text-blue-800" : "border-slate-200 text-slate-600"}`}
-                  >
-                    <input
-                      type="radio"
-                      name="salary-payment-mode"
-                      checked={advanceMode === advance}
-                      disabled={busy}
-                      onChange={() => setAdvanceMode(advance)}
-                      className="h-4 w-4 accent-blue-600"
-                    />
-                    {advance ? t.advance : t.remainingToPay}
-                  </label>
-                ))}
               </div>
-            </fieldset>
-            {advanceMode && (
-              <label className="block text-sm font-medium">
-                {t.advanceAmount} · Max {money(payroll.remaining)} TND
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  min="0.001"
-                  max={payroll.remaining}
-                  step="0.001"
-                  value={advanceInput}
-                  disabled={busy}
-                  onChange={(event) => setAdvanceInput(event.target.value)}
-                  className="mt-2 w-full rounded-lg border px-3 py-3"
-                />
-              </label>
+            ) : (
+              <>
+                <section
+                  aria-label={tx(
+                    "Ajustements du salaire",
+                    "Salary adjustments",
+                    "تعديلات الراتب",
+                  )}
+                >
+                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    {tx(
+                      "Ajuster ce mois",
+                      "Adjust this month",
+                      "تعديل هذا الشهر",
+                    )}
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      aria-expanded={adjustment === "overtime"}
+                      aria-controls="salary-overtime-panel"
+                      disabled={busy}
+                      onClick={() => {
+                        if (!overtimePending)
+                          setAdjustment(
+                            adjustment === "overtime" ? null : "overtime",
+                          );
+                      }}
+                      className={`rounded-lg border px-3 py-2 text-sm font-medium ${adjustment === "overtime" ? "border-emerald-300 bg-emerald-50 text-emerald-800" : "border-slate-200 text-slate-700 hover:bg-slate-50"}`}
+                    >
+                      +{" "}
+                      {tx(
+                        "Heures supplémentaires",
+                        "Overtime",
+                        "الساعات الإضافية",
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      aria-expanded={adjustment === "absence"}
+                      aria-controls="salary-absence-panel"
+                      disabled={busy || overtimePending}
+                      onClick={() =>
+                        setAdjustment(
+                          adjustment === "absence" ? null : "absence",
+                        )
+                      }
+                      className={`rounded-lg border px-3 py-2 text-sm font-medium disabled:opacity-40 ${adjustment === "absence" ? "border-rose-300 bg-rose-50 text-rose-800" : "border-slate-200 text-slate-700 hover:bg-slate-50"}`}
+                    >
+                      − {t.missedHours}
+                    </button>
+                  </div>
+                  {adjustment === "overtime" && (
+                    <div id="salary-overtime-panel" className="mt-3">
+                      <TeacherOvertimeEditor
+                        key={selectedMonth}
+                        teacherId={teacherId}
+                        teacherName={teacherName}
+                        period={selectedMonth}
+                        hours={payroll.overtimeHours}
+                        recordedRate={payment?.overtimeRate}
+                        rate={
+                          hourlyRate && hourlyRate > 0
+                            ? hourlyRate
+                            : hoursPerMonth && hoursPerMonth > 0
+                              ? Math.round(
+                                  (payroll.baseSalary / hoursPerMonth) * 1000,
+                                ) / 1000
+                              : 0
+                        }
+                        baseSalary={payroll.baseSalary}
+                        deduction={payroll.deduction}
+                        paidAmount={payroll.amountPaid}
+                        closed={busy || payroll.isPaid}
+                        onPendingChange={setOvertimePending}
+                        onSaved={(next) => {
+                          saveLocal(next);
+                          toast.success(
+                            tx(
+                              "Heures supplémentaires mises à jour.",
+                              "Overtime updated.",
+                              "تم تحديث الساعات الإضافية.",
+                            ),
+                          );
+                          router.refresh();
+                        }}
+                      />
+                    </div>
+                  )}
+                  {adjustment === "absence" && (
+                    <div id="salary-absence-panel" className="mt-3">
+                      <section className="rounded-xl border border-slate-200 p-4">
+                        <div className="mb-3 flex items-center justify-between gap-3">
+                          <h3 className="text-sm font-semibold">
+                            {t.missedHours} · {payroll.missedHours} h
+                          </h3>
+                          {payroll.missedHours > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => saveMissedHours(0)}
+                              disabled={blocked || payroll.isPaid}
+                              className="text-xs font-medium text-rose-600 disabled:opacity-40"
+                            >
+                              {t.reset}
+                            </button>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <label className="flex-1">
+                            <span className="sr-only">{t.hoursToAdd}</span>
+                            <input
+                              type="number"
+                              inputMode="decimal"
+                              min="0"
+                              max="744"
+                              step="0.01"
+                              aria-label={t.hoursToAdd}
+                              disabled={blocked || payroll.isPaid}
+                              value={addHours}
+                              onChange={(event) =>
+                                setAddHours(event.target.value)
+                              }
+                              placeholder={t.hoursToAdd}
+                              className="w-full rounded-lg border px-3 py-2 text-sm"
+                            />
+                          </label>
+                          <button
+                            type="button"
+                            disabled={
+                              blocked ||
+                              payroll.isPaid ||
+                              !Number.isFinite(Number(addHours)) ||
+                              Number(addHours) <= 0 ||
+                              Number(addHours) + payroll.missedHours > 744
+                            }
+                            onClick={() =>
+                              saveMissedHours(
+                                payroll.missedHours + Number(addHours),
+                              )
+                            }
+                            className="rounded-lg border px-3 py-2 text-sm font-medium disabled:opacity-40"
+                          >
+                            {t.add}
+                          </button>
+                        </div>
+                      </section>
+                    </div>
+                  )}
+                </section>
+                <fieldset>
+                  <legend className="mb-2 text-sm font-medium text-slate-700">
+                    {tx(
+                      "Que versez-vous aujourd’hui ?",
+                      "What are you paying today?",
+                      "ماذا ستدفع اليوم؟",
+                    )}
+                  </legend>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[false, true].map((advance) => (
+                      <label
+                        key={String(advance)}
+                        className={`flex cursor-pointer items-center gap-2 rounded-lg border p-3 text-sm font-medium ${advanceMode === advance ? "border-blue-500 bg-blue-50 text-blue-800" : "border-slate-200 text-slate-600"}`}
+                      >
+                        <input
+                          type="radio"
+                          name="salary-payment-mode"
+                          checked={advanceMode === advance}
+                          disabled={busy}
+                          onChange={() => setAdvanceMode(advance)}
+                          className="h-4 w-4 accent-blue-600"
+                        />
+                        {advance ? t.advance : t.remainingToPay}
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
+                {advanceMode && (
+                  <label className="block text-sm font-medium">
+                    {t.advanceAmount} · Max {money(payroll.remaining)} TND
+                    <input
+                      type="number"
+                      inputMode="decimal"
+                      min="0.001"
+                      max={payroll.remaining}
+                      step="0.001"
+                      value={advanceInput}
+                      disabled={busy}
+                      onChange={(event) => setAdvanceInput(event.target.value)}
+                      className="mt-2 w-full rounded-lg border px-3 py-3"
+                    />
+                  </label>
+                )}
+              </>
             )}
           </>
         )}
@@ -659,36 +726,48 @@ function SalaryPaymentDialog({
         )}
       </div>
       <footer className="sticky bottom-0 border-t bg-white px-6 py-4">
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <span className="text-sm text-slate-600">{t.finalAmount}</span>
-          <strong className="text-xl text-slate-900">
-            {money(amountToPay || 0)} TND
-          </strong>
-        </div>
-        <div className="flex gap-3">
+        {!payroll || payroll.remaining <= 0 ? (
           <button
             type="button"
             onClick={onClose}
-            disabled={busy}
-            className="rounded-lg border px-4 py-3 text-sm"
+            className="w-full rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white"
           >
-            {t.cancel}
+            {tx("Terminer", "Done", "تم")}
           </button>
-          <button
-            type="button"
-            onClick={handlePay}
-            disabled={
-              blocked ||
-              !selectedMonth ||
-              isSkipping ||
-              !validAmount ||
-              payroll?.isPaid
-            }
-            className="flex-1 rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white disabled:opacity-40"
-          >
-            {busy ? t.confirming : t.confirmPayment}
-          </button>
-        </div>
+        ) : (
+          <>
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <span className="text-sm text-slate-600">{t.finalAmount}</span>
+              <strong className="text-xl text-slate-900">
+                {money(amountToPay || 0)} TND
+              </strong>
+            </div>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={onClose}
+                disabled={busy}
+                className="rounded-lg border px-4 py-3 text-sm"
+              >
+                {t.cancel}
+              </button>
+              <button
+                type="button"
+                onClick={handlePay}
+                disabled={
+                  blocked ||
+                  !selectedMonth ||
+                  isSkipping ||
+                  !validAmount ||
+                  payroll?.isPaid
+                }
+                className="flex-1 rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white disabled:opacity-40"
+              >
+                {busy ? t.confirming : t.confirmPayment}
+              </button>
+            </div>
+          </>
+        )}
       </footer>
     </dialog>
   );

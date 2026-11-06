@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import prisma from "../lib/prisma";
 import { overtimeValues } from "../lib/overtimeAmount";
-import { computeTeacherPaymentStatus } from "../lib/payrollUtils";
+import { computeTeacherPaymentStatus, getTeacherPayableMonths } from "../lib/payrollUtils";
 import { saveTeacherOvertime } from "../lib/teacherOvertime";
 
 test("Custom overtime amount stays independent of absence deductions and advances", () => {
@@ -234,4 +234,19 @@ test("Remaining balance is rounded to millimes after an advance", () => {
     2026,
   );
   assert.equal(calc.remaining, 250.023);
+});
+
+
+test("Settled months disappear even when a legacy record still says PARTIAL", () => {
+  const months = ["September 2026", "October 2026", "November 2026", "December 2026"];
+  const teacher = { salary:360, hourlyRate:15, hoursPerMonth:24, payments:[
+    {month:9,year:2026,status:"PARTIAL",amount:330,missedHours:2},
+    {month:10,year:2026,status:"PAID",amount:360},
+    {month:11,year:2026,status:"PARTIAL",amount:100},
+  ]};
+  assert.deepEqual(getTeacherPayableMonths(teacher,months),["November 2026","December 2026"]);
+  assert.deepEqual(getTeacherPayableMonths(teacher,months,["December 2026"]),["November 2026"]);
+  assert.deepEqual(getTeacherPayableMonths({...teacher,salary:0,hourlyRate:0,hoursPerMonth:0,payments:[]},months),[]);
+  const withOvertime = {...teacher,payments:[{month:9,year:2026,status:"PARTIAL",amount:330,missedHours:2,overtimeHours:2,overtimeRate:30}]};
+  assert.equal(getTeacherPayableMonths(withOvertime,months)[0],"September 2026","Overtime creates a real remaining balance");
 });
