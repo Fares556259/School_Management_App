@@ -28,6 +28,7 @@ export interface TeacherStatusCalculation {
   deductedHours: number;
   deduction: number;
   overtimeHours: number;
+  overtimeRate: number;
   overtimeAmount: number;
   netDue: number;
   amountPaid: number;
@@ -42,7 +43,7 @@ export interface TeacherStatusCalculation {
 /**
  * Pure calculation function for Teacher payment status for a specific month/year.
  * Follows strict remaining-balance business rules:
- * - netDue = baseSalary - deduction
+ * - netDue = baseSalary - deduction + overtimeAmount
  * - remaining = Math.max(0, netDue - amountPaid)
  * - isPaid: remaining <= 0 && (actualStatus === "PAID" || amountPaid >= netDue)
  * - isPartial: !isPaid && (amountPaid > 0 && remaining > 0)
@@ -82,7 +83,7 @@ export function computeTeacherPaymentStatus(
   const overtimeRate = payment?.overtimeRate ?? (rate > 0 ? rate : monthlyHours > 0 ? baseSalary / monthlyHours : 0);
   const overtimeAmount = Math.round(overtimeHours * overtimeRate * 1000) / 1000;
   const netDue = Math.round(Math.max(0, baseSalary - deduction + overtimeAmount) * 1000) / 1000;
-  const remaining = Math.max(0, netDue - amountPaid);
+  const remaining = Math.round(Math.max(0, netDue - amountPaid) * 1000) / 1000;
 
   const isPaid = (actualStatus === "PAID" || (netDue > 0 && amountPaid >= netDue)) && remaining <= 0;
   const isPartial = !isPaid && (actualStatus === "PARTIAL" || (amountPaid > 0 && remaining > 0));
@@ -97,6 +98,7 @@ export function computeTeacherPaymentStatus(
     deductedHours,
     deduction,
     overtimeHours,
+    overtimeRate,
     overtimeAmount,
     netDue,
     amountPaid,

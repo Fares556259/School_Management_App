@@ -300,7 +300,7 @@ export async function GET(request: NextRequest) {
         deduction: deduction > 0 ? deduction : 0,
         overtimeHours: payroll.overtimeHours,
         overtimeAmount: payroll.overtimeAmount,
-        overtimeRate: rate > 0 ? rate : monthlyHours > 0 ? Math.round(baseSalary/monthlyHours*1000)/1000 : 0,
+        overtimeRate: payroll.overtimeRate,
         dueAmount,
         status: t.paymentStatus || "UNPAID",
       };

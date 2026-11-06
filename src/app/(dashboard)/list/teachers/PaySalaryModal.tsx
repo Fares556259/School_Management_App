@@ -1,10 +1,20 @@
 "use client";
 
-import React, { useState, useTransition, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Banknote, X } from "lucide-react";
 import { payTeacherSalary, updateMissedHours } from "./actions";
-import { getSchoolYearMonths, isMonthBefore, MONTHS } from "@/lib/dateUtils";
-import { Banknote } from "lucide-react";
+import {
+  getSchoolYearMonths,
+  isMonthBefore,
+  parseMonthYear,
+} from "@/lib/dateUtils";
+import {
+  computeTeacherPaymentStatus,
+  TeacherPayrollItem,
+} from "@/lib/payrollUtils";
 import { useLanguage } from "@/lib/translations/LanguageContext";
+import TeacherOvertimeEditor from "./[id]/TeacherOvertimeEditor";
 import { toast } from "react-toastify";
 
 const dict = {
@@ -27,9 +37,23 @@ const dict = {
     cancel: "Cancel",
     confirmPayment: "Confirm Payment",
     confirming: "Confirming...",
-    expensePrefix: "Salary", expenseAdvancePrefix: "Advance", auditSalary: "Paid salary of {amount} DT to {name} for {month}", auditAdvance: "Paid advance of {amount} DT to {name} for {month}", missedSuffix: "missed", deductionSuffix: "deduction", success: "Salary processed successfully!", advanceSuccess: "Advance recorded!", advance: "Advance (Avance)", advanceAmount: "Advance Amount", giveAdvance: "Give Advance", advancePaid: "Advance Paid", remainingToPay: "Remaining to Pay", fullSalary: "Full Salary",
+    expensePrefix: "Salary",
+    expenseAdvancePrefix: "Advance",
+    auditSalary: "Paid salary of {amount} DT to {name} for {month}",
+    auditAdvance: "Paid advance of {amount} DT to {name} for {month}",
+    missedSuffix: "missed",
+    deductionSuffix: "deduction",
+    success: "Salary processed successfully!",
+    advanceSuccess: "Advance recorded!",
+    advance: "Advance",
+    advanceAmount: "Advance Amount",
+    giveAdvance: "Give Advance",
+    advancePaid: "Advance Paid",
+    remainingToPay: "Remaining to Pay",
+    fullSalary: "Full Salary",
     error: "Failed to process salary",
-    skipWarning: "Please pay for {earliestUnpaid} first to maintain chronological bookkeeping."
+    skipWarning:
+      "Please pay for {earliestUnpaid} first to maintain chronological bookkeeping.",
   },
   fr: {
     processSalary: "Traiter le salaire",
@@ -50,9 +74,23 @@ const dict = {
     cancel: "Annuler",
     confirmPayment: "Confirmer le paiement",
     confirming: "Confirmation...",
-    expensePrefix: "Salaire", expenseAdvancePrefix: "Avance", auditSalary: "Salaire payé de {amount} DT à {name} pour {month}", auditAdvance: "Avance payée de {amount} DT à {name} pour {month}", missedSuffix: "manquées", deductionSuffix: "déduction", success: "Salaire traité avec succès!", advanceSuccess: "Avance enregistrée!", advance: "Avance", advanceAmount: "Montant avance", giveAdvance: "Donner une avance", advancePaid: "Avance payée", remainingToPay: "Reste à payer", fullSalary: "Salaire complet",
+    expensePrefix: "Salaire",
+    expenseAdvancePrefix: "Avance",
+    auditSalary: "Salaire payé de {amount} DT à {name} pour {month}",
+    auditAdvance: "Avance payée de {amount} DT à {name} pour {month}",
+    missedSuffix: "manquées",
+    deductionSuffix: "déduction",
+    success: "Salaire traité avec succès!",
+    advanceSuccess: "Avance enregistrée!",
+    advance: "Avance",
+    advanceAmount: "Montant avance",
+    giveAdvance: "Donner une avance",
+    advancePaid: "Avance payée",
+    remainingToPay: "Reste à payer",
+    fullSalary: "Salaire complet",
     error: "Échec du traitement du salaire",
-    skipWarning: "Veuillez d'abord payer {earliestUnpaid} pour maintenir une comptabilité chronologique."
+    skipWarning:
+      "Veuillez d'abord payer {earliestUnpaid} pour maintenir une comptabilité chronologique.",
   },
   ar: {
     processSalary: "معالجة الراتب",
@@ -73,27 +111,28 @@ const dict = {
     cancel: "إلغاء",
     confirmPayment: "تأكيد الدفع",
     confirming: "جاري التأكيد...",
-    expensePrefix: "راتب", expenseAdvancePrefix: "سلفة", auditSalary: "تم دفع راتب قدره {amount} د.ت إلى {name} لشهر {month}", auditAdvance: "تم دفع سلفة قدرها {amount} د.ت إلى {name} لشهر {month}", missedSuffix: "ساعات ضائعة", deductionSuffix: "خصم", success: "تمت معالجة الراتب بنجاح!", advanceSuccess: "تم تسجيل السلفة!", advance: "سلفة", advanceAmount: "مبلغ السلفة", giveAdvance: "إعطاء سلفة", advancePaid: "سلفة مدفوعة", remainingToPay: "المتبقي للدفع", fullSalary: "الراتب الكامل",
+    expensePrefix: "راتب",
+    expenseAdvancePrefix: "سلفة",
+    auditSalary: "تم دفع راتب قدره {amount} د.ت إلى {name} لشهر {month}",
+    auditAdvance: "تم دفع سلفة قدرها {amount} د.ت إلى {name} لشهر {month}",
+    missedSuffix: "ساعات ضائعة",
+    deductionSuffix: "خصم",
+    success: "تمت معالجة الراتب بنجاح!",
+    advanceSuccess: "تم تسجيل السلفة!",
+    advance: "سلفة",
+    advanceAmount: "مبلغ السلفة",
+    giveAdvance: "إعطاء سلفة",
+    advancePaid: "سلفة مدفوعة",
+    remainingToPay: "المتبقي للدفع",
+    fullSalary: "الراتب الكامل",
     error: "فشلت معالجة الراتب",
-    skipWarning: "يرجى الدفع لشهر {earliestUnpaid} أولاً للحفاظ على التسلسل الزمني."
-  }
+    skipWarning:
+      "يرجى الدفع لشهر {earliestUnpaid} أولاً للحفاظ على التسلسل الزمني.",
+  },
 };
 
-export default function PaySalaryModal({
-  teacherId,
-  teacherName,
-  salary,
-  hourlyRate,
-  hoursPerMonth,
-  isPaid,
-  isAdmin,
-  monthName,
-  paidMonths = [],
-  payments = [],
-  onSuccess,
-  onRollback,
-  onMissedHoursUpdate,
-}: {
+type PayrollPayment = NonNullable<TeacherPayrollItem["payments"]>[number];
+type Props = {
   teacherId: string;
   teacherName: string;
   salary: number;
@@ -103,387 +142,554 @@ export default function PaySalaryModal({
   isAdmin: boolean;
   monthName?: string;
   paidMonths?: string[];
-  payments?: any[];
-  onSuccess?: (status: "PAID" | "PARTIAL", targetMonth: string, amount: number) => void;
+  payments?: PayrollPayment[];
+  onSuccess?: (
+    status: "PAID" | "PARTIAL",
+    targetMonth: string,
+    amount: number,
+  ) => void;
   onRollback?: (targetMonth: string, prevPayment: any) => void;
   onMissedHoursUpdate?: (targetMonth: string, newTotal: number) => void;
-}) {
-  const { locale, t: globalT } = useLanguage();
+};
+
+export default function PaySalaryModal(props: Props) {
+  const { locale } = useLanguage();
+  const [open, setOpen] = useState(false);
   const t = dict[locale as keyof typeof dict] || dict.en;
-
-  const allMonths = getSchoolYearMonths();
-  const monthsList = allMonths.filter(m => !paidMonths.includes(m));
-
-  const [isOpen, setIsOpen] = useState(false);
-  const [selectedMonth, setSelectedMonth] = useState(monthName || monthsList[0] || "");
-  const [isPending, startTransition] = useTransition();
-
-  // Get existing missed hours for the selected month from payments data
-  const getExistingAdvance = (monthKey: string): number => {
-    if (!payments || !monthKey) return 0;
-    const [mName, yStr] = monthKey.split(" ");
-    const monthIdx = MONTHS.indexOf(mName) + 1;
-    const yearVal = parseInt(yStr);
-    const found = payments.find(p => p.month === monthIdx && p.year === yearVal && p.status === "PARTIAL");
-    return found?.amount || 0;
-  };
-
-  const getExistingMissedHours = (monthKey: string): number => {
-    if (!payments || !monthKey) return 0;
-    const [mName, yStr] = monthKey.split(" ");
-    const monthIdx = MONTHS.indexOf(mName) + 1;
-    const yearVal = parseInt(yStr);
-    const found = payments.find(p => p.month === monthIdx && p.year === yearVal);
-    return found?.missedHours || 0;
-  };
-
-  const [missedHours, setMissedHours] = useState(0);
-  const [addHours, setAddHours] = useState<number | string>(0);
-  const [isAdvanceMode, setIsAdvanceMode] = useState(false);
-  const [advanceInput, setAdvanceInput] = useState<number | string>("");
-
-  const rate = hourlyRate || 0;
-  const monthlyHours = hoursPerMonth || 0;
-  const baseSalary = rate > 0 && monthlyHours > 0 ? rate * monthlyHours : salary;
-  const existingAdvance = getExistingAdvance(selectedMonth);
-  const deduction = missedHours * rate;
-  const finalAmount = Math.max(0, baseSalary - deduction - existingAdvance);
-
-  const earliestUnpaid = monthsList[0];
-  const isSkipping = !!(selectedMonth && earliestUnpaid && isMonthBefore(earliestUnpaid, selectedMonth));
-
-  useEffect(() => {
-    if (monthName && !paidMonths.includes(monthName)) {
-      setSelectedMonth(monthName);
-    }
-  }, [monthName]);
-
-  useEffect(() => {
-    if (isOpen) {
-      if (!selectedMonth || paidMonths.includes(selectedMonth)) {
-        setSelectedMonth(monthsList[0] || "");
-      } else if (monthName && !paidMonths.includes(monthName)) {
-        setSelectedMonth(monthName);
-      }
-    }
-  }, [isOpen]);
-
-  // Update missed hours when month changes
-  useEffect(() => {
-    const existing = getExistingMissedHours(selectedMonth);
-    setMissedHours(existing);
-    setAddHours(0);
-  }, [selectedMonth]);
-
-  const handleAddMissedHours = () => {
-    const toAdd = Number(addHours);
-    if (toAdd <= 0) return;
-    const newTotal = missedHours + toAdd;
-    setMissedHours(newTotal);
-    setAddHours(0);
-    
-    if (onMissedHoursUpdate) {
-      onMissedHoursUpdate(selectedMonth, newTotal);
-    }
-
-    // Save to DB in the background
-    startTransition(async () => {
-      await updateMissedHours(teacherId, selectedMonth, newTotal);
-    });
-  };
-
-  const handleResetMissedHours = () => {
-    setMissedHours(0);
-    setAddHours(0);
-    
-    if (onMissedHoursUpdate) {
-      onMissedHoursUpdate(selectedMonth, 0);
-    }
-    
-    startTransition(async () => {
-      await updateMissedHours(teacherId, selectedMonth, 0);
-    });
-  };
-
-  const handlePay = () => {
-    if (!isAdmin || !selectedMonth || isSkipping) return;
-    
-    const amountToPay = isAdvanceMode ? Number(advanceInput) : finalAmount;
-    if (isAdvanceMode && (amountToPay <= 0 || amountToPay > finalAmount)) return;
-
-    // Snapshot current payment before optimistic change
-    const [mName, yStr] = selectedMonth.split(" ");
-    const monthIdx = MONTHS.indexOf(mName) + 1;
-    const yearVal = parseInt(yStr);
-    const prevPayment = payments?.find(p => p.month === monthIdx && p.year === yearVal) || null;
-
-    setIsOpen(false);
-    if (onSuccess) {
-      onSuccess(isAdvanceMode ? "PARTIAL" : "PAID", selectedMonth, amountToPay);
-    }
-
-    startTransition(async () => {
-      try {
-        let expenseTitle = isAdvanceMode 
-          ? `${t.expenseAdvancePrefix}: ${teacherName} (${selectedMonth})`
-          : `${t.expensePrefix}: ${teacherName} (${selectedMonth})`;
-          
-        if (!isAdvanceMode && deduction > 0) {
-          expenseTitle += ` - ${missedHours}h ${t.missedSuffix}`;
-        }
-
-        let auditDesc = isAdvanceMode
-          ? t.auditAdvance.replace("{amount}", amountToPay.toString()).replace("{name}", teacherName).replace("{month}", selectedMonth)
-          : t.auditSalary.replace("{amount}", amountToPay.toString()).replace("{name}", teacherName).replace("{month}", selectedMonth);
-          
-        if (!isAdvanceMode && deduction > 0) {
-          auditDesc += ` (${missedHours}h ${t.missedSuffix}, -${deduction} DT ${t.deductionSuffix})`;
-        }
-
-        const result = await payTeacherSalary(
-          teacherId,
-          teacherName,
-          amountToPay,
-          selectedMonth,
-          isAdvanceMode ? undefined : missedHours,
-          isAdvanceMode ? undefined : deduction,
-          isAdvanceMode,
-          expenseTitle,
-          auditDesc
-        );
-        if (!result.success) {
-          if (onRollback) onRollback(selectedMonth, prevPayment);
-          toast.error(result.error || globalT.toasts.paymentFailed);
-        } else {
-          toast.success(
-            isAdvanceMode
-              ? globalT.toasts.advanceRecorded
-                  .replace("{amount}", amountToPay.toString())
-                  .replace("{name}", teacherName)
-              : globalT.toasts.salaryValidated
-                  .replace("{amount}", amountToPay.toString())
-                  .replace("{name}", teacherName)
-          );
-        }
-      } catch (err: any) {
-        if (onRollback) onRollback(selectedMonth, prevPayment);
-        toast.error(globalT.toasts.connectionError);
-      }
-    });
-  };
-
   return (
     <>
       <button
-        onClick={() => setIsOpen(true)}
-        disabled={!isAdmin}
-        className="w-8 h-8 flex items-center justify-center rounded-[6px] bg-[#ffffff] border border-[#dddddd] shadow-sm hover:bg-[#f8fafc] transition-colors text-[#41454d] disabled:opacity-50"
+        type="button"
+        onClick={() => setOpen(true)}
+        disabled={!props.isAdmin}
+        className="w-8 h-8 flex items-center justify-center rounded-[6px] bg-white border border-[#dddddd] shadow-sm hover:bg-slate-50 text-[#41454d] disabled:opacity-50"
         title={t.processSalary}
+        aria-label={`${t.processSalary} · ${props.teacherName}`}
       >
         <Banknote size={16} strokeWidth={2} />
       </button>
-
-      {isOpen && (
-        <div 
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4"
-          onClick={() => setIsOpen(false)}
-        >
-          <div 
-            className="bg-white rounded-[12px] shadow-2xl max-w-sm w-full relative overflow-hidden animate-in zoom-in-95 duration-200"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Header */}
-            <div className="p-6 border-b border-[#f1f5f9] flex flex-col gap-1">
-              <h2 className="text-[18px] font-semibold text-[#181d26] tracking-tight">{t.processSalary}</h2>
-              <p className="text-[13px] text-[#5a5a5a]">
-                {t.for} <span className="font-medium text-[#181d26]">{teacherName}</span>
-              </p>
-            </div>
-
-            <div className="p-6">
-              {/* Target Month */}
-              <div className="mb-5">
-                <label className="block text-[13px] font-medium text-[#41454d] mb-1.5">{t.targetMonth}</label>
-                <select
-                  value={selectedMonth}
-                  onChange={(e) => setSelectedMonth(e.target.value)}
-                  className="w-full border border-[#dddddd] bg-white rounded-[8px] px-3 py-2.5 outline-none focus:border-[#181d26] focus:ring-1 focus:ring-[#181d26] transition-all text-[14px] text-[#181d26]"
-                >
-                  <option value="" disabled>{t.selectMonth}</option>
-                  {monthsList.map((m) => (
-                    <option key={m} value={m}>{m}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Advance Toggle */}
-              <div className="mb-5 flex items-center justify-between p-3 border border-[#e2e8f0] rounded-[8px] bg-[#f8fafc]">
-                <label className="text-[13px] font-medium text-[#41454d] cursor-pointer" onClick={() => setIsAdvanceMode(!isAdvanceMode)}>
-                  {t.giveAdvance}
-                </label>
-                <input 
-                  type="checkbox" 
-                  checked={isAdvanceMode}
-                  onChange={(e) => setIsAdvanceMode(e.target.checked)}
-                  className="w-4 h-4 cursor-pointer accent-[#181d26]"
-                />
-              </div>
-
-              {isAdvanceMode ? (
-                <div className="mb-5">
-                  <label className="block text-[13px] font-medium text-[#41454d] mb-1.5">{t.advanceAmount} (Max: {finalAmount} DT)</label>
-                  <input
-                    type="number"
-                    value={advanceInput}
-                    onChange={(e) => setAdvanceInput(e.target.value)}
-                    placeholder="0.00"
-                    min={0}
-                    max={finalAmount}
-                    className="w-full border border-[#dddddd] bg-white rounded-[8px] px-3 py-2.5 outline-none focus:border-[#181d26] focus:ring-1 focus:ring-[#181d26] transition-all text-[14px] text-[#181d26]"
-                  />
-                </div>
-              ) : (
-                <div className="flex flex-col">
-
-              {/* Salary Breakdown */}
-              {rate > 0 && monthlyHours > 0 && (
-                <div className="mb-5 p-4 bg-[#f8fafc] rounded-[8px] border border-[#e2e8f0]">
-                  <span className="text-[11px] font-semibold text-[#64748b] uppercase tracking-wider">{t.salaryBreakdown}</span>
-                  <div className="mt-2 space-y-1">
-                    <div className="flex justify-between text-[13px]">
-                      <span className="text-[#64748b]">{t.hourlyRate}</span>
-                      <span className="font-medium text-[#181d26]">{rate} DT/h</span>
-                    </div>
-                    <div className="flex justify-between text-[13px]">
-                      <span className="text-[#64748b]">{t.monthlyHours}</span>
-                      <span className="font-medium text-[#181d26]">{monthlyHours} h</span>
-                    </div>
-                    <div className="flex justify-between text-[13px] pt-1 border-t border-[#e2e8f0]">
-                      <span className="text-[#64748b]">{t.baseSalary}</span>
-                      <span className="font-semibold text-[#181d26]">{baseSalary.toLocaleString()} DT</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-                            {/* Advance History Section */}
-              {!isAdvanceMode && existingAdvance > 0 && (
-                <div className="mb-5">
-                  <div className="flex justify-between items-center mb-2">
-                    <label className="text-[13px] font-medium text-[#41454d]">
-                      {t.advancePaid}
-                    </label>
-                  </div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="flex-1 px-3 py-2 rounded-[8px] border text-[14px] font-medium bg-amber-50 border-amber-200 text-amber-700">
-                      {existingAdvance.toLocaleString()} DT
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Missed Hours Section */}
-              <div className="mb-5">
-                <div className="flex justify-between items-center mb-2">
-                  <label className="text-[13px] font-medium text-[#41454d]">{t.missedHours}</label>
-                  {missedHours > 0 && (
-                    <button
-                      type="button"
-                      onClick={handleResetMissedHours}
-                      className="text-[11px] text-rose-500 hover:text-rose-700 font-medium"
-                    >{t.reset}</button>
-                  )}
-                </div>
-
-                {/* Current counter */}
-                <div className="flex items-center gap-2 mb-2">
-                  <div className={`flex-1 px-3 py-2 rounded-[8px] border text-[14px] font-medium ${
-                    missedHours > 0 
-                      ? "bg-rose-50 border-rose-200 text-rose-700" 
-                      : "bg-emerald-50 border-emerald-200 text-emerald-700"
-                  }`}>
-                    {missedHours} {t.hoursMissed}
-                    {missedHours > 0 && rate > 0 && (
-                      <span className="text-[12px] font-normal ml-1">
-                        (−{(missedHours * rate).toLocaleString()} DT)
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Add hours input */}
-                <div className="flex items-center gap-2">
-                  <div className="relative flex-1">
-                    <input
-                      type="number"
-                      value={addHours}
-                      onChange={(e) => setAddHours(e.target.value)}
-                      min={0}
-                      placeholder={t.hoursToAdd}
-                      className="w-full border border-[#dddddd] bg-white rounded-[8px] pl-3 pr-8 py-2 outline-none focus:border-[#181d26] focus:ring-1 focus:ring-[#181d26] transition-all text-[13px] text-[#181d26]"
-                    />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[12px] text-[#94a3b8]">h</span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleAddMissedHours}
-                    disabled={!addHours || Number(addHours) <= 0}
-                    className="px-3 py-2 text-[12px] font-medium text-white bg-[#181d26] hover:bg-[#2a313e] rounded-[8px] transition-all disabled:opacity-40 whitespace-nowrap"
-                  >{t.add}</button>
-                </div>
-              </div>
-
-              {/* Final Amount */}
-              <div className="mb-6 p-4 bg-[#f0fdf4] rounded-[8px] border border-[#bbf7d0]">
-                <div className="flex justify-between items-center">
-                  <span className="text-[13px] font-semibold text-[#166534]">{t.finalAmount}</span>
-                  <span className="text-[20px] font-bold text-[#166534]">
-                    {finalAmount.toLocaleString()} <span className="text-[14px] font-normal">DT</span>
-                  </span>
-                </div>
-                {deduction > 0 || existingAdvance > 0 ? (
-                  <p className="text-[11px] text-[#166534] mt-1">
-                    {baseSalary.toLocaleString()} 
-                    {deduction > 0 ? ` − ${deduction.toLocaleString()} (${t.deduction})` : ""}
-                    {existingAdvance > 0 ? ` − ${existingAdvance.toLocaleString()} (${t.advancePaid})` : ""}
-                  </p>
-                ) : null}
-              </div>
-
-                </div>
-              )}
-
-              {isSkipping && (
-                <div className="mb-6 p-3 bg-amber-50 border border-amber-200 rounded-[8px] flex items-start gap-2.5">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-500 shrink-0 mt-0.5"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
-                  <p className="text-[12px] text-amber-800 leading-relaxed">
-                    {t.skipWarning.split("{earliestUnpaid}")[0]}
-                    <strong className="font-semibold">{earliestUnpaid}</strong>
-                    {t.skipWarning.split("{earliestUnpaid}")[1]}
-                  </p>
-                </div>
-              )}
-
-              <div className="flex gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setIsOpen(false)}
-                  className="flex-1 px-4 py-2.5 text-[13px] font-medium text-[#41454d] bg-white border border-[#dddddd] hover:bg-[#f8fafc] rounded-[8px] transition-all"
-                  disabled={isPending}
-                >{t.cancel}</button>
-                <button
-                  type="button"
-                  onClick={handlePay}
-                  disabled={isPending || !selectedMonth || isSkipping}
-                  className="flex-1 px-4 py-2.5 text-[13px] font-medium text-white bg-[#181d26] hover:bg-[#2a313e] rounded-[8px] transition-all disabled:opacity-50 shadow-sm"
-                >
-                  {isPending ? t.confirming : t.confirmPayment}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+      {open && (
+        <SalaryPaymentDialog {...props} onClose={() => setOpen(false)} />
       )}
     </>
+  );
+}
+
+function SalaryPaymentDialog({
+  teacherId,
+  teacherName,
+  salary,
+  hourlyRate,
+  hoursPerMonth,
+  isAdmin,
+  monthName,
+  paidMonths = [],
+  payments = [],
+  onSuccess,
+  onMissedHoursUpdate,
+  onClose,
+}: Props & { onClose: () => void }) {
+  const { locale, t: globalT } = useLanguage();
+  const t = dict[locale as keyof typeof dict] || dict.en;
+  const tx = (fr: string, en: string, ar: string) =>
+    locale === "ar" ? ar : locale === "en" ? en : fr;
+  const router = useRouter();
+  const dialog = useRef<HTMLDialogElement>(null);
+  const [localPayments, setLocalPayments] = useState(payments);
+  const months = getSchoolYearMonths().filter((m) => !paidMonths.includes(m));
+  const [selectedMonth, setSelectedMonth] = useState(
+    monthName && months.includes(monthName) ? monthName : months[0] || "",
+  );
+  const [busy, setBusy] = useState(false);
+  const [overtimePending, setOvertimePending] = useState(false);
+  const [addHours, setAddHours] = useState("");
+  const [advanceMode, setAdvanceMode] = useState(false);
+  const [adjustment, setAdjustment] = useState<"overtime" | "absence" | null>(
+    null,
+  );
+  const [advanceInput, setAdvanceInput] = useState("");
+  const [error, setError] = useState("");
+  useEffect(() => {
+    dialog.current?.showModal();
+  }, []);
+  const parsed = selectedMonth ? parseMonthYear(selectedMonth) : null;
+  const payroll = parsed
+    ? computeTeacherPaymentStatus(
+        { salary, hourlyRate, hoursPerMonth, payments: localPayments },
+        parsed.month,
+        parsed.year,
+      )
+    : null;
+  const payment = payroll?.payment as PayrollPayment | null;
+  const blocked = busy || overtimePending;
+  const isSkipping = !!(
+    selectedMonth &&
+    months[0] &&
+    isMonthBefore(months[0], selectedMonth)
+  );
+  const amountToPay = advanceMode
+    ? Number(advanceInput)
+    : payroll?.remaining || 0;
+  const validAmount =
+    Number.isFinite(amountToPay) &&
+    amountToPay > 0 &&
+    amountToPay <= (payroll?.remaining || 0) &&
+    Math.abs(amountToPay * 1000 - Math.round(amountToPay * 1000)) < 0.00001;
+  const monthLabel = (key: string) => {
+    const { month, year } = parseMonthYear(key);
+    return new Date(year, month - 1, 1).toLocaleDateString(
+      locale === "ar" ? "ar-TN" : locale === "fr" ? "fr-TN" : "en-GB",
+      { month: "long", year: "numeric" },
+    );
+  };
+  const money = (n: number) =>
+    n.toLocaleString(
+      locale === "ar" ? "ar-TN" : locale === "fr" ? "fr-TN" : "en-GB",
+      { maximumFractionDigits: 3 },
+    );
+  const saveLocal = (next: PayrollPayment) =>
+    setLocalPayments((prev) => [
+      next,
+      ...prev.filter((p) => p.month !== next.month || p.year !== next.year),
+    ]);
+
+  async function saveMissedHours(nextHours: number) {
+    if (
+      !isAdmin ||
+      blocked ||
+      !payroll ||
+      payroll.isPaid ||
+      !Number.isFinite(nextHours) ||
+      nextHours < 0 ||
+      nextHours > 744
+    )
+      return;
+    setBusy(true);
+    setError("");
+    try {
+      let previousMeta: Record<string, unknown> = {};
+      try {
+        const value = JSON.parse(payment?.img || "{}");
+        if (value && typeof value === "object" && !Array.isArray(value))
+          previousMeta = value;
+      } catch {}
+      const meta = {
+        ...previousMeta,
+        trackedHours: nextHours,
+        deductedHours: nextHours,
+        deductionStatus: "APPLIED" as const,
+      };
+      const result = await updateMissedHours(
+        teacherId,
+        selectedMonth,
+        nextHours,
+        meta,
+      );
+      if (!result.success || !("payment" in result) || !result.payment) {
+        setError(result.error || t.error);
+        return;
+      }
+      saveLocal(result.payment);
+      setAddHours("");
+      onMissedHoursUpdate?.(selectedMonth, nextHours);
+      router.refresh();
+    } catch {
+      setError(globalT.toasts.connectionError);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handlePay() {
+    if (
+      !isAdmin ||
+      blocked ||
+      !payroll ||
+      payroll.isPaid ||
+      !parsed ||
+      isSkipping ||
+      !validAmount
+    )
+      return;
+    setBusy(true);
+    setError("");
+    try {
+      // Send the displayed balance as a precondition; the server recalculates it.
+      const result = await payTeacherSalary(
+        teacherId,
+        teacherName,
+        amountToPay,
+        selectedMonth,
+        undefined,
+        undefined,
+        advanceMode,
+        undefined,
+        undefined,
+        undefined,
+        {
+          netDue: payroll.netDue,
+          amountPaid: payroll.amountPaid,
+          overtimeHours: payroll.overtimeHours,
+          overtimeRate: payment?.overtimeRate ?? null,
+        },
+      );
+      if (!result.success) {
+        setError(result.error || t.error);
+        return;
+      }
+      onSuccess?.(
+        amountToPay >= payroll.remaining ? "PAID" : "PARTIAL",
+        selectedMonth,
+        amountToPay,
+      );
+      toast.success(advanceMode ? t.advanceSuccess : t.success);
+      router.refresh();
+      onClose();
+    } catch {
+      setError(globalT.toasts.connectionError);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <dialog
+      ref={dialog}
+      aria-labelledby="salary-dialog-title"
+      dir={locale === "ar" ? "rtl" : "ltr"}
+      onCancel={(event) => {
+        if (event.target !== event.currentTarget) return;
+        if (busy) event.preventDefault();
+        else onClose();
+      }}
+      onClose={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+      className="m-auto w-[calc(100%-2rem)] max-w-xl max-h-[90dvh] overflow-y-auto rounded-2xl bg-white p-0 shadow-2xl backdrop:bg-slate-900/50 backdrop:backdrop-blur-sm"
+    >
+      <header className="sticky top-0 z-10 flex items-start justify-between gap-3 border-b bg-white px-6 py-5">
+        <div>
+          <h2
+            id="salary-dialog-title"
+            className="text-lg font-semibold text-slate-900"
+          >
+            {t.processSalary}
+          </h2>
+          <p className="mt-1 text-sm text-slate-500">{teacherName}</p>
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          disabled={busy}
+          aria-label={tx("Fermer", "Close", "إغلاق")}
+          className="rounded-lg border p-2 disabled:opacity-40"
+        >
+          <X size={17} />
+        </button>
+      </header>
+      <div className="space-y-5 px-6 py-5">
+        <label className="block text-sm font-medium text-slate-700">
+          {t.targetMonth}
+          <select
+            aria-label={t.targetMonth}
+            value={selectedMonth}
+            disabled={busy || overtimePending}
+            onChange={(event) => {
+              setSelectedMonth(event.target.value);
+              setAdjustment(null);
+              setOvertimePending(false);
+              setAddHours("");
+              setAdvanceInput("");
+              setError("");
+            }}
+            className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-3"
+          >
+            <option value="" disabled>
+              {t.selectMonth}
+            </option>
+            {months.map((m) => (
+              <option key={m} value={m}>
+                {monthLabel(m)}
+              </option>
+            ))}
+          </select>
+        </label>
+        {payroll && (
+          <>
+            <dl className="space-y-2 rounded-xl bg-slate-50 p-4 text-sm">
+              <div className="flex justify-between gap-3">
+                <dt>{t.baseSalary}</dt>
+                <dd className="font-semibold">
+                  {money(payroll.baseSalary)} TND
+                </dd>
+              </div>
+              {payroll.deduction > 0 && (
+                <div className="flex justify-between gap-3 text-rose-700">
+                  <dt>
+                    {t.deduction} · {payroll.deductedHours} h
+                  </dt>
+                  <dd>− {money(payroll.deduction)} TND</dd>
+                </div>
+              )}
+              {payroll.overtimeHours > 0 && (
+                <div className="flex justify-between gap-3 text-emerald-700">
+                  <dt>
+                    {tx(
+                      "Heures supplémentaires",
+                      "Overtime",
+                      "الساعات الإضافية",
+                    )}{" "}
+                    · {payroll.overtimeHours} h
+                  </dt>
+                  <dd>+ {money(payroll.overtimeAmount)} TND</dd>
+                </div>
+              )}
+              {payroll.amountPaid > 0 && (
+                <div className="flex justify-between gap-3 text-amber-700">
+                  <dt>{t.advancePaid}</dt>
+                  <dd>− {money(payroll.amountPaid)} TND</dd>
+                </div>
+              )}
+              <div className="flex justify-between gap-3 border-t pt-3 text-base font-semibold text-slate-900">
+                <dt>{t.remainingToPay}</dt>
+                <dd>{money(payroll.remaining)} TND</dd>
+              </div>
+            </dl>
+            <section
+              aria-label={tx(
+                "Ajustements du salaire",
+                "Salary adjustments",
+                "تعديلات الراتب",
+              )}
+            >
+              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                {tx("Ajuster ce mois", "Adjust this month", "تعديل هذا الشهر")}
+              </h3>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  aria-expanded={adjustment === "overtime"}
+                  aria-controls="salary-overtime-panel"
+                  disabled={busy}
+                  onClick={() => {
+                    if (!overtimePending)
+                      setAdjustment(
+                        adjustment === "overtime" ? null : "overtime",
+                      );
+                  }}
+                  className={`rounded-lg border px-3 py-2 text-sm font-medium ${adjustment === "overtime" ? "border-emerald-300 bg-emerald-50 text-emerald-800" : "border-slate-200 text-slate-700 hover:bg-slate-50"}`}
+                >
+                  +{" "}
+                  {tx("Heures supplémentaires", "Overtime", "الساعات الإضافية")}
+                </button>
+                <button
+                  type="button"
+                  aria-expanded={adjustment === "absence"}
+                  aria-controls="salary-absence-panel"
+                  disabled={busy || overtimePending}
+                  onClick={() =>
+                    setAdjustment(adjustment === "absence" ? null : "absence")
+                  }
+                  className={`rounded-lg border px-3 py-2 text-sm font-medium disabled:opacity-40 ${adjustment === "absence" ? "border-rose-300 bg-rose-50 text-rose-800" : "border-slate-200 text-slate-700 hover:bg-slate-50"}`}
+                >
+                  − {t.missedHours}
+                </button>
+              </div>
+              {adjustment === "overtime" && (
+                <div id="salary-overtime-panel" className="mt-3">
+                  <TeacherOvertimeEditor
+                    key={selectedMonth}
+                    teacherId={teacherId}
+                    teacherName={teacherName}
+                    period={selectedMonth}
+                    hours={payroll.overtimeHours}
+                    recordedRate={payment?.overtimeRate}
+                    rate={
+                      hourlyRate && hourlyRate > 0
+                        ? hourlyRate
+                        : hoursPerMonth && hoursPerMonth > 0
+                          ? Math.round(
+                              (payroll.baseSalary / hoursPerMonth) * 1000,
+                            ) / 1000
+                          : 0
+                    }
+                    baseSalary={payroll.baseSalary}
+                    deduction={payroll.deduction}
+                    paidAmount={payroll.amountPaid}
+                    closed={busy || payroll.isPaid}
+                    onPendingChange={setOvertimePending}
+                    onSaved={(next) => {
+                      saveLocal(next);
+                      toast.success(
+                        tx(
+                          "Heures supplémentaires mises à jour.",
+                          "Overtime updated.",
+                          "تم تحديث الساعات الإضافية.",
+                        ),
+                      );
+                      router.refresh();
+                    }}
+                  />
+                </div>
+              )}
+              {adjustment === "absence" && (
+                <div id="salary-absence-panel" className="mt-3">
+                  <section className="rounded-xl border border-slate-200 p-4">
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <h3 className="text-sm font-semibold">
+                        {t.missedHours} · {payroll.missedHours} h
+                      </h3>
+                      {payroll.missedHours > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => saveMissedHours(0)}
+                          disabled={blocked || payroll.isPaid}
+                          className="text-xs font-medium text-rose-600 disabled:opacity-40"
+                        >
+                          {t.reset}
+                        </button>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <label className="flex-1">
+                        <span className="sr-only">{t.hoursToAdd}</span>
+                        <input
+                          type="number"
+                          inputMode="decimal"
+                          min="0"
+                          max="744"
+                          step="0.01"
+                          aria-label={t.hoursToAdd}
+                          disabled={blocked || payroll.isPaid}
+                          value={addHours}
+                          onChange={(event) => setAddHours(event.target.value)}
+                          placeholder={t.hoursToAdd}
+                          className="w-full rounded-lg border px-3 py-2 text-sm"
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        disabled={
+                          blocked ||
+                          payroll.isPaid ||
+                          !Number.isFinite(Number(addHours)) ||
+                          Number(addHours) <= 0 ||
+                          Number(addHours) + payroll.missedHours > 744
+                        }
+                        onClick={() =>
+                          saveMissedHours(
+                            payroll.missedHours + Number(addHours),
+                          )
+                        }
+                        className="rounded-lg border px-3 py-2 text-sm font-medium disabled:opacity-40"
+                      >
+                        {t.add}
+                      </button>
+                    </div>
+                  </section>
+                </div>
+              )}
+            </section>
+            <fieldset>
+              <legend className="mb-2 text-sm font-medium text-slate-700">
+                {tx(
+                  "Que versez-vous aujourd’hui ?",
+                  "What are you paying today?",
+                  "ماذا ستدفع اليوم؟",
+                )}
+              </legend>
+              <div className="grid grid-cols-2 gap-2">
+                {[false, true].map((advance) => (
+                  <label
+                    key={String(advance)}
+                    className={`flex cursor-pointer items-center gap-2 rounded-lg border p-3 text-sm font-medium ${advanceMode === advance ? "border-blue-500 bg-blue-50 text-blue-800" : "border-slate-200 text-slate-600"}`}
+                  >
+                    <input
+                      type="radio"
+                      name="salary-payment-mode"
+                      checked={advanceMode === advance}
+                      disabled={busy}
+                      onChange={() => setAdvanceMode(advance)}
+                      className="h-4 w-4 accent-blue-600"
+                    />
+                    {advance ? t.advance : t.remainingToPay}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+            {advanceMode && (
+              <label className="block text-sm font-medium">
+                {t.advanceAmount} · Max {money(payroll.remaining)} TND
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  min="0.001"
+                  max={payroll.remaining}
+                  step="0.001"
+                  value={advanceInput}
+                  disabled={busy}
+                  onChange={(event) => setAdvanceInput(event.target.value)}
+                  className="mt-2 w-full rounded-lg border px-3 py-3"
+                />
+              </label>
+            )}
+          </>
+        )}
+        {overtimePending && (
+          <p role="status" className="text-sm text-amber-800">
+            {tx(
+              "Confirmez ou annulez les modifications des heures supplémentaires avant de payer.",
+              "Confirm or discard the overtime changes before paying.",
+              "أكّد تعديلات الساعات الإضافية أو ألغها قبل الدفع.",
+            )}
+          </p>
+        )}
+        {isSkipping && (
+          <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+            {t.skipWarning.replace("{earliestUnpaid}", monthLabel(months[0]))}
+          </p>
+        )}
+        {error && (
+          <p
+            role="alert"
+            className="rounded-xl bg-rose-50 p-3 text-sm text-rose-700"
+          >
+            {error}
+          </p>
+        )}
+      </div>
+      <footer className="sticky bottom-0 border-t bg-white px-6 py-4">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <span className="text-sm text-slate-600">{t.finalAmount}</span>
+          <strong className="text-xl text-slate-900">
+            {money(amountToPay || 0)} TND
+          </strong>
+        </div>
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={busy}
+            className="rounded-lg border px-4 py-3 text-sm"
+          >
+            {t.cancel}
+          </button>
+          <button
+            type="button"
+            onClick={handlePay}
+            disabled={
+              blocked ||
+              !selectedMonth ||
+              isSkipping ||
+              !validAmount ||
+              payroll?.isPaid
+            }
+            className="flex-1 rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white disabled:opacity-40"
+          >
+            {busy ? t.confirming : t.confirmPayment}
+          </button>
+        </div>
+      </footer>
+    </dialog>
   );
 }

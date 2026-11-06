@@ -11,11 +11,13 @@ import { getAuthenticatedUser } from '@/utils/supabase/server';
 import { saveTeacherOvertime } from '@/lib/teacherOvertime';
 import { computeTeacherPaymentStatus } from '@/lib/payrollUtils';
 
-export async function updateOvertimeHours(teacherId:string,monthYear:string,hours:number,expectedRate?:number) {
+class PayrollConflictError extends Error {}
+
+export async function updateOvertimeHours(teacherId:string,monthYear:string,hours:number,expectedRate?:number, options?: { amount: number; expectedOvertime: { hours: number; rate: number | null }; expectedSalary?: { baseSalary: number; deduction: number } }) {
   try {
     const schoolId=await getStudentAdminSchool();const user=await getAuthenticatedUser();if(!user)throw new Error('Unauthorized');
-    const {month,year}=parseMonthYear(monthYear);const result=await saveTeacherOvertime({schoolId,adminId:user.id,teacherId,month,year,hours,expectedRate});
-    const {invalidateTenantTags}=await import('@/lib/cache');invalidateTenantTags(schoolId,'teachers','finance','dashboard');revalidatePath('/list/teachers');
+    const {month,year}=parseMonthYear(monthYear);const result=await saveTeacherOvertime({schoolId,adminId:user.id,teacherId,month,year,hours,expectedRate,amount:options?.amount,expectedOvertime:options?.expectedOvertime,expectedSalary:options?.expectedSalary});
+    const {invalidateTenantTags}=await import('@/lib/cache');invalidateTenantTags(schoolId,'teachers','finance','dashboard');revalidatePath('/list/teachers');revalidatePath(`/list/teachers/${teacherId}`);
     return {success:true,...result};
   }catch(error:any){return{success:false,error:error.message};}
 }
@@ -52,6 +54,7 @@ export const updateMissedHours = async (
       })
     ]);
     if (!teacher) throw new Error('Enseignant introuvable dans cette école.');
+    if (existing && existing.schoolId !== schoolId) throw new Error('Paiement introuvable dans cette école.');
 
     if (existing?.status === "PAID" && meta?.deductionStatus === "APPLIED") {
       return {
@@ -73,7 +76,7 @@ export const updateMissedHours = async (
     const shouldAutoSettle = Boolean(existing && existing.amount > 0 && existing.amount >= netDue);
     const resolvedStatus = shouldAutoSettle ? "PAID" : (existing?.status || "PENDING");
 
-    await prisma.payment.upsert({
+    const payment = await prisma.payment.upsert({
       where: {
         teacherId_month_year: { teacherId, month: monthIdx, year: yearVal }
       },
@@ -99,7 +102,7 @@ export const updateMissedHours = async (
     invalidateTenantTags(schoolId, "dashboard", "teachers");
     revalidatePath("/list/teachers");
 
-    return { success: true };
+    return { success: true, payment };
   } catch (err) {
     console.error("Failed to update missed hours:", err);
     return { success: false, error: "Failed to update missed hours." };
@@ -222,7 +225,8 @@ export const payTeacherSalary = async (
     deductedHours?: number;
     deductionStatus?: "PENDING" | "APPLIED" | "EXCUSED";
     notes?: string;
-  }
+  },
+  expectedPayroll?: { netDue: number; amountPaid: number; overtimeHours: number; overtimeRate: number | null }
 ) => {
   const parsed = parseMonthYear(monthYear);
   const monthIdx = parsed.month;
@@ -252,28 +256,33 @@ export const payTeacherSalary = async (
       throw new Error("Ce mois est déjà entièrement payé et clôturé.");
     }
 
-    const baseSalary = (teacher?.hourlyRate && teacher.hourlyRate > 0 && teacher?.hoursPerMonth && teacher.hoursPerMonth > 0)
-      ? (teacher.hourlyRate * teacher.hoursPerMonth)
-      : (teacher?.salary || 0);
-    const effectiveRate = teacher?.hourlyRate && teacher.hourlyRate > 0 ? teacher.hourlyRate : 15;
-    const metaObj = meta || (existing?.img ? (() => { try { return JSON.parse(existing.img); } catch { return null; } })() : null);
-    const deductedH = metaObj?.deductionStatus === "APPLIED" ? (metaObj.deductedHours !== undefined ? metaObj.deductedHours : (existing?.missedHours || 0)) : (deduction ? (deduction / effectiveRate) : 0);
-    const deductionAmt = deductedH * effectiveRate;
-    const overtimeAmount=(existing?.overtimeHours||0)*(existing?.overtimeRate??teacher?.hourlyRate??0);
-    const netDue = Math.max(0, baseSalary - deductionAmt + overtimeAmount);
-
-    const previousPaid=existing&&['PAID','PARTIAL'].includes(existing.status)?existing.amount:0;
-    if(!Number.isFinite(amountPaidNow)||amountPaidNow<=0||Math.abs(amountPaidNow*1000-Math.round(amountPaidNow*1000))>0.00001||amountPaidNow>netDue-previousPaid) throw new Error('Montant supérieur au salaire restant ou invalide.');
+    if (existing && existing.schoolId !== schoolId) throw new Error('Paiement introuvable dans cette école.');
+    const imgData = meta ? JSON.stringify(meta) : undefined;
+    const payroll = computeTeacherPaymentStatus({ ...teacher, payments: [{
+      ...existing, month: monthIdx, year: yearVal,
+      missedHours: missedHours ?? existing?.missedHours ?? 0,
+      img: imgData ?? existing?.img,
+    }] }, monthIdx, yearVal);
+    const netDue = payroll.netDue;
+    const previousPaid = payroll.amountPaid;
+    if (expectedPayroll && (
+      !Number.isFinite(expectedPayroll.netDue) || !Number.isFinite(expectedPayroll.amountPaid) ||
+      Math.abs(expectedPayroll.netDue - netDue) > 0.00001 ||
+      Math.abs(expectedPayroll.amountPaid - previousPaid) > 0.00001 ||
+      expectedPayroll.overtimeHours !== payroll.overtimeHours ||
+      expectedPayroll.overtimeRate !== (existing?.overtimeRate ?? null)
+    )) throw new PayrollConflictError('La paie a changé. Actualisez et vérifiez le nouveau solde avant de payer.');
+    if(!Number.isFinite(amountPaidNow)||amountPaidNow<=0||Math.abs(amountPaidNow*1000-Math.round(amountPaidNow*1000))>0.00001||amountPaidNow>payroll.remaining) throw new Error('Montant supérieur au salaire restant ou invalide.');
     const newTotalAmount = Math.round((previousPaid + amountPaidNow)*1000)/1000;
     const isFullyCovered = newTotalAmount >= netDue && newTotalAmount > 0;
     const newStatus = isFullyCovered ? "PAID" : (newTotalAmount > 0 ? "PARTIAL" : "PENDING");
-    const imgData = meta ? JSON.stringify(meta) : undefined;
-
     const payment = await prisma.$transaction(async (tx) => {
       await tx.$queryRaw`SELECT id FROM "Teacher" WHERE id=${teacherId} AND "schoolId"=${schoolId} FOR UPDATE`;
+      const latestTeacher = await tx.teacher.findFirst({ where: { id: teacherId, schoolId }, select: { salary: true, hourlyRate: true, hoursPerMonth: true } });
+      if (!latestTeacher || latestTeacher.salary !== teacher.salary || latestTeacher.hourlyRate !== teacher.hourlyRate || latestTeacher.hoursPerMonth !== teacher.hoursPerMonth) throw new PayrollConflictError('Le salaire a changé. Actualisez avant de payer.');
       const latest=await tx.payment.findUnique({where:{teacherId_month_year:{teacherId,month:monthIdx,year:yearVal}}});
       const revision=(value:any)=>JSON.stringify(value?{amount:value.amount,status:value.status,img:value.img,missedHours:value.missedHours,overtimeHours:value.overtimeHours,overtimeRate:value.overtimeRate}:null);
-      if(revision(latest)!==revision(existing)) throw new Error('La paie a changé. Actualisez et vérifiez le nouveau solde avant de payer.');
+      if(revision(latest)!==revision(existing)) throw new PayrollConflictError('La paie a changé. Actualisez et vérifiez le nouveau solde avant de payer.');
       const p = await tx.payment.upsert({
         where: {
           teacherId_month_year: {
@@ -350,10 +359,10 @@ export const payTeacherSalary = async (
     revalidatePath("/list/expenses");
     revalidatePath("/admin");
     revalidatePath("/admin/finance");
-    return { success: true };
+    return { success: true, payment };
   } catch (err) {
     console.error("Failed to process salary payment:", err);
-    return { success: false, error: "Failed to process payment." };
+    return { success: false, error: err instanceof PayrollConflictError ? err.message : "Failed to process payment." };
   }
 };
 
