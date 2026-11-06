@@ -1,9 +1,14 @@
 "use client";
 import { useEffect, useId, useRef, useState } from "react";
 import { Plus, Check, X } from "lucide-react";
-import { overtimeValues } from "@/lib/overtimeAmount";
+import {
+  appendOvertime,
+  totalOvertime,
+  type OvertimeEntry,
+} from "@/lib/overtimeAmount";
 import { updateOvertimeHours } from "../actions";
 import { useLanguage } from "@/lib/translations/LanguageContext";
+
 export default function TeacherOvertimeEditor({
   teacherId,
   teacherName,
@@ -11,6 +16,7 @@ export default function TeacherOvertimeEditor({
   hours,
   rate,
   recordedRate,
+  fixedAmount = 0,
   baseSalary,
   deduction,
   paidAmount = 0,
@@ -24,6 +30,7 @@ export default function TeacherOvertimeEditor({
   hours: number;
   rate: number;
   recordedRate?: number | null;
+  fixedAmount?: number;
   baseSalary: number;
   deduction: number;
   paidAmount?: number;
@@ -34,62 +41,101 @@ export default function TeacherOvertimeEditor({
   const { locale } = useLanguage();
   const tx = (fr: string, en: string, ar: string) =>
     locale === "ar" ? ar : locale === "en" ? en : fr;
-  const [value, setValue] = useState(String(hours));
-  const initialRate = hours > 0 ? (recordedRate ?? rate) : rate;
-  const initialAmount = Math.round(hours * initialRate * 1000) / 1000;
-  const [amountInput, setAmountInput] = useState(String(initialAmount));
-  const [review, setReview] = useState(false);
+  const money = (n: number) =>
+    new Intl.NumberFormat(
+      locale === "ar" ? "ar-TN" : locale === "en" ? "en-GB" : "fr-TN",
+      { maximumFractionDigits: 3 },
+    ).format(n);
+  const [mode, setMode] = useState<"hourly" | "fixed">("hourly");
+  const [hoursInput, setHoursInput] = useState("");
+  const [rateInput, setRateInput] = useState(rate > 0 ? String(rate) : "");
+  const [amountInput, setAmountInput] = useState("");
+  const [review, setReview] = useState<OvertimeEntry | null>(null);
   const [busy, setBusy] = useState(false);
+  const inFlight = useRef(false);
   const [error, setError] = useState("");
   const dialog = useRef<HTMLDialogElement>(null);
   const titleId = useId();
-  useEffect(() => {
-    setValue(String(hours));
-    setAmountInput(String(initialAmount));
-    setReview(false);
+  const current = {
+    overtimeHours: hours,
+    overtimeRate: recordedRate ?? rate,
+    overtimeFixedAmount: fixedAmount,
+  };
+  const currentAmount = totalOvertime(current, rate);
+  const entry: OvertimeEntry =
+    mode === "hourly"
+      ? { mode, hours: Number(hoursInput), rate: Number(rateInput) }
+      : { mode, amount: Number(amountInput) };
+  const dirty =
+    hoursInput !== "" ||
+    amountInput !== "" ||
+    rateInput !== (rate > 0 ? String(rate) : "");
+  let valid =
+    mode === "hourly"
+      ? hoursInput.trim() !== "" && rateInput.trim() !== ""
+      : amountInput.trim() !== "";
+  let nextAmount = currentAmount;
+  try {
+    const next = appendOvertime(current, review ?? entry, rate);
+    nextAmount = totalOvertime({
+      overtimeHours: next.hours,
+      overtimeRate: next.rate,
+      overtimeFixedAmount: next.fixedAmount,
+    });
+  } catch {
+    valid = false;
+  }
+  const nextNet =
+    Math.round(Math.max(0, baseSalary - deduction + nextAmount) * 1000) / 1000;
+  const resetDraft = () => {
+    setHoursInput("");
+    setAmountInput("");
+    setRateInput(rate > 0 ? String(rate) : "");
+    setReview(null);
     setError("");
-  }, [hours, initialAmount, period]);
+  };
+  useEffect(() => {
+    setHoursInput("");
+    setAmountInput("");
+    setRateInput(rate > 0 ? String(rate) : "");
+    setReview(null);
+    setError("");
+  }, [hours, recordedRate, fixedAmount, rate, period]);
   useEffect(() => {
     if (review && !dialog.current?.open) dialog.current?.showModal();
     if (!review && dialog.current?.open) dialog.current?.close();
   }, [review]);
-  const amount = Number(amountInput);
-  let valid = value.trim() !== "" && amountInput.trim() !== "";
-  try {
-    overtimeValues(Number(value), initialRate, amount);
-  } catch {
-    valid = false;
-  }
-  const dirty = Number(value) !== hours || amount !== initialAmount;
   useEffect(() => {
-    onPendingChange?.(busy || dirty || review);
+    onPendingChange?.(busy || dirty || Boolean(review));
   }, [busy, dirty, review, onPendingChange]);
   useEffect(() => () => onPendingChange?.(false), [onPendingChange]);
-  const reset = () => {
-    setValue(String(hours));
-    setAmountInput(String(initialAmount));
-    setReview(false);
-    setError("");
-  };
   const confirm = async () => {
-    if (!valid || busy) return;
+    if (
+      !review ||
+      inFlight.current ||
+      closed ||
+      nextNet < paidAmount ||
+      (!valid && review.mode !== "reset")
+    )
+      return;
+    inFlight.current = true;
     setBusy(true);
     setError("");
     try {
       const result = await updateOvertimeHours(
         teacherId,
         period,
-        Number(value),
-        rate,
+        0,
+        undefined,
         {
-          amount,
-          expectedOvertime: { hours, rate: recordedRate ?? null },
-          expectedSalary: { baseSalary, deduction },
+          entry: review,
+          expectedOvertime: { hours, rate: recordedRate ?? null, fixedAmount },
+          expectedSalary: { baseSalary, deduction, amountPaid: paidAmount },
         },
       );
       if (result.success && "payment" in result && result.payment) {
+        resetDraft();
         onSaved(result.payment);
-        setReview(false);
       } else
         setError(
           result.error ||
@@ -104,110 +150,191 @@ export default function TeacherOvertimeEditor({
         ),
       );
     } finally {
+      inFlight.current = false;
       setBusy(false);
     }
   };
   return (
     <div className="rounded-xl border border-emerald-200 bg-emerald-50/40 p-4">
-      <div className="flex items-center gap-2 font-semibold text-emerald-900">
-        <Plus size={17} />
-        {tx("Heures supplémentaires", "Overtime", "الساعات الإضافية")}
-      </div>
-      <p className="mt-1 text-xs leading-5 text-slate-600">
-        {tx(
-          "Ajoutées au salaire, indépendamment des heures manquées.",
-          "Added to salary, independently of missed hours.",
-          "تُضاف إلى الراتب بصورة مستقلة عن ساعات الغياب.",
-        )}
-      </p>
-      <div className="mt-3 flex flex-wrap items-end gap-3">
-        <label className="text-xs font-medium text-slate-600">
-          {tx("Nombre d’heures", "Hours", "عدد الساعات")}
-          <input
-            type="number"
-            inputMode="decimal"
-            min="0"
-            max="744"
-            step="0.01"
-            disabled={closed || busy}
-            value={value}
-            onChange={(event) => {
-              const next = event.target.value;
-              const draftRate =
-                Number(value) > 0 && Number.isFinite(amount)
-                  ? amount / Number(value)
-                  : initialRate;
-              setValue(next);
-              setAmountInput(
-                String(
-                  Math.round((Number(next) || 0) * draftRate * 1000) / 1000,
-                ),
-              );
-            }}
-            className="mt-1 block w-28 rounded-lg border border-emerald-200 bg-white px-3 py-2 text-sm text-slate-900"
-          />
-        </label>
-        <label className="text-xs font-medium text-slate-600">
-          {tx(
-            "Montant total · TND",
-            "Total amount · TND",
-            "المبلغ الإجمالي · د.ت",
-          )}
-          <input
-            type="number"
-            inputMode="decimal"
-            min="0"
-            max="1000000"
-            step="0.001"
-            disabled={closed || busy}
-            value={amountInput}
-            onChange={(event) => setAmountInput(event.target.value)}
-            className="mt-1 block w-36 rounded-lg border border-emerald-200 bg-white px-3 py-2 text-sm text-slate-900"
-          />
-        </label>
-        {!closed && (
-          <button
-            type="button"
-            disabled={busy || !valid || !dirty}
-            onClick={() => {
-              setError("");
-              setReview(true);
-            }}
-            className="rounded-lg bg-emerald-700 px-4 py-2 text-xs font-semibold text-white disabled:opacity-40"
-          >
-            {tx("Vérifier", "Review", "مراجعة")}
-          </button>
-        )}
-        {!closed && dirty && (
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2 font-semibold text-emerald-900">
+          <Plus size={17} />
+          {tx("Heures supplémentaires", "Overtime", "الساعات الإضافية")}
+        </div>
+        {!closed && currentAmount > 0 && (
           <button
             type="button"
             disabled={busy}
-            onClick={reset}
-            className="px-2 py-2 text-xs font-medium text-slate-600"
+            onClick={() => {
+              setError("");
+              setReview({ mode: "reset" });
+            }}
+            className="text-xs font-medium text-rose-700"
           >
             {tx(
-              "Annuler les changements",
-              "Discard changes",
-              "إلغاء التغييرات",
+              "Réinitialiser ce mois",
+              "Reset this month",
+              "إعادة ضبط هذا الشهر",
             )}
           </button>
         )}
       </div>
-      <p className="mt-2 text-xs text-slate-500">
+      <p className="mt-1 text-xs text-slate-600">
         {tx(
-          "Montant proposé selon le taux horaire, modifiable pour ce mois. Le taux de retenue reste inchangé.",
-          "Suggested from the hourly rate; editable for this month. The deduction rate stays unchanged.",
-          "مبلغ مقترح حسب أجر الساعة ويمكن تعديله لهذا الشهر. لا يتغيّر معدل الخصم.",
-        )}
+          "Total enregistré ce mois",
+          "Recorded this month",
+          "المسجل لهذا الشهر",
+        )}{" "}
+        : <strong>{money(currentAmount)} TND</strong>
+        {hours > 0 && ` · ${money(hours)} h`}
+        {fixedAmount > 0 &&
+          ` · ${tx("dont forfait", "including fixed", "منها مبلغ ثابت")} ${money(fixedAmount)} TND`}
       </p>
-      {!valid && dirty && (
-        <p role="alert" className="mt-2 text-xs text-rose-700">
-          {tx(
-            "Vérifiez les heures (2 décimales maximum) et le montant (3 décimales maximum).",
-            "Check the hours (up to 2 decimals) and amount (up to 3 decimals).",
-            "تحقّق من الساعات (منزلتان عشريتان) والمبلغ (ثلاث منازل عشرية).",
-          )}
-        </p>
+      {!closed && (
+        <>
+          <fieldset disabled={busy} className="mt-4 flex flex-wrap gap-2">
+            <legend className="mb-2 text-xs font-medium text-slate-600">
+              {tx(
+                "Comment ajouter ?",
+                "How would you like to add it?",
+                "طريقة الإضافة",
+              )}
+            </legend>
+            {(["hourly", "fixed"] as const).map((option) => (
+              <label
+                key={option}
+                className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm ${mode === option ? "border-emerald-600 bg-white font-semibold text-emerald-900" : "border-slate-200 text-slate-600"}`}
+              >
+                <input
+                  type="radio"
+                  name={`overtime-mode-${titleId}`}
+                  checked={mode === option}
+                  onChange={() => {
+                    setMode(option);
+                    setError("");
+                  }}
+                  className="accent-emerald-700"
+                />
+                {option === "hourly"
+                  ? tx(
+                      "Heures × taux horaire",
+                      "Hours × hourly rate",
+                      "الساعات × أجر الساعة",
+                    )
+                  : tx("Montant forfaitaire", "Fixed amount", "مبلغ ثابت")}
+              </label>
+            ))}
+          </fieldset>
+          <div className="mt-3 flex flex-wrap items-end gap-3">
+            {mode === "hourly" ? (
+              <>
+                <label className="min-w-0 flex-1 text-xs font-medium text-slate-600">
+                  {tx("Heures à ajouter", "Hours to add", "الساعات المضافة")}
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    min="0.01"
+                    max="744"
+                    step="0.01"
+                    placeholder="0"
+                    disabled={busy}
+                    value={hoursInput}
+                    onChange={(e) => setHoursInput(e.target.value)}
+                    className="mt-1 block w-full min-w-24 rounded-lg border border-emerald-200 bg-white px-3 py-2 text-sm text-slate-900"
+                  />
+                </label>
+                <label className="min-w-0 flex-1 text-xs font-medium text-slate-600">
+                  {tx(
+                    "Taux horaire · TND/h",
+                    "Hourly rate · TND/h",
+                    "أجر الساعة · د.ت/س",
+                  )}
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    min="0.001"
+                    max="1000000"
+                    step="0.001"
+                    placeholder="0"
+                    disabled={busy}
+                    value={rateInput}
+                    onChange={(e) => setRateInput(e.target.value)}
+                    className="mt-1 block w-full min-w-24 rounded-lg border border-emerald-200 bg-white px-3 py-2 text-sm text-slate-900"
+                  />
+                </label>
+              </>
+            ) : (
+              <label className="min-w-0 flex-1 text-xs font-medium text-slate-600">
+                {tx(
+                  "Montant à ajouter · TND",
+                  "Amount to add · TND",
+                  "المبلغ المضاف · د.ت",
+                )}
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  min="0.001"
+                  max="1000000"
+                  step="0.001"
+                  placeholder="0"
+                  disabled={busy}
+                  value={amountInput}
+                  onChange={(e) => setAmountInput(e.target.value)}
+                  className="mt-1 block w-full rounded-lg border border-emerald-200 bg-white px-3 py-2 text-sm text-slate-900"
+                />
+              </label>
+            )}
+            <button
+              type="button"
+              disabled={busy || !valid}
+              onClick={() => {
+                setError("");
+                setReview(entry);
+              }}
+              className="flex items-center justify-center gap-1 rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-40"
+            >
+              <Plus size={15} />
+              {tx("Ajouter", "Add", "إضافة")}
+            </button>
+          </div>
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs">
+            <span className="text-emerald-800" aria-live="polite">
+              {valid
+                ? `${mode === "hourly" ? `${money(Number(hoursInput))} h × ${money(Number(rateInput))} = ` : ""}+ ${money(Math.round((nextAmount - currentAmount) * 1000) / 1000)} TND`
+                : tx(
+                    "Choisissez un mode, puis saisissez l’ajout.",
+                    "Choose a mode, then enter an addition.",
+                    "اختر الطريقة ثم أدخل الإضافة.",
+                  )}
+            </span>
+            {dirty && (
+              <button
+                type="button"
+                disabled={busy}
+                onClick={resetDraft}
+                className="font-medium text-slate-600"
+              >
+                {tx("Effacer la saisie", "Clear entry", "مسح الإدخال")}
+              </button>
+            )}
+          </div>
+          {!valid &&
+            (mode === "hourly" ? hoursInput !== "" : amountInput !== "") && (
+              <p role="alert" className="mt-2 text-xs text-rose-700">
+                {mode === "hourly"
+                  ? tx(
+                      "Vérifiez les heures (maximum 744, 2 décimales) et le taux positif (3 décimales).",
+                      "Check hours (up to 744, 2 decimals) and a positive rate (3 decimals).",
+                      "تحقق من الساعات (حتى 744 ومنزلتين عشريتين) وأجر الساعة الموجب (3 منازل).",
+                    )
+                  : tx(
+                      "Indiquez un montant positif, avec 3 décimales au maximum.",
+                      "Enter a positive amount with up to 3 decimals.",
+                      "أدخل مبلغاً موجباً بثلاث منازل عشرية كحد أقصى.",
+                    )}
+              </p>
+            )}
+        </>
       )}
       {closed && (
         <p className="mt-2 text-xs text-slate-500">
@@ -222,26 +349,33 @@ export default function TeacherOvertimeEditor({
         ref={dialog}
         aria-labelledby={titleId}
         dir={locale === "ar" ? "rtl" : "ltr"}
-        onCancel={(event) => {
-          if (busy) event.preventDefault();
-          else setReview(false);
+        onCancel={(e) => {
+          if (busy) e.preventDefault();
+          else setReview(null);
         }}
         onClose={() => {
-          if (!busy) setReview(false);
+          if (!busy) setReview(null);
         }}
         className="w-[calc(100%-2rem)] max-w-md rounded-2xl p-6 shadow-xl backdrop:bg-slate-900/40"
       >
         <div className="flex items-start justify-between gap-3">
           <h2 id={titleId} className="font-semibold">
-            {tx(
-              "Confirmer les heures supplémentaires",
-              "Confirm overtime",
-              "تأكيد الساعات الإضافية",
-            )}
+            {review?.mode === "reset"
+              ? tx(
+                  "Réinitialiser les ajouts du mois ?",
+                  "Reset this month’s overtime?",
+                  "إعادة ضبط إضافات هذا الشهر؟",
+                )
+              : tx(
+                  "Confirmer l’ajout au salaire",
+                  "Confirm salary addition",
+                  "تأكيد الإضافة إلى الراتب",
+                )}
           </h2>
           <button
+            type="button"
             disabled={busy}
-            onClick={() => setReview(false)}
+            onClick={() => setReview(null)}
             aria-label={tx("Fermer", "Close", "إغلاق")}
           >
             <X size={18} />
@@ -251,14 +385,37 @@ export default function TeacherOvertimeEditor({
           {teacherName} · {period}
         </p>
         <dl className="mt-4 space-y-3 rounded-xl bg-emerald-50 p-4 text-sm">
-          <div className="flex justify-between">
+          <div className="flex justify-between gap-3">
             <dt>
-              {Number(value)} h ·{" "}
-              {tx("Montant ajouté", "Amount added", "المبلغ المضاف")}
+              {tx("Déjà enregistré", "Previously recorded", "المسجل سابقاً")}
             </dt>
-            <dd className="font-semibold">+ {amount} TND</dd>
+            <dd>{money(currentAmount)} TND</dd>
           </div>
-          <div className="flex justify-between border-t border-emerald-100 pt-3">
+          {review?.mode !== "reset" && (
+            <div className="flex justify-between gap-3">
+              <dt>
+                {review?.mode === "hourly"
+                  ? `${money(review.hours)} h × ${money(review.rate)} TND/h`
+                  : tx("Ajout forfaitaire", "Fixed addition", "إضافة ثابتة")}
+              </dt>
+              <dd className="font-semibold">
+                +{" "}
+                {money(Math.round((nextAmount - currentAmount) * 1000) / 1000)}{" "}
+                TND
+              </dd>
+            </div>
+          )}
+          <div className="flex justify-between gap-3 border-t border-emerald-100 pt-3 font-semibold">
+            <dt>
+              {tx(
+                "Nouveau total des ajouts",
+                "New overtime total",
+                "إجمالي الإضافات الجديد",
+              )}
+            </dt>
+            <dd>{money(nextAmount)} TND</dd>
+          </div>
+          <div className="flex justify-between gap-3">
             <dt>
               {tx(
                 "Salaire net calculé",
@@ -266,59 +423,59 @@ export default function TeacherOvertimeEditor({
                 "صافي الراتب المحتسب",
               )}
             </dt>
-            <dd className="font-semibold">
-              {Math.max(
-                0,
-                Math.round((baseSalary - deduction + amount) * 1000) / 1000,
+            <dd>{money(nextNet)} TND</dd>
+          </div>
+          {paidAmount > 0 && (
+            <div className="flex justify-between gap-3">
+              <dt>{tx("Déjà versé", "Already paid", "تم دفعه سابقاً")}</dt>
+              <dd>− {money(paidAmount)} TND</dd>
+            </div>
+          )}
+          <div className="flex justify-between gap-3 border-t border-emerald-100 pt-3 font-semibold">
+            <dt>{tx("Reste à verser", "Remaining to pay", "المتبقي للدفع")}</dt>
+            <dd>
+              {money(
+                Math.round(Math.max(0, nextNet - paidAmount) * 1000) / 1000,
               )}{" "}
               TND
             </dd>
           </div>
-          {paidAmount > 0 && (
-            <>
-              <div className="flex justify-between gap-3">
-                <dt>{tx("Déjà versé", "Already paid", "تم دفعه سابقاً")}</dt>
-                <dd>− {paidAmount} TND</dd>
-              </div>
-              <div className="flex justify-between gap-3 border-t border-emerald-100 pt-3 font-semibold">
-                <dt>
-                  {tx("Reste à verser", "Remaining to pay", "المتبقي للدفع")}
-                </dt>
-                <dd>
-                  {Math.round(
-                    Math.max(0, baseSalary - deduction + amount - paidAmount) *
-                      1000,
-                  ) / 1000}{" "}
-                  TND
-                </dd>
-              </div>
-            </>
-          )}
         </dl>
         <p className="mt-3 text-xs text-slate-500">
           {tx(
-            "Cet ajustement ne verse aucun salaire.",
-            "This adjustment does not pay any salary.",
-            "لا يؤدي هذا التعديل إلى صرف أي راتب.",
+            "Cet ajustement ne verse aucun salaire. La retenue d’absence reste inchangée.",
+            "This adjustment does not pay any salary. Absence deductions stay unchanged.",
+            "هذا التعديل لا يصرف راتباً ولا يغير خصم الغياب.",
           )}
         </p>
-        {error && (
+        {(error || nextNet < paidAmount) && (
           <p role="alert" className="mt-3 text-sm text-rose-600">
-            {error}
+            {error ||
+              tx(
+                "Le salaire net ne peut pas être inférieur au montant déjà versé.",
+                "Net salary cannot be below the amount already paid.",
+                "لا يمكن أن يقل صافي الراتب عن المبلغ المدفوع سابقاً.",
+              )}
           </p>
         )}
         <div className="mt-5 flex justify-end gap-3">
           <button
+            type="button"
             disabled={busy}
-            onClick={() => setReview(false)}
+            onClick={() => setReview(null)}
             className="rounded-lg border px-4 py-2 text-sm"
           >
             {tx("Retour", "Back", "رجوع")}
           </button>
           <button
-            disabled={busy || !valid}
+            type="button"
+            disabled={
+              busy ||
+              nextNet < paidAmount ||
+              (!valid && review?.mode !== "reset")
+            }
             onClick={confirm}
-            className="flex items-center gap-2 rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white"
+            className="flex items-center gap-2 rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-40"
           >
             <Check size={15} />
             {busy

@@ -1,7 +1,11 @@
 import prisma from "./prisma";
 import { schoolMonth, roundMoney } from "./agent/dataAccuracy";
 import { computeTeacherPaymentStatus } from "./payrollUtils";
-import { overtimeValues } from "./overtimeAmount";
+import {
+  overtimeValues,
+  appendOvertime,
+  type OvertimeEntry,
+} from "./overtimeAmount";
 
 export async function saveTeacherOvertime(params: {
   schoolId: string;
@@ -12,8 +16,17 @@ export async function saveTeacherOvertime(params: {
   hours: number;
   expectedRate?: number;
   amount?: number;
-  expectedOvertime?: { hours: number; rate: number | null };
-  expectedSalary?: { baseSalary: number; deduction: number };
+  entry?: OvertimeEntry;
+  expectedOvertime?: {
+    hours: number;
+    rate: number | null;
+    fixedAmount?: number;
+  };
+  expectedSalary?: {
+    baseSalary: number;
+    deduction: number;
+    amountPaid?: number;
+  };
 }) {
   const { month, year } = schoolMonth(params.month, params.year);
   if (
@@ -44,7 +57,9 @@ export async function saveTeacherOvertime(params: {
       if (
         params.expectedOvertime &&
         (params.expectedOvertime.hours !== (existing?.overtimeHours || 0) ||
-          params.expectedOvertime.rate !== (existing?.overtimeRate ?? null))
+          params.expectedOvertime.rate !== (existing?.overtimeRate ?? null) ||
+          (params.expectedOvertime.fixedAmount ?? 0) !==
+            (existing?.overtimeFixedAmount || 0))
       )
         throw new Error(
           "Les heures supplémentaires ont changé. Actualisez avant de confirmer.",
@@ -55,8 +70,20 @@ export async function saveTeacherOvertime(params: {
           : teacher.hoursPerMonth && teacher.hoursPerMonth > 0
             ? roundMoney(teacher.salary / teacher.hoursPerMonth)
             : 0;
-      const { rate } = overtimeValues(params.hours, defaultRate, params.amount);
+      if (params.entry && (!params.expectedOvertime || !params.expectedSalary))
+        throw new Error(
+          "Actualisez la paie avant de confirmer cet ajustement.",
+        );
+      const next = params.entry
+        ? appendOvertime(existing, params.entry, defaultRate)
+        : {
+            hours: params.hours,
+            rate: overtimeValues(params.hours, defaultRate, params.amount).rate,
+            fixedAmount: existing?.overtimeFixedAmount || 0,
+          };
+      const { hours, rate, fixedAmount } = next;
       if (
+        !params.entry &&
         params.amount === undefined &&
         params.expectedRate !== undefined &&
         (!Number.isFinite(params.expectedRate) ||
@@ -73,7 +100,8 @@ export async function saveTeacherOvertime(params: {
               ...existing,
               month,
               year,
-              overtimeHours: params.hours,
+              overtimeHours: hours,
+              overtimeFixedAmount: fixedAmount,
               overtimeRate: rate,
             },
           ],
@@ -85,6 +113,9 @@ export async function saveTeacherOvertime(params: {
         params.expectedSalary &&
         (!Number.isFinite(params.expectedSalary.baseSalary) ||
           !Number.isFinite(params.expectedSalary.deduction) ||
+          (params.expectedSalary.amountPaid !== undefined &&
+            (!Number.isFinite(params.expectedSalary.amountPaid) ||
+              params.expectedSalary.amountPaid !== calc.amountPaid)) ||
           Math.abs(params.expectedSalary.baseSalary - calc.baseSalary) >
             0.00001 ||
           Math.abs(params.expectedSalary.deduction - calc.deduction) > 0.00001)
@@ -99,7 +130,8 @@ export async function saveTeacherOvertime(params: {
       const payment = await tx.payment.upsert({
         where: { teacherId_month_year: { teacherId: teacher.id, month, year } },
         update: {
-          overtimeHours: params.hours,
+          overtimeHours: hours,
+          overtimeFixedAmount: fixedAmount,
           overtimeRate: rate,
           status: calc.isPaid
             ? "PAID"
@@ -115,7 +147,8 @@ export async function saveTeacherOvertime(params: {
           month,
           year,
           amount: 0,
-          overtimeHours: params.hours,
+          overtimeHours: hours,
+          overtimeFixedAmount: fixedAmount,
           overtimeRate: rate,
           status: "PENDING",
           deferredAmount: calc.netDue,
@@ -128,14 +161,17 @@ export async function saveTeacherOvertime(params: {
           performedBy: params.adminId,
           entityType: "TeacherOvertime",
           entityId: payment.id.toString(),
-          description: `${month}/${year}: ${params.hours}h × ${rate} TND/h. No salary payment recorded.`,
+          description: `${month}/${year}: ${hours}h × ${rate} TND/h + ${fixedAmount} TND fixed. No salary payment recorded.`,
           oldValues: {
             hours: existing?.overtimeHours || 0,
             rate: existing?.overtimeRate ?? null,
+            fixedAmount: existing?.overtimeFixedAmount || 0,
           },
           newValues: {
-            hours: params.hours,
+            hours,
             rate,
+            fixedAmount,
+            entry: params.entry ?? null,
             overtimeAmount: calc.overtimeAmount,
             netDue: calc.netDue,
           },

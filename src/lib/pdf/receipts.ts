@@ -59,6 +59,7 @@ export interface SalaryPayslipData {
   missedHours?: number;
   deductionsAmount?: number;
   overtimeHours?: number;
+  overtimeFixedAmount?: number;
   overtimeAmount?: number;
   advancesAmount?: number;
   netPaid: number;
@@ -567,7 +568,7 @@ export async function generateSalaryPayslipPdf(data: SalaryPayslipData): Promise
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(0, 0, 0);
     doc.text('Heures supplementaires', 24, currentY + 6.5);
-    doc.text(`${data.overtimeHours || 0} heures`, 95, currentY + 6.5);
+    doc.text(data.overtimeHours ? `${data.overtimeHours} heures${data.overtimeFixedAmount ? " + forfait" : ""}` : "Forfait", 95, currentY + 6.5);
     doc.text(`+ ${money(data.overtimeAmount || 0)} DT`, 140, currentY + 6.5, { align: 'right' });
     doc.text('-', 186, currentY + 6.5, { align: 'right' });
     currentY += 10;

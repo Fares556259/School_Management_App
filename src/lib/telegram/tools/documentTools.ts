@@ -1,3 +1,4 @@
+import { totalOvertime } from "@/lib/overtimeAmount";
 import prisma from "@/lib/prisma";
 import { tuitionForMonth } from '@/lib/tuitionPolicy';
 import { getHalfBoundaryMonths } from '@/lib/serverTuition';
@@ -171,7 +172,8 @@ export async function deliverSalaryPayslip(params: {
         missedHours: params.missedHours !== undefined ? params.missedHours : (payment?.missedHours || 0),
         deductionsAmount: params.deductionsAmount,
         overtimeHours: payment?.overtimeHours || 0,
-        overtimeAmount: (payment?.overtimeHours||0)*(payment?.overtimeRate??teacher.hourlyRate??0),
+        overtimeFixedAmount: payment?.overtimeFixedAmount || 0,
+        overtimeAmount: totalOvertime(payment, teacher.hourlyRate??0),
         advancesAmount: params.isAdvance ? netPaid : undefined,
         netPaid,
         remainingDue: params.remainingAfter ?? (payment?.status === "PAID" ? 0 : undefined),

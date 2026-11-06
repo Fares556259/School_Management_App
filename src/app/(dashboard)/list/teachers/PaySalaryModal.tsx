@@ -355,6 +355,7 @@ function SalaryPaymentDialog({
           amountPaid: payroll.amountPaid,
           overtimeHours: payroll.overtimeHours,
           overtimeRate: payment?.overtimeRate ?? null,
+          overtimeFixedAmount: payment?.overtimeFixedAmount || 0,
         },
       );
       if (!result.success) {
@@ -601,7 +602,7 @@ function SalaryPaymentDialog({
                       <dd>− {money(payroll.deduction)} TND</dd>
                     </div>
                   )}
-                  {payroll.overtimeHours > 0 && (
+                  {payroll.overtimeAmount > 0 && (
                     <div className="flex justify-between gap-3 text-emerald-700">
                       <dt>
                         {tx(
@@ -609,7 +610,7 @@ function SalaryPaymentDialog({
                           "Overtime",
                           "الساعات الإضافية",
                         )}{" "}
-                        · {payroll.overtimeHours} h
+                        {payroll.overtimeHours > 0 ? `· ${payroll.overtimeHours} h` : ""}
                       </dt>
                       <dd>+ {money(payroll.overtimeAmount)} TND</dd>
                     </div>
@@ -699,6 +700,7 @@ function SalaryPaymentDialog({
                             period={selectedMonth}
                             hours={payroll.overtimeHours}
                             recordedRate={payment?.overtimeRate}
+                            fixedAmount={payment?.overtimeFixedAmount || 0}
                             rate={
                               hourlyRate && hourlyRate > 0
                                 ? hourlyRate

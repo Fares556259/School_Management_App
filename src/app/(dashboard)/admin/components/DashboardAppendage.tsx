@@ -134,7 +134,7 @@ export default async function DashboardAppendage({
       prisma.$queryRaw`
         SELECT 
           t.id, t.name, t.surname, t.phone, t.salary, t."hourlyRate", t."hoursPerMonth",
-          pay.status as "paymentStatus", pay.amount as "paymentAmount", pay."deferredAmount", pay."missedHours", pay."overtimeHours", pay."overtimeRate", pay.img as "paymentMeta"
+          pay.status as "paymentStatus", pay.amount as "paymentAmount", pay."deferredAmount", pay."missedHours", pay."overtimeHours", pay."overtimeRate", pay."overtimeFixedAmount", pay.img as "paymentMeta"
         FROM "Teacher" t
         LEFT JOIN "Payment" pay ON t.id = pay."teacherId" 
           AND pay.month = ${activeMonth} 

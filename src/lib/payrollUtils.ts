@@ -1,3 +1,4 @@
+import { totalOvertime } from "./overtimeAmount";
 import { parseMonthYear } from "./dateUtils";
 
 export interface TeacherPayrollItem {
@@ -14,6 +15,7 @@ export interface TeacherPayrollItem {
     missedHours?: number | null;
     overtimeHours?: number | null;
     overtimeRate?: number | null;
+    overtimeFixedAmount?: number | null;
     img?: string | null;
     paidAt?: Date | string | null;
   }>;
@@ -30,6 +32,7 @@ export interface TeacherStatusCalculation {
   overtimeHours: number;
   overtimeRate: number;
   overtimeAmount: number;
+  overtimeFixedAmount: number;
   netDue: number;
   amountPaid: number;
   remaining: number;
@@ -81,7 +84,8 @@ export function computeTeacherPaymentStatus(
   const deduction = deductedHours * effectiveRate;
   const overtimeHours = payment?.overtimeHours || 0;
   const overtimeRate = payment?.overtimeRate ?? (rate > 0 ? rate : monthlyHours > 0 ? baseSalary / monthlyHours : 0);
-  const overtimeAmount = Math.round(overtimeHours * overtimeRate * 1000) / 1000;
+  const overtimeFixedAmount = payment?.overtimeFixedAmount || 0;
+  const overtimeAmount = totalOvertime(payment, overtimeRate);
   const netDue = Math.round(Math.max(0, baseSalary - deduction + overtimeAmount) * 1000) / 1000;
   const remaining = Math.round(Math.max(0, netDue - amountPaid) * 1000) / 1000;
 
@@ -100,6 +104,7 @@ export function computeTeacherPaymentStatus(
     overtimeHours,
     overtimeRate,
     overtimeAmount,
+    overtimeFixedAmount,
     netDue,
     amountPaid,
     remaining,
@@ -127,7 +132,7 @@ export function getTeacherPayableMonths(
 }
 
 export function computeTeacherRowStatus(row: Record<string, any>, month: number, year: number) {
-  return computeTeacherPaymentStatus({ salary:Number(row.salary??0), hourlyRate:Number(row.hourlyRate??0), hoursPerMonth:Number(row.hoursPerMonth??0), payments:[{month,year,status:row.paymentStatus,amount:Number(row.paymentAmount??row.paidAmount??0),missedHours:Number(row.missedHours??0),overtimeHours:Number(row.overtimeHours??0),overtimeRate:row.overtimeRate===null||row.overtimeRate===undefined?null:Number(row.overtimeRate),img:row.paymentMeta}] },month,year);
+  return computeTeacherPaymentStatus({ salary:Number(row.salary??0), hourlyRate:Number(row.hourlyRate??0), hoursPerMonth:Number(row.hoursPerMonth??0), payments:[{month,year,status:row.paymentStatus,amount:Number(row.paymentAmount??row.paidAmount??0),missedHours:Number(row.missedHours??0),overtimeHours:Number(row.overtimeHours??0),overtimeRate:row.overtimeRate===null||row.overtimeRate===undefined?null:Number(row.overtimeRate),overtimeFixedAmount:Number(row.overtimeFixedAmount??0),img:row.paymentMeta}] },month,year);
 }
 
 export interface StaffPayrollItem {

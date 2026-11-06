@@ -463,6 +463,7 @@ model Payment {
   missedHours    Float?          @default(0)
   overtimeHours  Float           @default(0)
   overtimeRate   Float?
+  overtimeFixedAmount Float?
   schoolId       String        @default("default_school")
   School         School        @relation(fields: [schoolId], references: [id])
   staff          Staff?        @relation(fields: [staffId], references: [id])

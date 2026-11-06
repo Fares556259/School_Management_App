@@ -1,8 +1,15 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import prisma from "../lib/prisma";
-import { overtimeValues } from "../lib/overtimeAmount";
-import { computeTeacherPaymentStatus, getTeacherPayableMonths } from "../lib/payrollUtils";
+import {
+  overtimeValues,
+  appendOvertime,
+  totalOvertime,
+} from "../lib/overtimeAmount";
+import {
+  computeTeacherPaymentStatus,
+  getTeacherPayableMonths,
+} from "../lib/payrollUtils";
 import { saveTeacherOvertime } from "../lib/teacherOvertime";
 
 test("Custom overtime amount stays independent of absence deductions and advances", () => {
@@ -206,10 +213,79 @@ test("Overtime persistence scopes the school, locks the teacher and guards concu
       }),
       /a changé/,
     );
+    // New entry modes accumulate independently without changing missed hours or advances.
+    existing = {
+      ...existing,
+      overtimeHours: 2,
+      overtimeRate: 25,
+      overtimeFixedAmount: 10,
+      amount: 100,
+    };
+    const entryParams = {
+      ...params,
+      hours: 0,
+      amount: undefined,
+      expectedOvertime: { hours: 2, rate: 25, fixedAmount: 10 },
+      expectedSalary: { baseSalary: 300, deduction: 30 },
+    };
+    const hourly = await saveTeacherOvertime({
+      ...entryParams,
+      entry: { mode: "hourly", hours: 3, rate: 20 },
+    });
+    assert.equal(hourly.payment.overtimeHours, 5);
+    assert.equal(hourly.payment.overtimeRate, 22);
+    assert.equal(hourly.payment.overtimeFixedAmount, 10);
+    assert.equal(hourly.remaining, 290);
+    const fixed = await saveTeacherOvertime({
+      ...entryParams,
+      entry: { mode: "fixed", amount: 70.125 },
+    });
+    assert.equal(
+      fixed.payment.overtimeHours,
+      2,
+      "Flat amount does not invent worked hours",
+    );
+    assert.equal(fixed.payment.overtimeRate, 25);
+    assert.equal(fixed.payment.overtimeFixedAmount, 80.125);
+    assert.equal(fixed.overtimeAmount, 130.125);
+    assert.equal(fixed.remaining, 300.125);
+    assert.equal(fixed.payment.amount, 100);
+    await assert.rejects(
+      saveTeacherOvertime({
+        ...entryParams,
+        expectedOvertime: { hours: 2, rate: 25, fixedAmount: 0 },
+        entry: { mode: "fixed", amount: 10 },
+      }),
+      /ont changé/,
+    );
+    await assert.rejects(
+      saveTeacherOvertime({
+        ...entryParams,
+        expectedSalary: undefined,
+        entry: { mode: "fixed", amount: 10 },
+      }),
+      /Actualisez/,
+    );
+    const cleared = await saveTeacherOvertime({
+      ...entryParams,
+      entry: { mode: "reset" },
+    });
+    assert.equal(cleared.overtimeAmount, 0);
+    assert.equal(cleared.payment.overtimeFixedAmount, 0);
+    assert.equal(cleared.remaining, 170);
     existing = null;
+    const fixedOnly = await saveTeacherOvertime({
+      ...entryParams,
+      expectedOvertime: { hours: 0, rate: null, fixedAmount: 0 },
+      expectedSalary: { baseSalary: 300, deduction: 0 },
+      entry: { mode: "fixed", amount: 50 },
+    });
+    assert.equal(fixedOnly.payment.overtimeHours, 0);
+    assert.equal(fixedOnly.overtimeAmount, 50);
+    assert.equal(fixedOnly.netDue, 350);
     teacher = null;
     await assert.rejects(saveTeacherOvertime(params), /cette école/);
-    assert.equal(writes.length, 2, "Rejected cases never write");
+    assert.equal(writes.length, 6, "Rejected cases never write");
   } finally {
     (prisma as any).$transaction = original;
   }
@@ -236,17 +312,124 @@ test("Remaining balance is rounded to millimes after an advance", () => {
   assert.equal(calc.remaining, 250.023);
 });
 
-
 test("Settled months disappear even when a legacy record still says PARTIAL", () => {
-  const months = ["September 2026", "October 2026", "November 2026", "December 2026"];
-  const teacher = { salary:360, hourlyRate:15, hoursPerMonth:24, payments:[
-    {month:9,year:2026,status:"PARTIAL",amount:330,missedHours:2},
-    {month:10,year:2026,status:"PAID",amount:360},
-    {month:11,year:2026,status:"PARTIAL",amount:100},
-  ]};
-  assert.deepEqual(getTeacherPayableMonths(teacher,months),["November 2026","December 2026"]);
-  assert.deepEqual(getTeacherPayableMonths(teacher,months,["December 2026"]),["November 2026"]);
-  assert.deepEqual(getTeacherPayableMonths({...teacher,salary:0,hourlyRate:0,hoursPerMonth:0,payments:[]},months),[]);
-  const withOvertime = {...teacher,payments:[{month:9,year:2026,status:"PARTIAL",amount:330,missedHours:2,overtimeHours:2,overtimeRate:30}]};
-  assert.equal(getTeacherPayableMonths(withOvertime,months)[0],"September 2026","Overtime creates a real remaining balance");
+  const months = [
+    "September 2026",
+    "October 2026",
+    "November 2026",
+    "December 2026",
+  ];
+  const teacher = {
+    salary: 360,
+    hourlyRate: 15,
+    hoursPerMonth: 24,
+    payments: [
+      { month: 9, year: 2026, status: "PARTIAL", amount: 330, missedHours: 2 },
+      { month: 10, year: 2026, status: "PAID", amount: 360 },
+      { month: 11, year: 2026, status: "PARTIAL", amount: 100 },
+    ],
+  };
+  assert.deepEqual(getTeacherPayableMonths(teacher, months), [
+    "November 2026",
+    "December 2026",
+  ]);
+  assert.deepEqual(
+    getTeacherPayableMonths(teacher, months, ["December 2026"]),
+    ["November 2026"],
+  );
+  assert.deepEqual(
+    getTeacherPayableMonths(
+      { ...teacher, salary: 0, hourlyRate: 0, hoursPerMonth: 0, payments: [] },
+      months,
+    ),
+    [],
+  );
+  const withOvertime = {
+    ...teacher,
+    payments: [
+      {
+        month: 9,
+        year: 2026,
+        status: "PARTIAL",
+        amount: 330,
+        missedHours: 2,
+        overtimeHours: 2,
+        overtimeRate: 30,
+      },
+    ],
+  };
+  assert.equal(
+    getTeacherPayableMonths(withOvertime, months)[0],
+    "September 2026",
+    "Overtime creates a real remaining balance",
+  );
+});
+
+test("Hourly and fixed additions combine accurately without reusing a legacy derived rate", () => {
+  const current = {
+    overtimeHours: 12,
+    overtimeRate: 19.974 / 12,
+    overtimeFixedAmount: 0,
+  };
+  const next = appendOvertime(
+    current,
+    { mode: "hourly", hours: 10, rate: 15 },
+    15,
+  );
+  assert.equal(next.hours, 22);
+  assert.equal(
+    totalOvertime({
+      overtimeHours: next.hours,
+      overtimeRate: next.rate,
+      overtimeFixedAmount: next.fixedAmount,
+    }),
+    169.974,
+  );
+  const fixed = appendOvertime(null, { mode: "fixed", amount: 50.125 }, 0);
+  assert.equal(fixed.hours, 0);
+  const calc = computeTeacherPaymentStatus(
+    {
+      salary: 300,
+      payments: [
+        {
+          month: 11,
+          year: 2026,
+          overtimeFixedAmount: fixed.fixedAmount,
+          status: "PARTIAL",
+          amount: 100,
+        },
+      ],
+    },
+    11,
+    2026,
+  );
+  assert.equal(calc.overtimeAmount, 50.125);
+  assert.equal(calc.remaining, 250.125);
+});
+
+test("Entry modes reject invalid amounts, hours, rates and monthly overflow", () => {
+  for (const amount of [0, -1, NaN, Infinity, 1.0001, 1000001])
+    assert.throws(() => appendOvertime(null, { mode: "fixed", amount }, 15));
+  for (const rate of [0, -1, NaN, Infinity, 15.0001])
+    assert.throws(() =>
+      appendOvertime(null, { mode: "hourly", hours: 1, rate }, 15),
+    );
+  for (const hours of [0, -1, NaN, Infinity, 1.111, 745])
+    assert.throws(() =>
+      appendOvertime(null, { mode: "hourly", hours, rate: 15 }, 15),
+    );
+  assert.throws(() =>
+    appendOvertime(
+      { overtimeHours: 744, overtimeRate: 15 },
+      { mode: "hourly", hours: 1, rate: 15 },
+      15,
+    ),
+  );
+  assert.throws(() =>
+    appendOvertime(
+      { overtimeHours: 10, overtimeRate: 15 },
+      { mode: "fixed", amount: 1000000 },
+      15,
+    ),
+  );
 });

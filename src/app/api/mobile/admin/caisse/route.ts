@@ -164,7 +164,7 @@ export async function GET(request: NextRequest) {
           pay.status as "paymentStatus", 
           COALESCE(pay.amount, 0)::float as "paymentAmount", 
           COALESCE(pay."deferredAmount", 0)::float as "deferredAmount", 
-          COALESCE(pay."missedHours", 0)::float as "missedHours", pay."overtimeHours", pay."overtimeRate", pay.img as "paymentMeta"
+          COALESCE(pay."missedHours", 0)::float as "missedHours", pay."overtimeHours", pay."overtimeRate", pay."overtimeFixedAmount", pay.img as "paymentMeta"
         FROM "Teacher" t
         LEFT JOIN "Payment" pay ON t.id = pay."teacherId" 
           AND pay.month = ${activeMonth} 
@@ -301,6 +301,7 @@ export async function GET(request: NextRequest) {
         overtimeHours: payroll.overtimeHours,
         overtimeAmount: payroll.overtimeAmount,
         overtimeRate: payroll.overtimeRate,
+        overtimeFixedAmount: payroll.overtimeFixedAmount,
         dueAmount,
         status: t.paymentStatus || "UNPAID",
       };

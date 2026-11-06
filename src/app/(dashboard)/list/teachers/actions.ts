@@ -11,12 +11,14 @@ import { getAuthenticatedUser } from '@/utils/supabase/server';
 import { saveTeacherOvertime } from '@/lib/teacherOvertime';
 import { computeTeacherPaymentStatus } from '@/lib/payrollUtils';
 
+import { totalOvertime, type OvertimeEntry } from "@/lib/overtimeAmount";
+
 class PayrollConflictError extends Error {}
 
-export async function updateOvertimeHours(teacherId:string,monthYear:string,hours:number,expectedRate?:number, options?: { amount: number; expectedOvertime: { hours: number; rate: number | null }; expectedSalary?: { baseSalary: number; deduction: number } }) {
+export async function updateOvertimeHours(teacherId:string,monthYear:string,hours:number,expectedRate?:number, options?: { amount?: number; entry?: OvertimeEntry; expectedOvertime: { hours: number; rate: number | null; fixedAmount?: number }; expectedSalary?: { baseSalary: number; deduction: number; amountPaid?: number } }) {
   try {
     const schoolId=await getStudentAdminSchool();const user=await getAuthenticatedUser();if(!user)throw new Error('Unauthorized');
-    const {month,year}=parseMonthYear(monthYear);const result=await saveTeacherOvertime({schoolId,adminId:user.id,teacherId,month,year,hours,expectedRate,amount:options?.amount,expectedOvertime:options?.expectedOvertime,expectedSalary:options?.expectedSalary});
+    const {month,year}=parseMonthYear(monthYear);const result=await saveTeacherOvertime({schoolId,adminId:user.id,teacherId,month,year,hours,expectedRate,amount:options?.amount,entry:options?.entry,expectedOvertime:options?.expectedOvertime,expectedSalary:options?.expectedSalary});
     const {invalidateTenantTags}=await import('@/lib/cache');invalidateTenantTags(schoolId,'teachers','finance','dashboard');revalidatePath('/list/teachers');revalidatePath(`/list/teachers/${teacherId}`);
     return {success:true,...result};
   }catch(error:any){return{success:false,error:error.message};}
@@ -69,7 +71,7 @@ export const updateMissedHours = async (
     const effectiveRate = teacher?.hourlyRate && teacher.hourlyRate > 0 ? teacher.hourlyRate : 15;
     const deductedH = meta?.deductionStatus === "APPLIED" ? (meta.deductedHours !== undefined ? meta.deductedHours : missedHours) : 0;
     const deductionAmt = deductedH * effectiveRate;
-    const overtimeAmount=(existing?.overtimeHours||0)*(existing?.overtimeRate??teacher?.hourlyRate??0);
+    const overtimeAmount=totalOvertime(existing, teacher?.hourlyRate??0);
     const netDue = Math.max(0, baseSalary - deductionAmt + overtimeAmount);
 
     // If an existing payment (advance) covers or exceeds the net due, automatically mark as PAID
@@ -226,7 +228,7 @@ export const payTeacherSalary = async (
     deductionStatus?: "PENDING" | "APPLIED" | "EXCUSED";
     notes?: string;
   },
-  expectedPayroll?: { netDue: number; amountPaid: number; overtimeHours: number; overtimeRate: number | null }
+  expectedPayroll?: { netDue: number; amountPaid: number; overtimeHours: number; overtimeRate: number | null; overtimeFixedAmount?: number }
 ) => {
   const parsed = parseMonthYear(monthYear);
   const monthIdx = parsed.month;
@@ -270,7 +272,8 @@ export const payTeacherSalary = async (
       Math.abs(expectedPayroll.netDue - netDue) > 0.00001 ||
       Math.abs(expectedPayroll.amountPaid - previousPaid) > 0.00001 ||
       expectedPayroll.overtimeHours !== payroll.overtimeHours ||
-      expectedPayroll.overtimeRate !== (existing?.overtimeRate ?? null)
+      expectedPayroll.overtimeRate !== (existing?.overtimeRate ?? null) ||
+      (expectedPayroll.overtimeFixedAmount ?? 0) !== (existing?.overtimeFixedAmount || 0)
     )) throw new PayrollConflictError('La paie a changé. Actualisez et vérifiez le nouveau solde avant de payer.');
     if(!Number.isFinite(amountPaidNow)||amountPaidNow<=0||Math.abs(amountPaidNow*1000-Math.round(amountPaidNow*1000))>0.00001||amountPaidNow>payroll.remaining) throw new Error('Montant supérieur au salaire restant ou invalide.');
     const newTotalAmount = Math.round((previousPaid + amountPaidNow)*1000)/1000;
@@ -281,7 +284,7 @@ export const payTeacherSalary = async (
       const latestTeacher = await tx.teacher.findFirst({ where: { id: teacherId, schoolId }, select: { salary: true, hourlyRate: true, hoursPerMonth: true } });
       if (!latestTeacher || latestTeacher.salary !== teacher.salary || latestTeacher.hourlyRate !== teacher.hourlyRate || latestTeacher.hoursPerMonth !== teacher.hoursPerMonth) throw new PayrollConflictError('Le salaire a changé. Actualisez avant de payer.');
       const latest=await tx.payment.findUnique({where:{teacherId_month_year:{teacherId,month:monthIdx,year:yearVal}}});
-      const revision=(value:any)=>JSON.stringify(value?{amount:value.amount,status:value.status,img:value.img,missedHours:value.missedHours,overtimeHours:value.overtimeHours,overtimeRate:value.overtimeRate}:null);
+      const revision=(value:any)=>JSON.stringify(value?{amount:value.amount,status:value.status,img:value.img,missedHours:value.missedHours,overtimeHours:value.overtimeHours,overtimeRate:value.overtimeRate,overtimeFixedAmount:value.overtimeFixedAmount}:null);
       if(revision(latest)!==revision(existing)) throw new PayrollConflictError('La paie a changé. Actualisez et vérifiez le nouveau solde avant de payer.');
       const p = await tx.payment.upsert({
         where: {

@@ -1,3 +1,4 @@
+import { totalOvertime } from "@/lib/overtimeAmount";
 import prisma from "@/lib/prisma";
 import { MONTHS } from "@/lib/dateUtils";
 import { computeStaffPaymentStatus } from "@/lib/payrollUtils";
@@ -442,7 +443,7 @@ export async function getSalaryDetailsTool(
     const trackedHours = meta.trackedHours;
     const deductedHours = meta.deductionStatus === "APPLIED" ? (meta.deductedHours || trackedHours) : 0;
     const deductionAmount = deductedHours * effectiveHourlyRate;
-    const overtimeAmount=(targetPayment?.overtimeHours||0)*(targetPayment?.overtimeRate??t.hourlyRate??0);
+    const overtimeAmount=totalOvertime(targetPayment, t.hourlyRate??0);
 
     // Advances for this specific month
     const pIds = t.payments.map((p) => p.id.toString());
@@ -498,7 +499,7 @@ export async function getSalaryDetailsTool(
       const pMeta = parsePaymentMeta(p);
       const pDedH = pMeta.deductionStatus === "APPLIED" ? (pMeta.deductedHours || pMeta.trackedHours) : 0;
       const pDed = pDedH * effectiveHourlyRate;
-      const pNet = Math.max(0, baseSalary - pDed + (p.overtimeHours||0)*(p.overtimeRate??t.hourlyRate??0));
+      const pNet = Math.max(0, baseSalary - pDed + totalOvertime(p, t.hourlyRate??0));
       return (p.amount || 0) > 0 && (p.amount || 0) >= pNet;
     }).length;
 
@@ -519,7 +520,7 @@ export async function getSalaryDetailsTool(
       const pMeta = parsePaymentMeta(p);
       const pDedH = pMeta.deductionStatus === "APPLIED" ? (pMeta.deductedHours || pMeta.trackedHours) : 0;
       const pDed = pDedH * effectiveHourlyRate;
-      const pNet = Math.max(0, baseSalary - pDed + (p?.overtimeHours||0)*(p?.overtimeRate??t.hourlyRate??0));
+      const pNet = Math.max(0, baseSalary - pDed + totalOvertime(p, t.hourlyRate??0));
       const isSettled = p?.status === "PAID" || (p && p.amount > 0 && p.amount >= pNet);
 
       let badge = "⏳ À venir";
@@ -546,6 +547,7 @@ export async function getSalaryDetailsTool(
       deductionStatus: meta.deductionStatus,
       deductionAmount: `${deductionAmount} DT`,
       overtimeHours: targetPayment?.overtimeHours || 0,
+      overtimeFixedAmount: targetPayment?.overtimeFixedAmount || 0,
       overtimeAmount,
       advancePaid: `${advancePaid} DT`,
       remainingToPay: `${remainingToPay} DT`,
@@ -554,7 +556,7 @@ export async function getSalaryDetailsTool(
       isFullyPaid,
       totalPaidAcademicYear: `${totalPaidYear} DT (${paidMonthsCount} mois réglés)`,
       academicMonthsSchedule,
-      summary: `${teacherFullName} (${monthName} ${year}) : Salaire de base ${baseSalary} DT, Déduction d'absence ${deductionAmount} DT (${trackedHours}h à ${effectiveHourlyRate} DT/h), Heures supplémentaires +${overtimeAmount} DT (${targetPayment?.overtimeHours||0}h), Avances perçues ${advancePaid} DT, Reste net à payer : ${remainingToPay} DT`,
+      summary: `${teacherFullName} (${monthName} ${year}) : Salaire de base ${baseSalary} DT, Déduction d'absence ${deductionAmount} DT (${trackedHours}h à ${effectiveHourlyRate} DT/h), Heures supplémentaires +${overtimeAmount} DT (${targetPayment?.overtimeHours||0}h, forfait ${targetPayment?.overtimeFixedAmount||0} DT), Avances perçues ${advancePaid} DT, Reste net à payer : ${remainingToPay} DT`,
     };
   }
 
@@ -692,7 +694,7 @@ export async function trackTeacherAbsentHoursTool(
   });
   const advancePaid = existingPayment ? (existingPayment.amount || 0) : 0;
   if(existingPayment?.status==='PAID'&&deductionStatus==='APPLIED') return {success:false,message:'Ce mois est déjà clôturé. Reportez la retenue sur un mois ouvert.',summary:'Mois clôturé'};
-  const overtimeAmount=(existingPayment?.overtimeHours||0)*(existingPayment?.overtimeRate??teacher.hourlyRate??0);
+  const overtimeAmount=totalOvertime(existingPayment, teacher.hourlyRate??0);
   const newNetDue = Math.max(0, baseSalary - deductionAmount + overtimeAmount - advancePaid);
   const shouldAutoSettle = advancePaid > 0 && newNetDue <= 0;
 
@@ -800,7 +802,7 @@ export async function payTeacherSalaryTool(
 
     let paymentRecord;
     const newTotalPaid = (existingPayment?.amount || 0) + args.amount;
-    const overtimeAmount=(existingPayment?.overtimeHours||0)*(existingPayment?.overtimeRate??teacher.hourlyRate??0);
+    const overtimeAmount=totalOvertime(existingPayment, teacher.hourlyRate??0);
     const netDue = Math.max(0, baseSalary - deductionAmount + overtimeAmount);
     if(args.amount<=0||newTotalPaid>netDue+0.000001) throw new Error('Le paiement dépasse le salaire net restant. Vérifiez les ajustements.');
     const isFullyCovered = newTotalPaid >= netDue && newTotalPaid > 0;

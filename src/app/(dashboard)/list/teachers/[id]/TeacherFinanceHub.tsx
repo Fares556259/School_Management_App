@@ -1,5 +1,6 @@
 "use client";
 
+import { totalOvertime } from "@/lib/overtimeAmount";
 import { useState, useTransition } from "react";
 import { 
   Wallet, 
@@ -39,6 +40,7 @@ interface PaymentRecord {
   missedHours?: number | null;
   overtimeHours?: number | null;
   overtimeRate?: number | null;
+  overtimeFixedAmount?: number | null;
   img?: string | null;
 }
 
@@ -179,7 +181,7 @@ export default function TeacherFinanceHub({
     const pMeta = parsePaymentMeta(p);
     const pDeductedHours = pMeta.deductionStatus === "APPLIED" ? (pMeta.deductedHours ?? pMeta.trackedHours) : 0;
     const pDeduction = pDeductedHours * effectiveHourlyRate;
-    const pNetDue = Math.max(0, baseMonthlySalary - pDeduction + (p?.overtimeHours||0)*(p?.overtimeRate??hourlyRate??0));
+    const pNetDue = Math.max(0, baseMonthlySalary - pDeduction + totalOvertime(p, hourlyRate??0));
     const pPaidAmount = p?.amount || 0;
     const isAutoPaid = pPaidAmount > 0 && pPaidAmount >= pNetDue;
 
@@ -259,7 +261,7 @@ export default function TeacherFinanceHub({
     (currentSelectedPayment?.status === "PARTIAL" ? currentSelectedPayment?.paidAt : null);
 
   // Net amounts for Selected Month
-  const selectedOvertimeAmount=Math.round((currentSelectedPayment?.overtimeHours||0)*(currentSelectedPayment?.overtimeRate??hourlyRate??0)*1000)/1000;
+  const selectedOvertimeAmount=Math.round(totalOvertime(currentSelectedPayment, hourlyRate??0)*1000)/1000;
   const selectedNetDue = Math.round(Math.max(0, baseMonthlySalary - selectedDeductionAmount + selectedOvertimeAmount)*1000)/1000;
   const selectedRemainingToPay = Math.round(Math.max(0, selectedNetDue - rawAdvanceAmount)*1000)/1000;
 
@@ -330,7 +332,7 @@ export default function TeacherFinanceHub({
         meta.deductionStatus === "APPLIED"
           ? (meta.deductedHours || m.payment?.missedHours || 0) * effectiveHourlyRate
           : 0;
-      const mNetDue = Math.max(0, baseMonthlySalary - ded + (m.payment?.overtimeHours||0)*(m.payment?.overtimeRate??hourlyRate??0));
+      const mNetDue = Math.max(0, baseMonthlySalary - ded + totalOvertime(m.payment, hourlyRate??0));
       if (m.status === "PARTIAL" && m.payment) {
         return sum + Math.max(0, mNetDue - (m.payment.amount || 0));
       }
@@ -386,7 +388,7 @@ export default function TeacherFinanceHub({
         undefined,
         undefined,
         meta,
-        { netDue: selectedNetDue, amountPaid: currentSelectedPayment?.status === "PARTIAL" ? currentSelectedPayment.amount : 0, overtimeHours: currentSelectedPayment?.overtimeHours || 0, overtimeRate: currentSelectedPayment?.overtimeRate ?? null }
+        { netDue: selectedNetDue, amountPaid: currentSelectedPayment?.status === "PARTIAL" ? currentSelectedPayment.amount : 0, overtimeHours: currentSelectedPayment?.overtimeHours || 0, overtimeRate: currentSelectedPayment?.overtimeRate ?? null, overtimeFixedAmount: currentSelectedPayment?.overtimeFixedAmount || 0 }
       );
       if (result.success && result.payment) {
         const newRecord: PaymentRecord = result.payment;
@@ -421,7 +423,7 @@ export default function TeacherFinanceHub({
         undefined,
         undefined,
         meta,
-        { netDue: selectedNetDue, amountPaid: currentSelectedPayment?.status === "PARTIAL" ? currentSelectedPayment.amount : 0, overtimeHours: currentSelectedPayment?.overtimeHours || 0, overtimeRate: currentSelectedPayment?.overtimeRate ?? null }
+        { netDue: selectedNetDue, amountPaid: currentSelectedPayment?.status === "PARTIAL" ? currentSelectedPayment.amount : 0, overtimeHours: currentSelectedPayment?.overtimeHours || 0, overtimeRate: currentSelectedPayment?.overtimeRate ?? null, overtimeFixedAmount: currentSelectedPayment?.overtimeFixedAmount || 0 }
       );
       if (result.success && result.payment) {
         const newRecord: PaymentRecord = result.payment;
@@ -456,7 +458,7 @@ export default function TeacherFinanceHub({
         undefined,
         undefined,
         selectedMeta,
-        { netDue: selectedNetDue, amountPaid: currentSelectedPayment?.status === "PARTIAL" ? currentSelectedPayment.amount : 0, overtimeHours: currentSelectedPayment?.overtimeHours || 0, overtimeRate: currentSelectedPayment?.overtimeRate ?? null }
+        { netDue: selectedNetDue, amountPaid: currentSelectedPayment?.status === "PARTIAL" ? currentSelectedPayment.amount : 0, overtimeHours: currentSelectedPayment?.overtimeHours || 0, overtimeRate: currentSelectedPayment?.overtimeRate ?? null, overtimeFixedAmount: currentSelectedPayment?.overtimeFixedAmount || 0 }
       );
       if (result.success && result.payment) {
         const targetId = result.payment.id;
@@ -943,8 +945,8 @@ const fmt = (n: number) => n.toLocaleString("en-US").replace(/,/g, " ") + " DT";
             </div>
 
             {/* 1. APPLIED DEDUCTION: RED BLOCK */}
-            {isAdmin && <TeacherOvertimeEditor teacherId={teacherId} teacherName={teacherName} period={selectedFullLabel} hours={currentSelectedPayment?.overtimeHours||0} recordedRate={currentSelectedPayment?.overtimeRate} rate={hourlyRate&&hourlyRate>0?hourlyRate:hoursPerMonth&&hoursPerMonth>0?Math.round(baseMonthlySalary/hoursPerMonth*1000)/1000:0} baseSalary={baseMonthlySalary} deduction={selectedDeductionAmount} paidAmount={rawAdvanceAmount} closed={isPending || currentSelectedPayment?.status==='PAID'} onPendingChange={setOvertimePending} onSaved={payment=>setPayments(previous=>[payment,...previous.filter(p=>p.month!==payment.month||p.year!==payment.year)])} />}
-            {!isAdmin && selectedOvertimeAmount > 0 && <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-800">{locale==='ar'?'الساعات الإضافية':locale==='en'?'Overtime':'Heures supplémentaires'} · {currentSelectedPayment?.overtimeHours} h · +{fmt(selectedOvertimeAmount)}</div>}
+            {isAdmin && <TeacherOvertimeEditor teacherId={teacherId} teacherName={teacherName} period={selectedFullLabel} hours={currentSelectedPayment?.overtimeHours||0} recordedRate={currentSelectedPayment?.overtimeRate} fixedAmount={currentSelectedPayment?.overtimeFixedAmount || 0} rate={hourlyRate&&hourlyRate>0?hourlyRate:hoursPerMonth&&hoursPerMonth>0?Math.round(baseMonthlySalary/hoursPerMonth*1000)/1000:0} baseSalary={baseMonthlySalary} deduction={selectedDeductionAmount} paidAmount={rawAdvanceAmount} closed={isPending || currentSelectedPayment?.status==='PAID'} onPendingChange={setOvertimePending} onSaved={payment=>setPayments(previous=>[payment,...previous.filter(p=>p.month!==payment.month||p.year!==payment.year)])} />}
+            {!isAdmin && selectedOvertimeAmount > 0 && <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-800">{locale==='ar'?'الساعات الإضافية':locale==='en'?'Overtime':'Heures supplémentaires'} {currentSelectedPayment?.overtimeHours ? ` · ${currentSelectedPayment.overtimeHours} h` : ""} · +{fmt(selectedOvertimeAmount)}</div>}
             {selectedMeta.deductionStatus === "APPLIED" && selectedDeductedHours > 0 && (
               <div className="p-4 bg-rose-50 border border-rose-200/90 rounded-xl flex items-center justify-between gap-3 text-rose-900 shadow-2xs animate-in fade-in duration-200">
                 <div className="flex items-center gap-3">
@@ -1318,7 +1320,7 @@ const fmt = (n: number) => n.toLocaleString("en-US").replace(/,/g, " ") + " DT";
                     
                     const pDeductedHours = pMeta.deductionStatus === "APPLIED" ? (pMeta.deductedHours ?? pMeta.trackedHours) : 0;
                     const pDeduction = pDeductedHours * effectiveHourlyRate;
-                    const pNetDue = Math.max(0, baseMonthlySalary - pDeduction + (p.overtimeHours||0)*(p.overtimeRate??hourlyRate??0));
+                    const pNetDue = Math.max(0, baseMonthlySalary - pDeduction + totalOvertime(p, hourlyRate??0));
                     const isMonthSettled = p.status === "PAID" || (p.amount > 0 && p.amount >= pNetDue);
 
                     const pAdvances = expensesList.filter(
