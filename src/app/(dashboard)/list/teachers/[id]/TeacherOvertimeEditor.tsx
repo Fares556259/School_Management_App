@@ -155,12 +155,14 @@ export default function TeacherOvertimeEditor({
     }
   };
   return (
-    <div className="rounded-xl border border-emerald-200 bg-emerald-50/40 p-4">
+    <section className="rounded-xl border border-slate-200 bg-white p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-2 font-semibold text-emerald-900">
-          <Plus size={17} />
+        <h3 className="text-sm font-semibold text-slate-900">
           {tx("Heures supplémentaires", "Overtime", "الساعات الإضافية")}
-        </div>
+          {currentAmount > 0 && (
+            <span className="font-normal"> · {money(currentAmount)} TND</span>
+          )}
+        </h3>
         {!closed && currentAmount > 0 && (
           <button
             type="button"
@@ -169,31 +171,24 @@ export default function TeacherOvertimeEditor({
               setError("");
               setReview({ mode: "reset" });
             }}
-            className="text-xs font-medium text-rose-700"
-          >
-            {tx(
+            aria-label={tx(
               "Réinitialiser ce mois",
               "Reset this month",
               "إعادة ضبط هذا الشهر",
             )}
+            className="text-xs font-medium text-rose-600 disabled:opacity-40"
+          >
+            {tx("Réinitialiser", "Reset", "إعادة ضبط")}
           </button>
         )}
       </div>
-      <p className="mt-1 text-xs text-slate-600">
-        {tx(
-          "Total enregistré ce mois",
-          "Recorded this month",
-          "المسجل لهذا الشهر",
-        )}{" "}
-        : <strong>{money(currentAmount)} TND</strong>
-        {hours > 0 && ` · ${money(hours)} h`}
-        {fixedAmount > 0 &&
-          ` · ${tx("dont forfait", "including fixed", "منها مبلغ ثابت")} ${money(fixedAmount)} TND`}
-      </p>
       {!closed && (
         <>
-          <fieldset disabled={busy} className="mt-4 flex flex-wrap gap-2">
-            <legend className="mb-2 text-xs font-medium text-slate-600">
+          <fieldset
+            disabled={busy}
+            className="mt-3 inline-flex max-w-full rounded-lg bg-slate-100 p-1"
+          >
+            <legend className="sr-only">
               {tx(
                 "Comment ajouter ?",
                 "How would you like to add it?",
@@ -203,7 +198,7 @@ export default function TeacherOvertimeEditor({
             {(["hourly", "fixed"] as const).map((option) => (
               <label
                 key={option}
-                className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm ${mode === option ? "border-emerald-600 bg-white font-semibold text-emerald-900" : "border-slate-200 text-slate-600"}`}
+                className={`relative flex cursor-pointer items-center justify-center rounded-md px-3 py-1.5 text-xs font-medium transition-colors focus-within:ring-2 focus-within:ring-blue-500 ${mode === option ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-800"}`}
               >
                 <input
                   type="radio"
@@ -213,7 +208,7 @@ export default function TeacherOvertimeEditor({
                     setMode(option);
                     setError("");
                   }}
-                  className="accent-emerald-700"
+                  className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
                 />
                 {option === "hourly"
                   ? tx(
@@ -225,7 +220,7 @@ export default function TeacherOvertimeEditor({
               </label>
             ))}
           </fieldset>
-          <div className="mt-3 flex flex-wrap items-end gap-3">
+          <div className="mt-3 flex flex-wrap items-end gap-2">
             {mode === "hourly" ? (
               <>
                 <label className="min-w-0 flex-1 text-xs font-medium text-slate-600">
@@ -236,11 +231,15 @@ export default function TeacherOvertimeEditor({
                     min="0.01"
                     max="744"
                     step="0.01"
-                    placeholder="0"
+                    placeholder={tx(
+                      "Heures à ajouter",
+                      "Hours to add",
+                      "الساعات المضافة",
+                    )}
                     disabled={busy}
                     value={hoursInput}
                     onChange={(e) => setHoursInput(e.target.value)}
-                    className="mt-1 block w-full min-w-24 rounded-lg border border-emerald-200 bg-white px-3 py-2 text-sm text-slate-900"
+                    className="mt-1 block w-full min-w-20 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
                   />
                 </label>
                 <label className="min-w-0 flex-1 text-xs font-medium text-slate-600">
@@ -259,7 +258,7 @@ export default function TeacherOvertimeEditor({
                     disabled={busy}
                     value={rateInput}
                     onChange={(e) => setRateInput(e.target.value)}
-                    className="mt-1 block w-full min-w-24 rounded-lg border border-emerald-200 bg-white px-3 py-2 text-sm text-slate-900"
+                    className="mt-1 block w-full min-w-20 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
                   />
                 </label>
               </>
@@ -280,7 +279,7 @@ export default function TeacherOvertimeEditor({
                   disabled={busy}
                   value={amountInput}
                   onChange={(e) => setAmountInput(e.target.value)}
-                  className="mt-1 block w-full rounded-lg border border-emerald-200 bg-white px-3 py-2 text-sm text-slate-900"
+                  className="mt-1 block w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
                 />
               </label>
             )}
@@ -291,33 +290,29 @@ export default function TeacherOvertimeEditor({
                 setError("");
                 setReview(entry);
               }}
-              className="flex items-center justify-center gap-1 rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-40"
+              className="flex items-center justify-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-40"
             >
               <Plus size={15} />
               {tx("Ajouter", "Add", "إضافة")}
             </button>
           </div>
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs">
-            <span className="text-emerald-800" aria-live="polite">
-              {valid
-                ? `${mode === "hourly" ? `${money(Number(hoursInput))} h × ${money(Number(rateInput))} = ` : ""}+ ${money(Math.round((nextAmount - currentAmount) * 1000) / 1000)} TND`
-                : tx(
-                    "Choisissez un mode, puis saisissez l’ajout.",
-                    "Choose a mode, then enter an addition.",
-                    "اختر الطريقة ثم أدخل الإضافة.",
-                  )}
-            </span>
-            {dirty && (
+          {dirty && (
+            <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-xs">
+              <span className="text-emerald-700" aria-live="polite">
+                {valid
+                  ? `${mode === "hourly" ? `${money(Number(hoursInput))} h × ${money(Number(rateInput))} TND/h = ` : "+ "}${money(Math.round((nextAmount - currentAmount) * 1000) / 1000)} TND`
+                  : ""}
+              </span>
               <button
                 type="button"
                 disabled={busy}
                 onClick={resetDraft}
-                className="font-medium text-slate-600"
+                className="font-medium text-slate-500 hover:text-slate-800"
               >
                 {tx("Effacer la saisie", "Clear entry", "مسح الإدخال")}
               </button>
-            )}
-          </div>
+            </div>
+          )}
           {!valid &&
             (mode === "hourly" ? hoursInput !== "" : amountInput !== "") && (
               <p role="alert" className="mt-2 text-xs text-rose-700">
@@ -484,6 +479,6 @@ export default function TeacherOvertimeEditor({
           </button>
         </div>
       </dialog>
-    </div>
+    </section>
   );
 }

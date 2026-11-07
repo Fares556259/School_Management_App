@@ -1,5 +1,6 @@
 "use client";
 
+import TeacherOvertimeSummary from "./TeacherOvertimeSummary";
 import { totalOvertime } from "@/lib/overtimeAmount";
 import { useState, useTransition } from "react";
 import { 
@@ -946,7 +947,8 @@ const fmt = (n: number) => n.toLocaleString("en-US").replace(/,/g, " ") + " DT";
 
             {/* 1. APPLIED DEDUCTION: RED BLOCK */}
             {isAdmin && <TeacherOvertimeEditor teacherId={teacherId} teacherName={teacherName} period={selectedFullLabel} hours={currentSelectedPayment?.overtimeHours||0} recordedRate={currentSelectedPayment?.overtimeRate} fixedAmount={currentSelectedPayment?.overtimeFixedAmount || 0} rate={hourlyRate&&hourlyRate>0?hourlyRate:hoursPerMonth&&hoursPerMonth>0?Math.round(baseMonthlySalary/hoursPerMonth*1000)/1000:0} baseSalary={baseMonthlySalary} deduction={selectedDeductionAmount} paidAmount={rawAdvanceAmount} closed={isPending || currentSelectedPayment?.status==='PAID'} onPendingChange={setOvertimePending} onSaved={payment=>setPayments(previous=>[payment,...previous.filter(p=>p.month!==payment.month||p.year!==payment.year)])} />}
-            {!isAdmin && selectedOvertimeAmount > 0 && <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-800">{locale==='ar'?'الساعات الإضافية':locale==='en'?'Overtime':'Heures supplémentaires'} {currentSelectedPayment?.overtimeHours ? ` · ${currentSelectedPayment.overtimeHours} h` : ""} · +{fmt(selectedOvertimeAmount)}</div>}
+            {isAdmin && selectedOvertimeAmount > 0 && <dl className="space-y-2 text-sm"><TeacherOvertimeSummary hours={currentSelectedPayment?.overtimeHours || 0} overtimeAmount={selectedOvertimeAmount} fixedAmount={currentSelectedPayment?.overtimeFixedAmount || 0} /></dl>}
+            {!isAdmin && selectedOvertimeAmount > 0 && <dl className="space-y-2 rounded-xl border border-slate-200 p-4 text-sm"><TeacherOvertimeSummary hours={currentSelectedPayment?.overtimeHours || 0} overtimeAmount={selectedOvertimeAmount} fixedAmount={currentSelectedPayment?.overtimeFixedAmount || 0} /></dl>}
             {selectedMeta.deductionStatus === "APPLIED" && selectedDeductedHours > 0 && (
               <div className="p-4 bg-rose-50 border border-rose-200/90 rounded-xl flex items-center justify-between gap-3 text-rose-900 shadow-2xs animate-in fade-in duration-200">
                 <div className="flex items-center gap-3">

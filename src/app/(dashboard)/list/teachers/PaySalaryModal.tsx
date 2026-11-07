@@ -16,6 +16,7 @@ import {
 } from "@/lib/payrollUtils";
 import { useLanguage } from "@/lib/translations/LanguageContext";
 import TeacherOvertimeEditor from "./[id]/TeacherOvertimeEditor";
+import TeacherOvertimeSummary from "./[id]/TeacherOvertimeSummary";
 import { toast } from "react-toastify";
 
 const dict = {
@@ -602,19 +603,11 @@ function SalaryPaymentDialog({
                       <dd>− {money(payroll.deduction)} TND</dd>
                     </div>
                   )}
-                  {payroll.overtimeAmount > 0 && (
-                    <div className="flex justify-between gap-3 text-emerald-700">
-                      <dt>
-                        {tx(
-                          "Heures supplémentaires",
-                          "Overtime",
-                          "الساعات الإضافية",
-                        )}{" "}
-                        {payroll.overtimeHours > 0 ? `· ${payroll.overtimeHours} h` : ""}
-                      </dt>
-                      <dd>+ {money(payroll.overtimeAmount)} TND</dd>
-                    </div>
-                  )}
+                  <TeacherOvertimeSummary
+                    hours={payroll.overtimeHours}
+                    overtimeAmount={payroll.overtimeAmount}
+                    fixedAmount={payroll.overtimeFixedAmount}
+                  />
                   {payroll.amountPaid > 0 && (
                     <div className="flex justify-between gap-3 text-amber-700">
                       <dt>
