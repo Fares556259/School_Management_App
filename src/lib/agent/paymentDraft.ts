@@ -13,6 +13,8 @@ export async function getNamedPaymentDraft(message: string, context: ToolContext
   if (/[?؟]\s*$/.test(message) || /^\s*(?:who|which|how|has |did |combien|qui |quels|quelles|montre|liste|affiche|هل|من |شكون)/i.test(message)) return null;
   const match = message.match(/^(.+?)\s+(kh[aâe]?l+[ae]?s(?:ni)?|5al+[ae]?s(?:ni)?|xal+[ae]?s(?:ni)?|خلصني|خلّصني|a\s+(?:pay[ée]|r[ée]gl[ée])|paid(?:\s+me)?)(?=\s|$)([\s\S]*)$/iu);
   if (!match) return null;
+  // Multi-service instructions need the typed payment tool, not tuition-only allocation.
+  if (/(?:bus|transport|garde|inscription|registration|service|حضانة|نقل|تسجيل)/i.test(match[3])) return null;
   let query = match[1].trim();
   const requestedRole = /^(?:parent|weli|ولي)\s+/i.test(query) ? 'parent' : /^(?:élève|eleve|student|تلميذ)\s+/i.test(query) ? 'student' : undefined;
   query = query.replace(/^(?:parent|weli|ولي|élève|eleve|student|تلميذ)\s+/i, '');

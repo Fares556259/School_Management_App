@@ -1,3 +1,4 @@
+import { preparePaymentAction } from "./paymentActions";
 import { executeFreshSchoolRead, formatSchoolRead, getExactSchoolRead } from "./schoolRead";
 import { buildReadPresentation } from './readPresentation';
 import { buildMobileImageMessage, explicitCurrencyAmounts, getPurchaseDraft } from './purchaseDraft';
@@ -96,6 +97,11 @@ export function getMobileDeclarations(userMessage: string): any[] {
   ].filter(Boolean).join(" ");
   const declarations = getPrunedGeminiDeclarations(`${msg} ${derjaHints}`.trim());
   if (declarations.length <= 40) return declarations;
+
+  if (/paiement|payment|pay[ée]|salary|salaire|avance|overtime|suppl[ée]ment|bus|garde|transport|inscription|kh[aâe]?l+[ae]?s|5las|خلاص|دفع|راتب|ساعات إضافية/i.test(msg)) {
+    const paymentTools = new Set(['get_students', 'get_student_profile', 'get_parents', 'get_teachers', 'get_salary_details', 'get_student_billing', 'record_payment', 'record_parent_payment', 'pay_teacher_salary', 'set_teacher_overtime', 'query_school_records']);
+    return getGeminiFunctionDeclarations().filter(tool => paymentTools.has(tool.name));
+  }
 
   // Unclassified mobile questions should not ship the full 100+ tool schema.
   // Keep the fallback read-only; mutation tools are exposed only when a clear
@@ -500,7 +506,7 @@ export async function runMobileAgent(input: MobileAgentInput): Promise<MobileAge
       : outputText(input.language, 'Cette dépense est introuvable ou ne peut plus être annulée. Aucune modification effectuée.', 'This expense was not found or can no longer be cancelled. No data was changed.', 'تعذّر العثور على هذا المصروف أو لم يعد قابلاً للإلغاء. لم تُعدَّل أي بيانات.');
     let card: ActionCardData | undefined;
     if (prepared) {
-      const record = await prisma.aIToolCall.create({ data: { conversationId, toolName: 'void_expense', arguments: prepared.args, result: { proposalDisplay: prepared.display }, requiresConfirm: true, status: 'PENDING' } });
+      const record = await prisma.aIToolCall.create({ data: { conversationId, toolName: 'void_expense', arguments: prepared.args, result: { proposalDisplay: JSON.parse(JSON.stringify(prepared.display)) }, requiresConfirm: true, status: 'PENDING' } });
       card = buildActionCardMetadata(record.id, 'void_expense', prepared.args, message, prepared.display);
     }
     await prisma.aIMessage.create({ data: { conversationId, role: 'assistant', content: message, ...(card ? { toolCallId: card.toolCallId } : {}) } });
@@ -512,8 +518,12 @@ export async function runMobileAgent(input: MobileAgentInput): Promise<MobileAge
     let message = paymentDraft.clarification;
     let card: ActionCardData | undefined;
     if (paymentDraft.args && paymentDraft.toolName) {
-      const display = { beneficiary: paymentDraft.beneficiary };
-      const record = await prisma.aIToolCall.create({ data: { conversationId, toolName: paymentDraft.toolName, arguments: paymentDraft.args, status: 'PENDING', requiresConfirm: true, result: { proposalDisplay: display } } });
+      let prepared;
+      try { prepared = await preparePaymentAction(paymentDraft.toolName, paymentDraft.args, context); }
+      catch (error: any) { return { success: true, conversationId, message: error.message, followUpSuggestions: [] }; }
+      if (prepared) paymentDraft.args = prepared.args;
+      const display = prepared?.display || { beneficiary: paymentDraft.beneficiary };
+      const record = await prisma.aIToolCall.create({ data: { conversationId, toolName: paymentDraft.toolName, arguments: paymentDraft.args, status: 'PENDING', requiresConfirm: true, result: { proposalDisplay: JSON.parse(JSON.stringify(display)) } } });
       message = proposalMessage(input.language, paymentDraft.args.amount === undefined);
       card = buildActionCardMetadata(record.id, paymentDraft.toolName, paymentDraft.args, message, display);
     }
@@ -669,8 +679,8 @@ export async function runMobileAgent(input: MobileAgentInput): Promise<MobileAge
   const proposalArgs = (name: string, args: Record<string, any>) => {
     const value = { ...args };
     if (['record_payment', 'record_parent_payment'].includes(name)) {
-      if (typedAmounts.length === 1) value.amount = typedAmounts[0];
-      else delete value.amount; // An unstated received amount cannot be inferred from chat history or tuition.
+      if (typedAmounts.length === 1 && !Array.isArray(value.items)) value.amount = typedAmounts[0];
+      else if (!Array.isArray(value.items)) delete value.amount; // An unstated received amount cannot be inferred from chat history or tuition.
     } else if (name === 'add_expense' && typedAmounts.length === 1) value.amount = typedAmounts[0];
     return freezeMobileActionArguments(name, value);
   };
@@ -814,6 +824,11 @@ export async function runMobileAgent(input: MobileAgentInput): Promise<MobileAge
               const reversal = tName === 'void_expense' ? await prepareExpenseReversal(tArgs, context) : null;
               if (tName === 'void_expense' && !reversal) return { success: true, conversationId, message: outputText(input.language, 'Précisez la dépense à annuler. Aucun changement effectué.', 'Specify the expense to cancel. No data was changed.', 'يرجى تحديد المصروف المطلوب إلغاؤه. لم تُعدَّل أي بيانات.') };
               if (reversal) tArgs = reversal.args;
+              let payment;
+              try { payment = await preparePaymentAction(tName, tArgs, context); }
+              catch (error: any) { return { success: true, conversationId, message: error.message, followUpSuggestions: [] }; }
+              if (payment) tArgs = payment.args;
+              const display = payment?.display || reversal?.display;
               const toolCallRecord = await prisma.aIToolCall.create({
                 data: {
                   conversationId,
@@ -821,16 +836,16 @@ export async function runMobileAgent(input: MobileAgentInput): Promise<MobileAge
                   arguments: tArgs,
                   status: "PENDING",
                   requiresConfirm: true,
-                  ...(reversal ? { result: { proposalDisplay: reversal.display } } : {}),
+                  ...(display ? { result: { proposalDisplay: JSON.parse(JSON.stringify(display)) } } : {}),
                 },
               });
 
-              const rawConfirmText = tDef.formatConfirmationMessage
+              const rawConfirmText = payment ? proposalMessage(input.language, false) : tDef.formatConfirmationMessage
                 ? await Promise.resolve(tDef.formatConfirmationMessage(tArgs, context))
                 : `❓ Souhaitez-vous confirmer l'exécution de l'action **${tName}** ?`;
               const confirmText = cleanTelegramFormattingForMobile(rawConfirmText);
 
-              const actionCard = buildActionCardMetadata(toolCallRecord.id, tName, tArgs, confirmText, reversal?.display);
+              const actionCard = buildActionCardMetadata(toolCallRecord.id, tName, tArgs, confirmText, display);
               pendingConfirmations.push(actionCard);
               await prisma.aIMessage.create({ data: {
                 conversationId, role: "assistant", toolCallId: toolCallRecord.id,
@@ -997,6 +1012,9 @@ export async function runMobileAgent(input: MobileAgentInput): Promise<MobileAge
                 const reversal = toolName === 'void_expense' ? await prepareExpenseReversal(toolArgs, context) : null;
                 if (toolName === 'void_expense' && !reversal) return { success: true, conversationId, message: outputText(input.language, 'Précisez la dépense à annuler. Aucun changement effectué.', 'Specify the expense to cancel. No data was changed.', 'يرجى تحديد المصروف المطلوب إلغاؤه. لم تُعدَّل أي بيانات.') };
                 if (reversal) toolArgs = reversal.args;
+                const payment = await preparePaymentAction(toolName, toolArgs, context);
+                if (payment) toolArgs = payment.args;
+                const display = payment?.display || reversal?.display;
                 const toolCallRecord = await prisma.aIToolCall.create({
                   data: {
                     conversationId,
@@ -1004,16 +1022,16 @@ export async function runMobileAgent(input: MobileAgentInput): Promise<MobileAge
                     arguments: toolArgs,
                     status: "PENDING",
                     requiresConfirm: true,
-                    ...(reversal ? { result: { proposalDisplay: reversal.display } } : {}),
+                    ...(display ? { result: { proposalDisplay: JSON.parse(JSON.stringify(display)) } } : {}),
                   },
                 });
 
-                const rawConfirmText = toolDef.formatConfirmationMessage
+                const rawConfirmText = payment ? proposalMessage(input.language, false) : toolDef.formatConfirmationMessage
                   ? await Promise.resolve(toolDef.formatConfirmationMessage(toolArgs, context))
                   : `❓ Souhaitez-vous confirmer l'exécution de l'action **${toolName}** ?`;
                 const confirmText = cleanTelegramFormattingForMobile(rawConfirmText);
 
-                const actionCard = buildActionCardMetadata(toolCallRecord.id, toolName, toolArgs, confirmText, reversal?.display);
+                const actionCard = buildActionCardMetadata(toolCallRecord.id, toolName, toolArgs, confirmText, display);
                 pendingConfirmation = actionCard;
                 detectedWidget = {
                   type: "action_card",

@@ -8,6 +8,8 @@ import { MONTHS, formatMonthFrench } from "@/lib/dateUtils";
 import { computeTeacherPaymentStatus } from "@/lib/payrollUtils";
 
 export interface ToolContext {
+  /** Server-owned confirmation id. Never supplied by the model. */
+  actionId?: string;
   schoolId: string;
   adminId: string;
   adminName: string;

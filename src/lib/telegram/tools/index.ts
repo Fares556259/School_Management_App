@@ -1,3 +1,4 @@
+import { preparePaymentAction, recordStudentPayment, executeTeacherPayment, executeTeacherOvertime } from "@/lib/agent/paymentActions";
 import { querySchoolRecords, SCHOOL_RECORDS } from "./schoolRecords";
 import { FunctionDeclaration, SchemaType } from "@google/generative-ai";
 import { ToolContext } from "./readTools";
@@ -709,6 +710,18 @@ Confirmer l'enregistrement de ces heures d'absence ?`;
     execute: trackTeacherAbsentHoursTool,
   },
 
+  get_student_billing: {
+    name: "get_student_billing", description: "Consulter les mois non soldés et services attribués avant de préparer un encaissement.", requiresConfirmation: false,
+    declaration: { name: "get_student_billing", description: "Lire la scolarité, inscription, transport, garde et services attribués de l’élève avec leurs soldes exacts.", parameters: { type: SchemaType.OBJECT, required: ["studentNameOrId"], properties: { studentNameOrId: { type: SchemaType.STRING }, className: { type: SchemaType.STRING } } } },
+    execute: async (args, context) => { const prepared = await preparePaymentAction('record_payment', { ...args, items: [] }, context); return { success: true, ...prepared?.display.payment, formattedText: JSON.stringify(prepared?.display.payment) }; },
+  },
+  set_teacher_overtime: {
+    name: "set_teacher_overtime", description: "Proposer un ajout au salaire : heures × taux ou montant forfaitaire. Ne verse aucun salaire.", requiresConfirmation: true,
+    declaration: { name: "set_teacher_overtime", description: "Préparer une carte modifiable d’heures supplémentaires ou de complément forfaitaire. Confirmation obligatoire. Les absences et avances restent indépendantes.", parameters: { type: SchemaType.OBJECT, required: ["teacherNameOrId", "mode"], properties: {
+      teacherNameOrId: { type: SchemaType.STRING }, month: { type: SchemaType.NUMBER }, year: { type: SchemaType.NUMBER }, mode: { type: SchemaType.STRING, format: "enum", enum: ["hourly", "fixed"] }, hours: { type: SchemaType.NUMBER, description: "Heures à ajouter, maximum 2 décimales." }, rate: { type: SchemaType.NUMBER, description: "Taux horaire en TND, maximum 3 décimales." }, amount: { type: SchemaType.NUMBER, description: "Montant forfaitaire à ajouter en TND, sans fabriquer d’heures." },
+    } } },
+    execute: executeTeacherOvertime,
+  },
   pay_teacher_salary: {
     name: "pay_teacher_salary",
     description: "Enregistrer un versement de salaire ou une avance pour un enseignant avec déduction pour heures d'absence manquées.",
@@ -752,7 +765,7 @@ Confirmer l'enregistrement de ces heures d'absence ?`;
 
 Confirmer l'enregistrement et le versement de ce montant ?`;
     },
-    execute: payTeacherSalaryTool,
+    execute: (args, context) => context.actionId ? executeTeacherPayment(args, context) : payTeacherSalaryTool(args, context),
   },
 
   pay_staff_salary: {
@@ -1229,13 +1242,16 @@ Confirmer l'encaissement du reliquat pour cet élève ?`;
     requiresConfirmation: true,
     declaration: {
       name: "record_payment",
-      description: "Enregistrer un versement libre de scolarité en Dinars Tunisiens (DT) avec répartition multi-mois automatique.",
+      description: "Préparer un encaissement modifiable : scolarité, inscription, transport, garde et services attribués. Consulter get_student_billing avant de choisir les lignes. Sans montant reçu explicite, laisser la sélection vide pour saisie par l’administrateur.",
       parameters: {
         type: SchemaType.OBJECT,
-        required: ["studentNameOrId", "amount"],
+        required: ["studentNameOrId"],
         properties: {
           studentNameOrId: { type: SchemaType.STRING, description: "Nom ou identifiant de l'élève." },
-          amount: { type: SchemaType.NUMBER, description: "Montant reçu en DT (ex: 450, 1000, 200)." },
+          amount: { type: SchemaType.NUMBER, description: "Montant reçu explicitement. Ne pas inventer. Pour scolarité seule, ventilation depuis le mois choisi." },
+          items: { type: SchemaType.ARRAY, description: "Lignes sélectionnées depuis get_student_billing. Ne jamais inventer une attribution ou un tarif.", items: { type: SchemaType.OBJECT, required: ["kind", "period", "amount"], properties: { kind: { type: SchemaType.STRING }, period: { type: SchemaType.STRING, description: "AAAA-MM ou année scolaire pour les frais annuels." }, amount: { type: SchemaType.NUMBER } } } },
+          paymentMethod: { type: SchemaType.STRING, format: "enum", enum: ["Espèces", "Chèque", "Virement", "Carte"] },
+          paidOn: { type: SchemaType.STRING, description: "Date effective d’encaissement AAAA-MM-JJ." },
           className: { type: SchemaType.STRING, description: "Classe de l'élève si mentionnée (ex: '1A', '6B', '3ème A') pour cibler directement le bon élève." },
           month: { type: SchemaType.NUMBER, description: "Mois de début ou mois ciblé (1 à 12, optionnel : commence au 1er impayé par défaut)." },
           year: { type: SchemaType.NUMBER, description: "Année (ex: 2026, optionnel)." },
@@ -1286,7 +1302,7 @@ ${lines.join("\n")}
 
 Souhaitez-vous enregistrer ce versement pour <b>${student.name} ${student.surname}</b> (${monthLabel}) ?`;
     },
-    execute: recordPaymentTool,
+    execute: (args, context) => context.actionId ? recordStudentPayment(args, context) : recordPaymentTool(args, context),
   },
 
   record_parent_payment: {
@@ -3655,7 +3671,7 @@ const DOMAIN_TOOLS: Record<string, string[]> = {
     "send_payment_reminders", "post_announcement", "get_announcements",
   ],
   finance: [
-    "get_payments", "get_partial_payments", "record_payment", "record_parent_payment",
+    "get_payments", "get_partial_payments", "record_payment", "record_parent_payment", "get_student_billing", "pay_teacher_salary", "set_teacher_overtime",
     "recover_partial_payment", "schedule_recovery_date", "get_financial_summary",
     "get_financial_anomalies", "get_incomes", "add_income", "update_income", "delete_income",
     "get_expenses", "add_expense", "update_expense", "void_expense", "cancel_payment",
@@ -3682,7 +3698,7 @@ const DOMAIN_TOOLS: Record<string, string[]> = {
   teacher_staff: [
     "get_teachers", "get_staff", "create_teacher", "update_teacher", "delete_teacher",
     "create_staff", "update_staff", "delete_staff",
-    "pay_teacher_salary", "pay_staff_salary", "get_salary_details",
+    "pay_teacher_salary", "pay_staff_salary", "get_salary_details", "set_teacher_overtime",
     "track_teacher_absent_hours", "get_salary_payslip", "update_person_photo",
     "assign_teacher_to_class", "remove_teacher_from_class",
   ],

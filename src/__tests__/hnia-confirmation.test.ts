@@ -61,6 +61,9 @@ async function main() {
     record = fresh(); assert.equal((await request({ updatedArgs: { amount: -7 } })).success, false); assert.equal(record.status, 'PENDING'); assert.equal(calls, 0);
     // A stale/missing review cannot execute; editing is saved for a second explicit review.
     record = fresh(); assert.equal((await request({ reviewFingerprint: undefined })).actionStatus, 'PENDING'); assert.equal(calls, 0);
+    record = fresh();
+    const unchanged = await request({ updatedArgs: { amount: 12.5 } });
+    assert.equal(unchanged.actionStatus, 'PENDING'); assert.equal((unchanged as any).reviewRequired, true); assert.equal(calls, 0, 'Submitting an editor is not execution permission, even without changed fields');
     const oldReview = actionReviewFingerprint(record.id, record.toolName, record.arguments);
     const revision = await request({ updatedArgs: { amount: '7,50' } });
     assert.equal(revision.actionStatus, 'PENDING'); assert.equal((revision as any).proposal.arguments.amount, 7.5); assert.equal(calls, 0);

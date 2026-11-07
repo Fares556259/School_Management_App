@@ -1,0 +1,17 @@
+import assert from 'node:assert/strict';
+import { studentPaymentChoices } from '../lib/agent/paymentActions';
+import { buildActionCardMetadata } from '../lib/agent/actionCards';
+const billing:any={success:true,academicYear:'2026-2027',halfBoundaryMonths:true,student:{customTuition:200,tuitionOverrides:{'2026-11':180}},payments:[{month:9,year:2026,status:'PAID',amount:100},{month:11,year:2026,status:'PARTIAL',amount:50}],charges:[{id:'registration',kind:'REGISTRATION',period:'2026-2027',academicYear:'2026-2027',amount:150,paidAmount:150},{id:'bus-nov',kind:'TRANSPORT',period:'2026-11',academicYear:'2026-2027',amount:80,paidAmount:30},{id:'garde',kind:'GARDE',period:'2026-11',academicYear:'2026-2027',amount:70,paidAmount:0},{id:'custom',kind:'CUSTOM_abcdefghijklmnopqrst',categoryName:'Cantine',period:'2026-11',academicYear:'2026-2027',amount:90,paidAmount:0}],bus:{startPeriod:'2026-11',monthlyAmount:90}};
+const choices=studentPaymentChoices(billing);
+assert(!choices.some(c=>c.period==='2026-09'&&c.kind==='TUITION'));
+assert(!choices.some(c=>c.kind==='REGISTRATION'));
+assert.equal(choices.find(c=>c.key==='TUITION:2026-11')?.due,130);
+assert.equal(choices.find(c=>c.key==='TUITION:2027-06')?.due,100);
+assert.equal(choices.find(c=>c.key==='TRANSPORT:2026-11')?.due,50,'An issued charge retains its price; new rate applies to future charges only');
+assert.equal(choices.find(c=>c.key==='TRANSPORT:2026-12')?.due,90);
+assert(!choices.some(c=>c.kind==='TRANSPORT'&&c.period==='2026-10'));
+assert.equal(choices.find(c=>c.kind.startsWith('CUSTOM_'))?.label,'Cantine');
+assert(!choices.some(c=>c.period==='2027-07'));
+const card=buildActionCardMetadata('test','record_payment',{studentNameOrId:'student',month:11,year:2026,items:[{kind:'TRANSPORT',period:'2026-12',amount:45}],amount:45,paidOn:'2026-11-07',paymentMethod:'Espèces'},'Review',{beneficiary:'Yasmine',payment:{type:'student',beneficiary:'Yasmine',choices}});
+assert.equal(card.actionType,'payment');assert(card.paymentReview);assert(card.fields.some(f=>f.label==='Transport'&&f.value==='2026-12 · 45 TND'));assert(!card.fields.some(f=>f.label==='Période'),'A default chat month must not mislabel a selected advance service month');
+console.log('Hnia choices: paid months hidden, overrides, boundary half-months, issued prices, future bus, custom labels, accurate card periods.');

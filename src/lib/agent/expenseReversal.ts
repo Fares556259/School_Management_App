@@ -7,6 +7,7 @@ export function expenseReviewVersion(expense: { id: number; title: string; amoun
 }
 
 export interface ExpenseReviewDisplay {
+  payment?: import("./paymentActions").PaymentReview;
   beneficiary?: string;
   expense?: { title: string; amount: number; category: string; date: string };
 }

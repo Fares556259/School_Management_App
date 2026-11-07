@@ -20,10 +20,30 @@ export interface ActionCardData {
   resultMessage?: string;
   completedAt?: string;
   arguments?: Record<string, any>;
+  paymentReview?: import("./paymentActions").PaymentReview;
 }
 
 export function buildActionCardMetadata(toolCallId: string, toolName: string, args: Record<string, any>, confirmText: string, display?: ExpenseReviewDisplay): ActionCardData {
   const card = buildActionCardContent(toolCallId, toolName, args, confirmText);
+  if (display?.payment) {
+    card.paymentReview = display.payment;
+    card.actionType = 'payment';
+    card.actionTitle = toolName === 'set_teacher_overtime' ? 'Ajouter au salaire' : toolName === 'pay_teacher_salary' ? 'Verser un salaire' : 'Encaisser un paiement';
+    card.fields = [{ label: 'Bénéficiaire', value: display.payment.beneficiary }, { label: 'Montant', value: toolName === 'set_teacher_overtime' && args.mode === 'hourly' ? `${Math.round(args.hours * args.rate * 1000) / 1000} TND` : args.amount > 0 ? `${args.amount} TND` : 'À préciser' }];
+    if (toolName === 'record_payment') card.fields.push(...(args.items || []).map((item: any) => ({ label: display.payment!.choices?.find(c => c.kind === item.kind && c.period === item.period)?.label || item.kind, value: `${item.period} · ${item.amount} TND` })));
+    if (toolName !== 'record_payment' && args.month && args.year) card.fields.push({ label: 'Période', value: `${args.year}-${String(args.month).padStart(2, '0')}` });
+    if (display.payment.type === 'student') card.fields.push({ label: 'Mode de règlement', value: args.paymentMethod }, { label: 'Date', value: args.paidOn });
+    if (display.payment.type !== 'student') {
+      const p = display.payment;
+      card.fields.push({ label: 'Salaire de base', value: `${p.baseSalary} TND` });
+      if (p.deduction) card.fields.push({ label: 'Retenue d’absence', value: `− ${p.deduction} TND` });
+      if (p.overtimeHours) card.fields.push({ label: 'Heures supplémentaires', value: `${p.overtimeHours} h · + ${p.hourlyAmount} TND` });
+      if (p.fixedAmount) card.fields.push({ label: 'Complément forfaitaire', value: `+ ${p.fixedAmount} TND` });
+      if (p.amountPaid) card.fields.push({ label: 'Déjà versé', value: `${p.amountPaid} TND` });
+      card.fields.push({ label: 'Reste à payer', value: `${p.remaining} TND` });
+    }
+    if (toolName === 'set_teacher_overtime') card.fields.push({ label: 'Ajout', value: args.mode === 'fixed' ? `Forfait · ${args.amount} TND` : `${args.hours} h × ${args.rate} TND/h` });
+  }
   if (display?.beneficiary) card.fields = card.fields.map(field => field.label === 'Bénéficiaire' ? { ...field, value: display.beneficiary! } : field);
   if (toolName === 'void_expense' && display?.expense) card.fields = [
     { label: 'Description', value: display.expense.title }, { label: 'Montant', value: `${display.expense.amount} DT` },

@@ -1,7 +1,7 @@
 import { totalOvertime } from "@/lib/overtimeAmount";
 import prisma from "@/lib/prisma";
 import { MONTHS } from "@/lib/dateUtils";
-import { computeStaffPaymentStatus } from "@/lib/payrollUtils";
+import { computeTeacherPaymentStatus, computeStaffPaymentStatus } from "@/lib/payrollUtils";
 import { invalidateTenantTags } from "@/lib/cache";
 import { ToolContext } from "./readTools";
 import { WriteToolResult } from "./writeTools";
@@ -442,8 +442,9 @@ export async function getSalaryDetailsTool(
     const meta = parsePaymentMeta(targetPayment);
     const trackedHours = meta.trackedHours;
     const deductedHours = meta.deductionStatus === "APPLIED" ? (meta.deductedHours || trackedHours) : 0;
-    const deductionAmount = deductedHours * effectiveHourlyRate;
-    const overtimeAmount=totalOvertime(targetPayment, t.hourlyRate??0);
+    const payroll = computeTeacherPaymentStatus(t, month, year);
+    const deductionAmount = payroll.deduction;
+    const overtimeAmount = payroll.overtimeAmount;
 
     // Advances for this specific month
     const pIds = t.payments.map((p) => p.id.toString());
@@ -468,9 +469,7 @@ export async function getSalaryDetailsTool(
       ? expenseAdvanceTotal
       : 0;
 
-    const remainingToPay = targetPayment?.status === "PAID"
-      ? 0
-      : Math.max(0, baseSalary - deductionAmount + overtimeAmount - advancePaid);
+    const remainingToPay = payroll.remaining;
 
     const isMonthAutoSettled = advancePaid > 0 && remainingToPay <= 0;
     const isFullyPaid = targetPayment?.status === "PAID" || isMonthAutoSettled;

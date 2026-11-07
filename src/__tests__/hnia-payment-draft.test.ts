@@ -23,6 +23,12 @@ async function main() {
       const student = { id: 'student-exact-id', name: 'Fares', surname: 'fares', class: { name: '1A' } };
       return duplicate ? [student, { ...student, id: 'other-student' }] : [student];
     });
+    replace(prisma.student, 'findFirst', async () => ({ id:'student-exact-id', name:'Fares', surname:'fares', customTuition:100, tuitionOverrides:null, level:null }));
+    replace(prisma.institution, 'findUniqueOrThrow', async () => ({academicYear:'2026-2027', halfBoundaryMonths:true, transportFrequency:'MONTHLY', gardeFrequency:'MONTHLY'}));
+    replace(prisma.payment, 'findMany', async () => []);
+    replace(prisma.studentCharge, 'findMany', async () => []);
+    replace(prisma.studentChargeCategory, 'findMany', async () => []);
+    replace(prisma.studentServiceAssignment, 'findUnique', async () => null);
     replace(prisma.parent, 'findMany', async ({ where }: any) => { assert.equal(where.schoolId, 'school-test'); return []; });
     replace(prisma.class, 'findMany', async () => []);
     replace(TOOLS.record_payment, 'execute', async () => { writes++; throw new Error('No write allowed while drafting'); });

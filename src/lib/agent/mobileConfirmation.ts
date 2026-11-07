@@ -1,3 +1,4 @@
+import { PAYMENT_ACTIONS, preparePaymentAction } from "./paymentActions";
 import prisma from "@/lib/prisma";
 import type { Prisma } from '@prisma/client';
 import { TOOLS } from "@/lib/telegram/tools";
@@ -89,10 +90,21 @@ export async function confirmMobileAction(params: {
       return resultFor('FAILED', 'Cette dépense est introuvable ou a déjà été annulée. Aucune nouvelle annulation effectuée.');
     }
     if (!sameActionArguments(args, prepared.args) || !sameActionArguments((toolCall.result as any)?.proposalDisplay?.expense, prepared.display.expense)) {
-      const revised = await prisma.aIToolCall.updateMany({ where: { id: toolCallId, status: 'PENDING', arguments: { equals: toolCall.arguments as Prisma.InputJsonValue }, ...ownership }, data: { arguments: prepared.args, result: { proposalDisplay: prepared.display } } });
+      const revised = await prisma.aIToolCall.updateMany({ where: { id: toolCallId, status: 'PENDING', arguments: { equals: toolCall.arguments as Prisma.InputJsonValue }, ...ownership }, data: { arguments: prepared.args, result: { proposalDisplay: JSON.parse(JSON.stringify(prepared.display)) } } });
       if (!revised.count) return { success: false, actionStatus: 'PENDING' as ActionStatus, message: 'La proposition a changé. Actualisez la discussion.' };
       return review('Vérifiez les détails actuels de la dépense, puis confirmez son annulation. Aucune modification effectuée.', prepared.args, prepared.display);
     }
+  }
+  if (PAYMENT_ACTIONS.has(toolCall.toolName)) {
+    try {
+      const prepared = await preparePaymentAction(toolCall.toolName, args, { schoolId, adminId, adminName: 'Admin', language });
+      if (prepared && (!sameActionArguments(prepared.args, toolCall.arguments) || !sameActionArguments(prepared.display, (toolCall.result as any)?.proposalDisplay))) {
+        const revised = await prisma.aIToolCall.updateMany({ where: { id: toolCallId, status: 'PENDING', arguments: { equals: toolCall.arguments as Prisma.InputJsonValue }, ...ownership }, data: { arguments: prepared.args, result: { proposalDisplay: JSON.parse(JSON.stringify(prepared.display)) } } });
+        if (!revised.count) return review('La proposition a changé. Actualisez la discussion.');
+        return review('Vérifiez les montants et les soldes mis à jour, puis confirmez. Aucun paiement effectué.', prepared.args, prepared.display);
+      }
+      if (toolCall.toolName === 'record_payment' && !prepared?.args.items?.length) return { success: false, actionStatus: 'PENDING' as ActionStatus, message: 'Choisissez au moins une ligne et son montant avec Modifier.' };
+    } catch (error: any) { return { success: false, actionStatus: 'PENDING' as ActionStatus, message: error.message }; }
   }
   if (reviewFingerprint !== actionReviewFingerprint(toolCall.id, toolCall.toolName, toolCall.arguments)) {
     return review('Vérifiez cette version de la proposition puis confirmez à nouveau. Si nécessaire, mettez votre application à jour.');
@@ -109,6 +121,9 @@ export async function confirmMobileAction(params: {
     return review('Modifications préparées. Vérifiez les nouveaux détails puis appuyez sur Confirmer. Aucune action exécutée.', args, targetChanged ? null : (toolCall.result as any)?.proposalDisplay);
   }
 
+  // An editor submission is never permission to execute, including unchanged edits.
+  if (updatedArgs !== undefined) return review('Vérifiez cette proposition puis confirmez avec le bouton de la carte. Aucune action exécutée.');
+
   // Only one explicit button request can claim the proposal, even across concurrent taps/devices.
   const claimed = await prisma.aIToolCall.updateMany({
     where: { id: toolCallId, status: "PENDING", requiresConfirm: true, arguments: { equals: toolCall.arguments as Prisma.InputJsonValue }, ...ownership },
@@ -122,7 +137,7 @@ export async function confirmMobileAction(params: {
   }
 
   const admin = toolCall.conversation.admin!;
-  const context: ToolContext = { schoolId, adminId, language, adminName: [admin.name, admin.surname].filter(Boolean).join(" ") || admin.username || "Admin" };
+  const context: ToolContext = { schoolId, adminId, language, actionId: toolCall.id, adminName: [admin.name, admin.surname].filter(Boolean).join(" ") || admin.username || "Admin" };
   let executionFinished = false;
   try {
     const result = await tool.execute(args, context);
