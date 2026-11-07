@@ -42,6 +42,7 @@ interface PaymentRecord {
   overtimeHours?: number | null;
   overtimeRate?: number | null;
   overtimeFixedAmount?: number | null;
+  overtimeLines?: import("@/lib/overtimeBreakdown").OvertimeLine[];
   img?: string | null;
 }
 
@@ -947,8 +948,8 @@ const fmt = (n: number) => n.toLocaleString("en-US").replace(/,/g, " ") + " DT";
 
             {/* 1. APPLIED DEDUCTION: RED BLOCK */}
             {isAdmin && <TeacherOvertimeEditor teacherId={teacherId} teacherName={teacherName} period={selectedFullLabel} hours={currentSelectedPayment?.overtimeHours||0} recordedRate={currentSelectedPayment?.overtimeRate} fixedAmount={currentSelectedPayment?.overtimeFixedAmount || 0} rate={hourlyRate&&hourlyRate>0?hourlyRate:hoursPerMonth&&hoursPerMonth>0?Math.round(baseMonthlySalary/hoursPerMonth*1000)/1000:0} baseSalary={baseMonthlySalary} deduction={selectedDeductionAmount} paidAmount={rawAdvanceAmount} closed={isPending || currentSelectedPayment?.status==='PAID'} onPendingChange={setOvertimePending} onSaved={payment=>setPayments(previous=>[payment,...previous.filter(p=>p.month!==payment.month||p.year!==payment.year)])} />}
-            {isAdmin && selectedOvertimeAmount > 0 && <dl className="space-y-2 text-sm"><TeacherOvertimeSummary hours={currentSelectedPayment?.overtimeHours || 0} overtimeAmount={selectedOvertimeAmount} fixedAmount={currentSelectedPayment?.overtimeFixedAmount || 0} /></dl>}
-            {!isAdmin && selectedOvertimeAmount > 0 && <dl className="space-y-2 rounded-xl border border-slate-200 p-4 text-sm"><TeacherOvertimeSummary hours={currentSelectedPayment?.overtimeHours || 0} overtimeAmount={selectedOvertimeAmount} fixedAmount={currentSelectedPayment?.overtimeFixedAmount || 0} /></dl>}
+            {isAdmin && selectedOvertimeAmount > 0 && <dl className="space-y-2 text-sm"><TeacherOvertimeSummary hours={currentSelectedPayment?.overtimeHours || 0} overtimeAmount={selectedOvertimeAmount} fixedAmount={currentSelectedPayment?.overtimeFixedAmount || 0} lines={currentSelectedPayment?.overtimeLines} /></dl>}
+            {!isAdmin && selectedOvertimeAmount > 0 && <dl className="space-y-2 rounded-xl border border-slate-200 p-4 text-sm"><TeacherOvertimeSummary hours={currentSelectedPayment?.overtimeHours || 0} overtimeAmount={selectedOvertimeAmount} fixedAmount={currentSelectedPayment?.overtimeFixedAmount || 0} lines={currentSelectedPayment?.overtimeLines} /></dl>}
             {selectedMeta.deductionStatus === "APPLIED" && selectedDeductedHours > 0 && (
               <div className="p-4 bg-rose-50 border border-rose-200/90 rounded-xl flex items-center justify-between gap-3 text-rose-900 shadow-2xs animate-in fade-in duration-200">
                 <div className="flex items-center gap-3">

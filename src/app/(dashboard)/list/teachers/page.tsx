@@ -1,3 +1,4 @@
+import { attachTeacherOvertimeLines } from "@/lib/teacherOvertimeBreakdown";
 export const dynamic = "force-dynamic";
 
 import { getRole } from "@/lib/role";
@@ -89,7 +90,7 @@ const TeacherListPage = async (
           classes: true,
           timetable: { include: { subject: true, class: true } },
           payments: {
-            select: { month: true, year: true, status: true, paidAt: true, missedHours: true, amount: true, overtimeHours: true, overtimeRate: true, overtimeFixedAmount: true, img: true },
+            select: { id: true, month: true, year: true, status: true, paidAt: true, missedHours: true, amount: true, overtimeHours: true, overtimeRate: true, overtimeFixedAmount: true, img: true },
           },
         },
         orderBy: [{ name: "asc" }, { surname: "asc" }],
@@ -136,7 +137,7 @@ const TeacherListPage = async (
       getCachedTenantData(
         schoolId,
         "teachers",
-        [String(p), JSON.stringify(queryParams), String(monthIdx), String(yearVal)],
+        ["overtime_rates_v1", String(p), JSON.stringify(queryParams), String(monthIdx), String(yearVal)],
         fetchDynamicData,
         60
       ).catch(() => fetchDynamicData()),
@@ -177,7 +178,7 @@ const TeacherListPage = async (
 
   const safeSubjects = Array.isArray(subjectsData) ? subjectsData : [];
   const safeClasses = Array.isArray(classesData) ? classesData : [];
-  const safeData = Array.isArray(data) ? data : [];
+  const safeData = await attachTeacherOvertimeLines(schoolId, Array.isArray(data) ? data : []);
   const safeCount = typeof count === "number" ? count : safeData.length;
   const safePaidThisMonth = safeData.filter((t: any) => computeTeacherPaymentStatus(t, monthIdx, yearVal).isPaid).length;
   const safePartialThisMonth = safeData.filter((t: any) => computeTeacherPaymentStatus(t, monthIdx, yearVal).isPartial).length;

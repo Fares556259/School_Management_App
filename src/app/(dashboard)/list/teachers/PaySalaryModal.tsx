@@ -607,6 +607,7 @@ function SalaryPaymentDialog({
                     hours={payroll.overtimeHours}
                     overtimeAmount={payroll.overtimeAmount}
                     fixedAmount={payroll.overtimeFixedAmount}
+                    lines={payment?.overtimeLines}
                   />
                   {payroll.amountPaid > 0 && (
                     <div className="flex justify-between gap-3 text-amber-700">

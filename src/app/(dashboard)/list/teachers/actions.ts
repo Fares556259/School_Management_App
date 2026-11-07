@@ -1,6 +1,7 @@
 "use server";
 
 import prisma from "@/lib/prisma";
+import { attachOvertimeLines, attachTeacherOvertimeLines } from "@/lib/teacherOvertimeBreakdown";
 import { revalidatePath } from "next/cache";
 import { createAuditLog } from "@/lib/audit";
 import { getSchoolId } from "@/lib/school";
@@ -104,7 +105,7 @@ export const updateMissedHours = async (
     invalidateTenantTags(schoolId, "dashboard", "teachers");
     revalidatePath("/list/teachers");
 
-    return { success: true, payment };
+    return { success: true, payment: (await attachOvertimeLines(schoolId, [payment], undefined, teacher?.hourlyRate && teacher.hourlyRate > 0 ? teacher.hourlyRate : teacher?.hoursPerMonth && teacher.hoursPerMonth > 0 ? teacher.salary / teacher.hoursPerMonth : 0).catch(() => [payment]))[0] };
   } catch (err) {
     console.error("Failed to update missed hours:", err);
     return { success: false, error: "Failed to update missed hours." };
@@ -362,7 +363,7 @@ export const payTeacherSalary = async (
     revalidatePath("/list/expenses");
     revalidatePath("/admin");
     revalidatePath("/admin/finance");
-    return { success: true, payment };
+    return { success: true, payment: (await attachOvertimeLines(schoolId, [payment], undefined, teacher?.hourlyRate && teacher.hourlyRate > 0 ? teacher.hourlyRate : teacher?.hoursPerMonth && teacher.hoursPerMonth > 0 ? teacher.salary / teacher.hoursPerMonth : 0).catch(() => [payment]))[0] };
   } catch (err) {
     console.error("Failed to process salary payment:", err);
     return { success: false, error: err instanceof PayrollConflictError ? err.message : "Failed to process payment." };
@@ -407,6 +408,7 @@ export const getTeacherProfileBundle = async (teacherId: string) => {
       return { success: false, error: "Teacher not found" };
     }
 
+    teacher.payments = (await attachTeacherOvertimeLines(schoolId, [teacher]))[0].payments as typeof teacher.payments;
     const pIds = (teacher.payments || []).map((p: any) => p.id.toString());
     const filteredExpenses = teacherExpenses.filter(exp => {
       if (exp.referenceType === "TeacherSalary" && pIds.includes(exp.referenceId)) return true;

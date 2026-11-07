@@ -16,6 +16,7 @@ export interface TeacherPayrollItem {
     overtimeHours?: number | null;
     overtimeRate?: number | null;
     overtimeFixedAmount?: number | null;
+    overtimeLines?: import("./overtimeBreakdown").OvertimeLine[];
     img?: string | null;
     paidAt?: Date | string | null;
   }>;

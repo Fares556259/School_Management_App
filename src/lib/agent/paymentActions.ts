@@ -1,4 +1,5 @@
 import prisma from "@/lib/prisma";
+import { attachOvertimeLines } from "@/lib/teacherOvertimeBreakdown";
 import type { Prisma } from "@prisma/client";
 import type { ToolContext } from "@/lib/telegram/tools/readTools";
 import {
@@ -35,6 +36,7 @@ export interface PaymentReview {
   baseSalary?: number;
   deduction?: number;
   overtimeHours?: number;
+  overtimeLines?: import("@/lib/overtimeBreakdown").OvertimeLine[];
   hourlyAmount?: number;
   fixedAmount?: number;
   amountPaid?: number;
@@ -217,7 +219,8 @@ export async function teacherPaymentState(
     hoursPerMonth: teacher.hoursPerMonth,
     payment,
   });
-  return { teacher, payment, calc, version };
+  const [detailed] = await attachOvertimeLines(schoolId, payment ? [payment] : [], db, calc.overtimeRate);
+  return { teacher, payment: detailed ?? payment, calc, version };
 }
 export async function preparePaymentAction(
   name: string,
@@ -337,6 +340,7 @@ export async function preparePaymentAction(
     baseSalary: calc.baseSalary,
     deduction: calc.deduction,
     overtimeHours: calc.overtimeHours,
+    overtimeLines: payment?.overtimeLines || [],
     hourlyAmount: roundMoney(calc.overtimeAmount - calc.overtimeFixedAmount),
     fixedAmount: calc.overtimeFixedAmount,
     amountPaid: calc.amountPaid,

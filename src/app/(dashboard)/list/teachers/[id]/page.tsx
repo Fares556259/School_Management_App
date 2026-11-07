@@ -1,3 +1,4 @@
+import { attachTeacherOvertimeLines } from "@/lib/teacherOvertimeBreakdown";
 import { getRole } from "@/lib/role";
 import prisma from "@/lib/prisma";
 import { notFound } from "next/navigation";
@@ -191,6 +192,7 @@ const SingleTeacherPage = async (
 
   allTeachersData = Array.isArray(allTeachersData) ? allTeachersData : [];
   allExpenses = Array.isArray(allExpenses) ? allExpenses : [];
+  allTeachersData = await attachTeacherOvertimeLines(schoolId, allTeachersData);
 
   const bundlesMap: Record<string, TeacherBundle> = {};
   allTeachersData.forEach((t: any) => {

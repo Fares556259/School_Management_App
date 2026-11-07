@@ -37,7 +37,8 @@ export function buildActionCardMetadata(toolCallId: string, toolName: string, ar
       const p = display.payment;
       card.fields.push({ label: 'Salaire de base', value: `${p.baseSalary} TND` });
       if (p.deduction) card.fields.push({ label: 'Retenue d’absence', value: `− ${p.deduction} TND` });
-      if (p.overtimeHours) card.fields.push({ label: 'Heures supplémentaires', value: `${p.overtimeHours} h · + ${p.hourlyAmount} TND` });
+      if (p.overtimeLines?.length) card.fields.push(...p.overtimeLines.map(line => ({ label: 'Heures supplémentaires', value: `${line.hours} h${line.rate !== null && !line.legacy ? ` × ${line.rate} TND/h` : ' · Historique (taux indisponible)'} · + ${line.amount} TND` })));
+      else if (p.overtimeHours) card.fields.push({ label: 'Heures supplémentaires', value: `${p.overtimeHours} h · + ${p.hourlyAmount} TND` });
       if (p.fixedAmount) card.fields.push({ label: 'Complément forfaitaire', value: `+ ${p.fixedAmount} TND` });
       if (p.amountPaid) card.fields.push({ label: 'Déjà versé', value: `${p.amountPaid} TND` });
       card.fields.push({ label: 'Reste à payer', value: `${p.remaining} TND` });

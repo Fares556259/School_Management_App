@@ -142,6 +142,7 @@ test("Overtime persistence scopes the school, locks the teacher and guards concu
       },
     },
     auditLog: {
+      findMany: async () => audits,
       create: async ({ data }: any) => {
         audits.push(data);
       },

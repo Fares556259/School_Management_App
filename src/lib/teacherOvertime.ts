@@ -1,4 +1,6 @@
 import prisma from "./prisma";
+import { attachOvertimeLines } from "./teacherOvertimeBreakdown";
+import { appendOvertimeLine } from "./overtimeBreakdown";
 import { schoolMonth, roundMoney } from "./agent/dataAccuracy";
 import { computeTeacherPaymentStatus } from "./payrollUtils";
 import {
@@ -82,6 +84,12 @@ export async function saveTeacherOvertime(params: {
             fixedAmount: existing?.overtimeFixedAmount || 0,
           };
       const { hours, rate, fixedAmount } = next;
+      const [previous] = await attachOvertimeLines(params.schoolId, existing ? [existing] : [], tx, defaultRate);
+      const previousLines = previous?.overtimeLines || [];
+      const hourlyLines = params.entry?.mode === "reset" ? [] : params.entry?.mode === "hourly"
+        ? appendOvertimeLine(previousLines, params.entry.hours, params.entry.rate, roundMoney(hours * rate - (existing?.overtimeHours || 0) * (existing?.overtimeRate ?? defaultRate)))
+        : params.entry?.mode === "fixed" ? previousLines
+        : hours > 0 ? [{ hours, rate: null, amount: roundMoney(hours * rate), legacy: true }] : [];
       if (
         !params.entry &&
         params.amount === undefined &&
@@ -172,13 +180,14 @@ export async function saveTeacherOvertime(params: {
             rate,
             fixedAmount,
             entry: params.entry ?? null,
+            hourlyLines: JSON.parse(JSON.stringify(hourlyLines)),
             overtimeAmount: calc.overtimeAmount,
             netDue: calc.netDue,
           },
         },
       });
       return {
-        payment,
+        payment: { ...payment, overtimeLines: hourlyLines },
         overtimeAmount: calc.overtimeAmount,
         netDue: calc.netDue,
         remaining: calc.remaining,

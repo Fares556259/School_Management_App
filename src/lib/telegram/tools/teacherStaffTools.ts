@@ -1,3 +1,4 @@
+import { attachOvertimeLines } from "@/lib/teacherOvertimeBreakdown";
 import { totalOvertime } from "@/lib/overtimeAmount";
 import prisma from "@/lib/prisma";
 import { MONTHS } from "@/lib/dateUtils";
@@ -443,6 +444,7 @@ export async function getSalaryDetailsTool(
     const trackedHours = meta.trackedHours;
     const deductedHours = meta.deductionStatus === "APPLIED" ? (meta.deductedHours || trackedHours) : 0;
     const payroll = computeTeacherPaymentStatus(t, month, year);
+    const [detailedPayment] = await attachOvertimeLines(context.schoolId, targetPayment ? [targetPayment] : [], undefined, payroll.overtimeRate);
     const deductionAmount = payroll.deduction;
     const overtimeAmount = payroll.overtimeAmount;
 
@@ -547,6 +549,7 @@ export async function getSalaryDetailsTool(
       deductionAmount: `${deductionAmount} DT`,
       overtimeHours: targetPayment?.overtimeHours || 0,
       overtimeFixedAmount: targetPayment?.overtimeFixedAmount || 0,
+      overtimeLines: detailedPayment?.overtimeLines || [],
       overtimeAmount,
       advancePaid: `${advancePaid} DT`,
       remainingToPay: `${remainingToPay} DT`,
