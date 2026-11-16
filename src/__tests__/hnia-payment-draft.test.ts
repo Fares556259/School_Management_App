@@ -35,9 +35,10 @@ async function main() {
     replace(GoogleGenerativeAI.prototype, 'getGenerativeModel', () => ({ startChat: () => ({ sendMessage: async () => { modelCalls++; return { response: { functionCalls: () => [], text: () => 'Voici la proposition de paiement. Veuillez confirmer ci-dessous.' } }; } }) }));
     for (const language of ['fr', 'en', 'ar']) {
       records = [];
-      const result = await runMobileAgent({ adminId: 'admin-test', schoolId: 'school-test', userMessage: 'Fares fares khalasni lyouma', language });
+      const result = await runMobileAgent({ adminId: 'admin-test', schoolId: 'school-test', userMessage: 'Fares fares khalsetna lyouma', language });
       const card = result.pendingConfirmation as any;
       assert.equal(result.widget?.type, 'action_card'); assert.equal(card.toolName, 'record_payment'); assert(card.reviewFingerprint);
+      assert.equal(card.paymentReview?.type, 'student');
       assert.equal(card.arguments.studentNameOrId, 'student-exact-id'); assert.equal(card.arguments.amount, undefined, 'An old 30 DT answer cannot supply the amount received');
       assert.equal(card.fields.find((field: any) => field.label === 'Montant').value, 'À préciser');
       assert.equal(card.fields.find((field: any) => field.label === 'Bénéficiaire').value, 'Fares fares · 1A');

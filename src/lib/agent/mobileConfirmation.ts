@@ -78,6 +78,10 @@ export async function confirmMobileAction(params: {
   try { args = prepareConfirmedArguments(tool, toolCall.arguments, updatedArgs); }
   catch (error: any) { return { success: false, message: error.message, actionStatus: "PENDING" as ActionStatus }; }
 
+  if (toolCall.toolName === 'record_parent_payment' && (!Number.isFinite(args.amount) || args.amount <= 0)) {
+    return { success: false, actionStatus: 'PENDING' as ActionStatus, message: outputText(language, 'Indiquez le montant reçu avec Modifier avant de confirmer.', 'Enter the amount received using Edit before confirming.', 'أدخل المبلغ المستلم باستخدام «تعديل» قبل التأكيد.') };
+  }
+
   const review = (message: string, reviewedArgs = toolCall.arguments as Record<string, any>, display: any = (toolCall.result as any)?.proposalDisplay) => ({
     success: false, actionStatus: 'PENDING' as ActionStatus, reviewRequired: true,
     message: outputText(language, message, 'Review the updated details, then press Confirm again. No action has been executed.', 'يرجى مراجعة التفاصيل المحدّثة ثم الضغط على «تأكيد» مجدداً. لم تُنفَّذ أي عملية بعد.'),
