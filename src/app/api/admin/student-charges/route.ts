@@ -41,8 +41,14 @@ function errorResponse(error: unknown) {
       { success: false, error: "Unauthorized" },
       { status: 403 },
     );
-  if ((error as any)?.code?.startsWith("P")) {
-    console.error("[StudentCharges]", error);
+  if (
+    error instanceof Prisma.PrismaClientKnownRequestError ||
+    error instanceof Prisma.PrismaClientUnknownRequestError ||
+    error instanceof Prisma.PrismaClientValidationError ||
+    error instanceof Prisma.PrismaClientInitializationError ||
+    error instanceof Prisma.PrismaClientRustPanicError
+  ) {
+    console.error("[StudentCharges]", error.name);
     return NextResponse.json(
       {
         success: false,
