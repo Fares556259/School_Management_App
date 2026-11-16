@@ -7,6 +7,7 @@ import { getExpenseNature } from "@/lib/expenseNature";
 import { Expense } from "@prisma/client";
 import Link from "next/link";
 import CrudFormModal from "@/components/CrudFormModal";
+import CashRegisterLink from "@/components/CashRegisterLink";
 import FinanceExportButton from "@/components/FinanceExportButton";
 import { Receipt, Calendar, Info } from "lucide-react";
 import { ProofViewerButton } from "@/components/ProofViewerModal";
@@ -296,6 +297,8 @@ export default function ExpensesListClient({
           </div>
         </div>
       </div>
+
+      {role === "admin" && <div className="-mt-4 mb-5"><CashRegisterLink /></div>}
 
       {/* SUMMARY CARDS */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">

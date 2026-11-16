@@ -193,6 +193,7 @@ export default function CrudFormModal({
   trigger,
   relatedData,
   onSuccess,
+  waitForSave = false,
 }: {
   entity: EntityType;
   mode: "create" | "update" | "delete";
@@ -200,13 +201,15 @@ export default function CrudFormModal({
   id?: string | number;
   trigger?: React.ReactNode;
   relatedData?: Record<string, { value: string; label: string }[]>;
+  waitForSave?: boolean;
   onSuccess?: (values: any, mode: "create" | "update" | "delete", id?: string | number) => void;
 }) {
   const [open, setOpen] = useState(false);
   const router = useRouter();
-  const [savingStudent, setSavingStudent] = useState(false);
+  const [saving, setSaving] = useState(false);
   const formId = useId();
   const triggerRef = useRef<HTMLDivElement>(null);
+  const saveBeforeClose = entity === "student" || waitForSave;
   const isStudentForm = entity === "student" && mode !== "delete";
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState("");
@@ -318,7 +321,7 @@ export default function CrudFormModal({
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (savingStudent || uploadingImg) return;
+    if (saving || uploadingImg) return;
     setError("");
     const formData = new FormData(e.currentTarget);
     const values: any = {};
@@ -378,9 +381,9 @@ export default function CrudFormModal({
       values.img = imgs.length > 0 ? imgs.join(",") : null;
     }
 
-    // Keep student edits visible until the server confirms the save.
-    if (entity === "student") {
-      setSavingStudent(true);
+    // Keep confirmed-save forms open until the server responds.
+    if (saveBeforeClose) {
+      setSaving(true);
     } else {
       setOpen(false);
       if (onSuccess) onSuccess(values, mode, id);
@@ -418,7 +421,7 @@ export default function CrudFormModal({
           }
 
           if (result?.success) {
-            if (entity === "student" && onSuccess) onSuccess(values, mode, id);
+            if (saveBeforeClose) onSuccess?.(values, mode, id);
             resolve("Success");
             setOpen(false);
           } else {
@@ -429,7 +432,7 @@ export default function CrudFormModal({
           setError(err.message || "An error occurred.");
           reject(err.message);
         } finally {
-          if (entity === "student") setSavingStudent(false);
+          if (saveBeforeClose) setSaving(false);
         }
       });
     });
@@ -911,7 +914,7 @@ export default function CrudFormModal({
   const renderForm = () => (
     <form onSubmit={handleSubmit} className={isStudentForm ? "flex min-h-0 flex-1 flex-col" : "flex flex-col gap-6"}>
       <div className={isStudentForm ? "min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-6 sm:px-7" : "contents"}>
-        <fieldset disabled={savingStudent} className="min-w-0">
+        <fieldset disabled={saving} className="min-w-0">
         {isStudentForm ? (
           <StudentProfileSections renderField={(name) => renderField(fields.find((f) => f.name === name)!)} />
         ) : (
@@ -1036,17 +1039,17 @@ export default function CrudFormModal({
         <button
           type="button"
           onClick={() => setOpen(false)}
-          disabled={isPending || savingStudent}
+          disabled={isPending || saving}
           className="rounded-lg border border-slate-200 bg-white px-5 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:opacity-50"
         >
           {t.crud.cancel}
         </button>
         <button
           type="submit"
-          disabled={isPending || savingStudent || uploadingImg || ((entity === "parent" || entity === "teacher" || entity === "staff") && (phoneExists.exists || checkingPhone))}
+          disabled={isPending || saving || uploadingImg || ((entity === "parent" || entity === "teacher" || entity === "staff") && (phoneExists.exists || checkingPhone))}
           className={`px-5 py-2.5 text-sm font-medium text-white rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed ${isStudentForm ? "bg-blue-600 hover:bg-blue-700" : "bg-[#181d26] hover:bg-[#0d1218]"}`}
         >
-          {isPending || savingStudent ? t.crud.saving : uploadingImg ? t.crud.uploading : mode === "create" ? t.crud.create : t.crud.saveChanges}
+          {isPending || saving ? t.crud.saving : uploadingImg ? t.crud.uploading : mode === "create" ? t.crud.create : t.crud.saveChanges}
         </button>
         </div>
       </div>
@@ -1060,7 +1063,7 @@ export default function CrudFormModal({
       </div>
 
       {isStudentForm ? (
-        <StudentProfileDialog open={open} onOpenChange={setOpen} mode={mode as "create" | "update"} busy={savingStudent || uploadingImg} restoreFocus={() => triggerRef.current?.querySelector("button")?.focus()}>
+        <StudentProfileDialog open={open} onOpenChange={setOpen} mode={mode as "create" | "update"} busy={saving || uploadingImg} restoreFocus={() => triggerRef.current?.querySelector("button")?.focus()}>
           {open ? renderForm() : null}
         </StudentProfileDialog>
       ) : (
@@ -1072,7 +1075,7 @@ export default function CrudFormModal({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={() => setOpen(false)}
+              onClick={() => { if (!saving) setOpen(false); }}
               className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             />
 
@@ -1092,6 +1095,7 @@ export default function CrudFormModal({
               </h2>
               <button
                 type="button"
+                disabled={saving}
                 onClick={() => setOpen(false)}
                 className="w-8 h-8 flex items-center justify-center rounded-[8px] hover:bg-[#f8fafc] hover:text-[#181d26] text-[#41454d] transition-colors"
               >

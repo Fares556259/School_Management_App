@@ -6,6 +6,7 @@ import TableSearch from "@/components/TableSearch";
 import { Income } from "@prisma/client";
 import Link from "next/link";
 import CrudFormModal from "@/components/CrudFormModal";
+import CashRegisterLink from "@/components/CashRegisterLink";
 import FinanceExportButton from "@/components/FinanceExportButton";
 import { Receipt, Calendar, Info } from "lucide-react";
 import { ProofViewerButton } from "@/components/ProofViewerModal";
@@ -372,6 +373,8 @@ export default function IncomesListClient({
           </div>
         )}
       </div>
+
+      {role === "admin" && !receiptId && <div className="-mt-4 mb-5"><CashRegisterLink /></div>}
 
       {receiptId && (
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4">

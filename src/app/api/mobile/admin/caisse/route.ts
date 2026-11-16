@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma";
 import { getHalfBoundaryMonths, tuitionFactorSql } from '@/lib/serverTuition';
 import { tuitionForMonth } from '@/lib/tuitionPolicy';
 import { computeTeacherRowStatus, computeTeacherPaymentStatus } from '@/lib/payrollUtils';
+import { schoolDate, schoolDayRange } from "@/lib/agent/dataAccuracy";
 import { authenticateMobileRequest } from "@/lib/mobileAuth";
 
 export const dynamic = "force-dynamic";
@@ -34,8 +35,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: false, error: "Mois ou année invalide." }, { status: 400 });
     }
 
-    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
-    const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+    const todayRange = schoolDayRange(schoolDate(now));
 
     const startOfMonth = new Date(activeYear, activeMonth - 1, 1, 0, 0, 0, 0);
     const endOfMonth = new Date(activeYear, activeMonth, 0, 23, 59, 59, 999);
@@ -108,20 +108,20 @@ export async function GET(request: NextRequest) {
       existingIncomeCats,
     ] = await Promise.all([
       prisma.income.findMany({
-        where: { schoolId, date: { gte: startOfDay, lte: endOfDay } },
+        where: { schoolId, date: todayRange },
         orderBy: { date: "desc" },
         take: 50,
       }),
       prisma.expense.findMany({
-        where: { schoolId, date: { gte: startOfDay, lte: endOfDay } },
+        where: { schoolId, date: todayRange, category: { not: "Deferred Revenue Gap" } },
         orderBy: { date: "desc" },
         take: 50,
       }),
       prisma.income.aggregate({
-        where: { schoolId, date: { gte: startOfDay, lte: endOfDay } }, _sum: { amount: true },
+        where: { schoolId, date: todayRange }, _sum: { amount: true },
       }),
       prisma.expense.aggregate({
-        where: { schoolId, date: { gte: startOfDay, lte: endOfDay } }, _sum: { amount: true },
+        where: { schoolId, date: todayRange, category: { not: "Deferred Revenue Gap" } }, _sum: { amount: true },
       }),
       prisma.income.aggregate({
         where: { schoolId, date: { gte: startOfMonth, lte: endOfMonth } },

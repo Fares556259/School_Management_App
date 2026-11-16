@@ -1,3 +1,5 @@
+import { readFile } from "node:fs/promises";
+import path from "node:path";
 import { jsPDF } from "jspdf";
 
 export interface TuitionReceiptData {
@@ -40,6 +42,9 @@ export interface DailyCashRegisterData {
   totalChecks: number;
   checkCount: number;
   totalTransfers?: number;
+  totalCards?: number;
+  totalUnknownMethods?: number;
+  showLedgerCategories?: boolean;
   inflowItems: DailyCashRegisterItem[];
   outflowItems: DailyCashRegisterItem[];
   notes?: string;
@@ -713,7 +718,28 @@ export async function generateDailyCashRegisterPdf(data: DailyCashRegisterData):
   });
 
   const school = data.schoolName || "SnapSchool";
-  const dateFormatted = formatDate(data.date);
+  const dateFormatted = typeof data.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(data.date)
+    ? data.date.split("-").reverse().join("/")
+    : formatDate(data.date);
+  const isArabic = (value: string) => /[؀-ۿ]/.test(value);
+  let hasArabicFont = false;
+  if ([school, ...data.inflowItems.flatMap((item) => [item.label, item.categoryOrClass ?? ""]),
+    ...data.outflowItems.flatMap((item) => [item.label, item.categoryOrClass ?? ""])].some(isArabic)) {
+    try {
+      const font = await readFile(path.join(process.cwd(), "public/fonts/Amiri-Regular.ttf"));
+      doc.addFileToVFS("Amiri-Regular.ttf", font.toString("base64"));
+      doc.addFont("Amiri-Regular.ttf", "Amiri", "normal");
+      hasArabicFont = true;
+    } catch {
+      // Keep the cashbook available if the bundled font is missing.
+    }
+  }
+  const ledgerFont = (value: string, style = "normal") => {
+    if (hasArabicFont && isArabic(value)) doc.setFont("Amiri", "normal");
+    else doc.setFont("helvetica", style);
+  };
+  const money = (amount: number) => amount.toFixed(3);
+
 
   // 1. Helper to extract Client/Tiers vs Description from item label
   const parseTransactionLabel = (item: {
@@ -721,6 +747,9 @@ export async function generateDailyCashRegisterPdf(data: DailyCashRegisterData):
     categoryOrClass?: string;
     type: "IN" | "OUT";
   }): { client: string; description: string } => {
+    if (data.showLedgerCategories) {
+      return { client: item.categoryOrClass || "—", description: item.label.trim() };
+    }
     let client = "";
     let description = "";
 
@@ -812,10 +841,10 @@ export async function generateDailyCashRegisterPdf(data: DailyCashRegisterData):
     doc.rect(0, 0, 210, 4, "F");
 
     // Left: School & Subtitle
-    doc.setFont("helvetica", "bold");
+    ledgerFont(school, "bold");
     doc.setFontSize(13);
     doc.setTextColor(0, 0, 0);
-    doc.text(school.toUpperCase(), 15, 12.5);
+    doc.text(doc.splitTextToSize(school.toUpperCase(), 105)[0] || "", 15, 12.5);
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(7.5);
@@ -849,13 +878,13 @@ export async function generateDailyCashRegisterPdf(data: DailyCashRegisterData):
     doc.setFont("helvetica", "bold");
     doc.setFontSize(7.5);
     doc.setTextColor(17, 24, 39);
-    doc.text("Entrez les montants dans l'ordre chronologique :", 15, 36.5);
+    doc.text(data.showLedgerCategories ? "Opérations enregistrées dans SnapSchool" : "Entrez les montants dans l'ordre chronologique :", 15, 36.5);
 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(8.5);
     doc.setTextColor(0, 0, 0);
     const netSign = data.netBalance >= 0 ? "+" : "";
-    doc.text(`SOLDE DE CAISSE : ${netSign}${data.netBalance.toFixed(2)} DT`, 195, 36.5, { align: "right" });
+    doc.text(`SOLDE DE CAISSE : ${netSign}${money(data.netBalance)} DT`, 195, 36.5, { align: "right" });
   };
 
   // Table Column geometry matching media_1789452942313.png + Solde:
@@ -896,8 +925,8 @@ export async function generateDailyCashRegisterPdf(data: DailyCashRegisterData):
     doc.setFont("helvetica", "bold");
     doc.setFontSize(7.2);
     doc.setTextColor(255, 255, 255);
-    doc.text("Date", 23, startY + 5.4, { align: "center" });
-    doc.text("Client ou Fournisseur", 50, startY + 5.4, { align: "center" });
+    doc.text(data.showLedgerCategories ? "Heure" : "Date", 23, startY + 5.4, { align: "center" });
+    doc.text(data.showLedgerCategories ? "Catégorie" : "Client ou Fournisseur", 50, startY + 5.4, { align: "center" });
     doc.text("Description", 91, startY + 5.4, { align: "center" });
 
     // Stacked Sortie de caisse (-)
@@ -941,20 +970,20 @@ export async function generateDailyCashRegisterPdf(data: DailyCashRegisterData):
       doc.setFont("helvetica", "normal");
       doc.setFontSize(7);
       doc.setTextColor(75, 85, 99);
-      doc.text(item.time || "—", 23, currentY + 4.4, { align: "center" });
+      doc.text(item.time?.slice(0, 5) || "—", 23, currentY + 4.4, { align: "center" });
 
       // 2. Client ou Fournisseur
-      doc.setFont("helvetica", "bold");
+      ledgerFont(item.client, "bold");
       doc.setFontSize(7);
       doc.setTextColor(0, 0, 0);
-      const cleanClient = item.client.length > 25 ? item.client.slice(0, 23) + "..." : item.client;
+      const cleanClient = doc.splitTextToSize(item.client, 34)[0] || "";
       doc.text(cleanClient, 33, currentY + 4.4);
 
       // 3. Description
-      doc.setFont("helvetica", "normal");
+      ledgerFont(item.description);
       doc.setFontSize(6.8);
       doc.setTextColor(55, 65, 81);
-      const cleanDesc = item.description.length > 32 ? item.description.slice(0, 30) + "..." : item.description;
+      const cleanDesc = doc.splitTextToSize(item.description, 40)[0] || "";
       doc.text(cleanDesc, 71, currentY + 4.4);
 
       // 4. Sortie de caisse
@@ -962,7 +991,7 @@ export async function generateDailyCashRegisterPdf(data: DailyCashRegisterData):
         doc.setFont("helvetica", "bold");
         doc.setFontSize(7.5);
         doc.setTextColor(0, 0, 0);
-        doc.text(`${item.amount.toFixed(2)} DT`, 131, currentY + 4.4, { align: "right" });
+        doc.text(`${money(item.amount)} DT`, 131, currentY + 4.4, { align: "right" });
       }
 
       // 5. Entrée de caisse
@@ -970,7 +999,7 @@ export async function generateDailyCashRegisterPdf(data: DailyCashRegisterData):
         doc.setFont("helvetica", "bold");
         doc.setFontSize(7.5);
         doc.setTextColor(0, 0, 0);
-        doc.text(`${item.amount.toFixed(2)} DT`, 151, currentY + 4.4, { align: "right" });
+        doc.text(`${money(item.amount)} DT`, 151, currentY + 4.4, { align: "right" });
       }
 
       // 6. Type (Espèces, Chèque...)
@@ -985,7 +1014,7 @@ export async function generateDailyCashRegisterPdf(data: DailyCashRegisterData):
       doc.setFontSize(7.2);
       doc.setTextColor(0, 0, 0);
       const soldePrefix = item.runningBalance >= 0 ? "" : "-";
-      doc.text(`${soldePrefix}${Math.abs(item.runningBalance).toFixed(2)} DT`, 193, currentY + 4.4, {
+      doc.text(`${soldePrefix}${money(Math.abs(item.runningBalance))} DT`, 193, currentY + 4.4, {
         align: "right",
       });
 
@@ -1027,7 +1056,7 @@ export async function generateDailyCashRegisterPdf(data: DailyCashRegisterData):
   doc.text("Total des entrées", sumBoxX + 3, bottomY + 4.8);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(8.5);
-  doc.text(`+${data.totalIncomes.toFixed(2)} DT`, sumBoxX + sumBoxW - 3, bottomY + 4.8, { align: "right" });
+  doc.text(`+${money(data.totalIncomes)} DT`, sumBoxX + sumBoxW - 3, bottomY + 4.8, { align: "right" });
 
   // Row 2: Total des sorties
   doc.setFont("helvetica", "normal");
@@ -1036,7 +1065,7 @@ export async function generateDailyCashRegisterPdf(data: DailyCashRegisterData):
   doc.text("Total des sorties", sumBoxX + 3, bottomY + sumRowH + 4.8);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(8.5);
-  doc.text(`-${data.totalExpenses.toFixed(2)} DT`, sumBoxX + sumBoxW - 3, bottomY + sumRowH + 4.8, {
+  doc.text(`-${money(data.totalExpenses)} DT`, sumBoxX + sumBoxW - 3, bottomY + sumRowH + 4.8, {
     align: "right",
   });
 
@@ -1054,7 +1083,7 @@ export async function generateDailyCashRegisterPdf(data: DailyCashRegisterData):
 
   doc.setFontSize(10);
   const netPrefix = data.netBalance >= 0 ? "+" : "";
-  doc.text(`${netPrefix}${data.netBalance.toFixed(2)} DT`, sumBoxX + sumBoxW - 3, bottomY + sumRowH * 2 + 5, {
+  doc.text(`${netPrefix}${money(data.netBalance)} DT`, sumBoxX + sumBoxW - 3, bottomY + sumRowH * 2 + 5, {
     align: "right",
   });
 
@@ -1069,22 +1098,21 @@ export async function generateDailyCashRegisterPdf(data: DailyCashRegisterData):
   doc.setFont("helvetica", "bold");
   doc.setFontSize(7.5);
   doc.setTextColor(0, 0, 0);
-  doc.text("SITUATION DES ESPÈCES & CHÈQUES :", sitBoxX + 3, bottomY + 4.8);
+  doc.text(data.totalUnknownMethods === undefined ? "SITUATION DES ESPÈCES & CHÈQUES :" : "RECETTES PAR MODE DE PAIEMENT :", sitBoxX + 3, bottomY + 4.8);
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(7.2);
   doc.setTextColor(55, 65, 81);
-  doc.text(`• Espèces en caisse physique : ${data.totalCash.toFixed(2)} DT`, sitBoxX + 3, bottomY + 10.5);
-  doc.text(
-    `• Chèques physiques au classeur : ${data.totalChecks.toFixed(2)} DT (${data.checkCount} chèque(s))`,
-    sitBoxX + 3,
-    bottomY + 15.5
-  );
-  doc.text(
-    `• Virements / Dépôts bancaires : ${(data.totalTransfers ?? 0).toFixed(2)} DT`,
-    sitBoxX + 3,
-    bottomY + 19.5
-  );
+  if (data.totalUnknownMethods !== undefined) {
+    doc.setFontSize(6.8);
+    doc.text(`Espèces : ${money(data.totalCash)} DT   ·   Chèques : ${money(data.totalChecks)} DT`, sitBoxX + 3, bottomY + 9.8);
+    doc.text(`Virements : ${money(data.totalTransfers ?? 0)} DT   ·   Carte : ${money(data.totalCards ?? 0)} DT`, sitBoxX + 3, bottomY + 14.2);
+    doc.text(`Mode non renseigné : ${money(data.totalUnknownMethods)} DT`, sitBoxX + 3, bottomY + 18.6);
+  } else {
+    doc.text(`• Espèces en caisse physique : ${money(data.totalCash)} DT`, sitBoxX + 3, bottomY + 10.5);
+    doc.text(`• Chèques physiques au classeur : ${money(data.totalChecks)} DT (${data.checkCount} chèque(s))`, sitBoxX + 3, bottomY + 15.5);
+    doc.text(`• Virements / Dépôts bancaires : ${money(data.totalTransfers ?? 0)} DT`, sitBoxX + 3, bottomY + 19.5);
+  }
 
   // ═════════════════════════════════════════════════════════════
   // SIGNATURES & ARRETÉ OFFICIEL DE CAISSE

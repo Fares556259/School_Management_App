@@ -3,6 +3,7 @@
 const nextConfig = {
   compress: true,
   outputFileTracingIncludes: {
+    '/api/admin/cash-register/pdf': ['./public/fonts/Amiri-Regular.ttf'],
     '/api/admin/student-billing/receipt/*': ['./public/fonts/Amiri-Regular.ttf'],
   },
   images: {

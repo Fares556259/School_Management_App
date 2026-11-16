@@ -7,6 +7,7 @@ import { parseMonthYear } from "@/lib/dateUtils";
 import { getHalfBoundaryMonths } from '@/lib/serverTuition';
 import { studentTuitionForMonth } from '@/lib/tuitionPolicy';
 import { getStudentAdminSchool } from '@/lib/studentProfile';
+import { roundMoney } from '@/lib/agent/dataAccuracy';
 
 export const receiveStudentPayment = async (
   studentId: string,
@@ -14,7 +15,8 @@ export const receiveStudentPayment = async (
   fullAmount: number,
   monthYear: string,
   paidAmount?: number,
-  deferredUntil?: string
+  deferredUntil?: string,
+  recovery?: { paymentId: number; previousAmount: number; previousBalance: number },
 ) => {
   const parsed = parseMonthYear(monthYear);
   const monthIdx = parsed.month;
@@ -24,7 +26,6 @@ export const receiveStudentPayment = async (
   console.log(`📡 [PAYMENT_ACTION] Initiating for ${studentName} (${studentId}) - Period: ${standardMonthYear}`);
 
   try {
-    const { getSchoolId } = await import("@/lib/school");
     const [adminSchoolId, student] = await Promise.all([
       getStudentAdminSchool(),
       prisma.student.findUnique({
@@ -34,7 +35,9 @@ export const receiveStudentPayment = async (
     ]);
     if (!student || student.schoolId !== adminSchoolId) throw new Error('Student not found in this school.');
     const schoolId = adminSchoolId;
-    const expectedFee = studentTuitionForMonth(student, monthIdx, yearVal, await getHalfBoundaryMonths(schoolId));
+    const expectedFee = recovery
+      ? roundMoney(recovery.previousAmount + recovery.previousBalance)
+      : studentTuitionForMonth(student, monthIdx, yearVal, await getHalfBoundaryMonths(schoolId));
     const actualPaid = paidAmount ?? expectedFee;
     if (!Number.isFinite(actualPaid) || actualPaid <= 0 || actualPaid > expectedFee) throw new Error('Invalid payment amount for this month.');
     const gap = Math.round((expectedFee - actualPaid) * 1000) / 1000;
@@ -47,8 +50,17 @@ export const receiveStudentPayment = async (
       await tx.$queryRaw`SELECT id FROM "Student" WHERE id = ${studentId} AND "schoolId" = ${schoolId} FOR UPDATE`;
       existing = await tx.payment.findUnique({ where: { studentId_month_year: { studentId, month: monthIdx, year: yearVal } } });
       const previousAmount = existing && ['PAID', 'PARTIAL'].includes(existing.status) ? existing.amount : 0;
+      if (recovery && (
+        existing?.id !== recovery.paymentId ||
+        existing.schoolId !== schoolId ||
+        existing.status !== "PARTIAL" ||
+        existing.userType !== "STUDENT" ||
+        existing.amount !== recovery.previousAmount ||
+        existing.deferredAmount !== recovery.previousBalance
+      )) throw new Error("PAYMENT_CHANGED");
+      if (recovery && actualPaid <= previousAmount) throw new Error("Invalid recovery amount.");
       if (actualPaid < previousAmount) throw new Error('Payment has changed. Refresh before collecting.');
-      newMoneyCollected = actualPaid - previousAmount;
+      newMoneyCollected = recovery ? roundMoney(actualPaid - previousAmount) : actualPaid - previousAmount;
       // 1. Upsert the payment
       const p = await tx.payment.upsert({
         where: {
@@ -63,7 +75,7 @@ export const receiveStudentPayment = async (
           paidAt: new Date(),
           amount: actualPaid,
           deferredAmount: isPartial ? gap : 0,
-          deferredUntil: (isPartial && deferredUntil) ? new Date(deferredUntil) : null
+          deferredUntil: isPartial ? (deferredUntil ? new Date(deferredUntil) : recovery ? existing.deferredUntil : null) : null
         },
         create: {
           studentId,
@@ -143,9 +155,11 @@ export const receiveStudentPayment = async (
     revalidatePath("/list/students");
     revalidatePath("/list/incomes");
     revalidatePath("/list/payments-partial");
+    revalidatePath("/admin/cash-register");
     revalidatePath("/admin");
     return { success: true, data: result };
   } catch (error: any) {
+    if (error.message === "PAYMENT_CHANGED") return { success: false, error: "PAYMENT_CHANGED" };
     console.error("❌ [PAYMENT_CRITICAL_FAILURE] Error during process:", error);
     return { success: false, error: `Database error: ${error.message}` };
   }

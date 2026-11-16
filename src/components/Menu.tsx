@@ -36,13 +36,15 @@ import {
   ChevronDown,
   Layers,
   QrCode,
-  Building2
+  Building2,
+  Wallet
 } from "lucide-react";
 
 const labelToKey: Record<string, any> = {
   "Home": "home",
   "Expenses": "expenses",
   "Incomes": "incomes",
+  "Cash register": "cash-register",
   "Audit Log": "auditLog",
   "Results": "results",
   "Grades": "grades",
@@ -117,6 +119,7 @@ const menuItems: MenuSection[] = [
     title: "FINANCE",
     icon: CreditCard,
     items: [
+      { icon: Wallet, label: "Cash register", href: "/admin/cash-register", visible: ["admin"] },
       { icon: TrendingUp, label: "Incomes", href: "/list/incomes", visible: ["admin", "superuser"] },
       { icon: TrendingDown, label: "Expenses", href: "/list/expenses", visible: ["admin", "superuser"] },
       { icon: CreditCard, label: "Partial Payments", href: "/list/payments-partial", visible: ["admin", "superuser"] },
