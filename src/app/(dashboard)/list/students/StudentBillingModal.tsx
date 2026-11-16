@@ -258,6 +258,10 @@ export default function StudentBillingModal({
           busBalance(period) > 0,
       )
     : [];
+  const busChecked = Object.keys(busMonths).length > 0;
+  const defaultBusMonth =
+    availableBusMonths.find(({ label }) => label === month) ??
+    availableBusMonths[0];
   const chosenCharges = dueCharges.filter((c) => chosen.includes(c.id));
   const total =
     Math.round(
@@ -690,13 +694,26 @@ export default function StudentBillingModal({
                     <section className="mt-4 rounded-xl border border-blue-100 bg-blue-50/40 p-4">
                       <div className="flex items-center justify-between gap-2">
                         <div>
-                          <h3 className="font-semibold text-slate-900">
+                          <label className="flex items-center gap-2 font-semibold text-slate-900">
+                            <input
+                              type="checkbox"
+                              checked={busChecked}
+                              disabled={!busChecked && !defaultBusMonth}
+                              onChange={(event) => {
+                                if (!event.target.checked) {
+                                  setBusMonths({});
+                                } else if (defaultBusMonth) {
+                                  const { period } = defaultBusMonth;
+                                  setBusMonths({ [period]: String(busBalance(period)) });
+                                }
+                              }}
+                            />
                             {t(
                               "Abonnement transport",
                               "Bus subscription",
                               "اشتراك النقل",
                             )}
-                          </h3>
+                          </label>
                           <p className="text-xs text-slate-500">
                             {t(
                               "Choisissez les mois à régler, même à l’avance.",
@@ -753,7 +770,7 @@ export default function StudentBillingModal({
                             </button>
                           </div>
                         ))}
-                      {availableBusMonths.length > 0 ? (
+                      {busChecked && availableBusMonths.length > 0 && (
                         <select
                           aria-label={t(
                             "Ajouter un mois de transport",
@@ -781,7 +798,8 @@ export default function StudentBillingModal({
                             </option>
                           ))}
                         </select>
-                      ) : (
+                      )}
+                      {!busChecked && !defaultBusMonth && (
                         <p className="mt-3 text-sm text-emerald-700">
                           {t(
                             "Tous les mois de l’abonnement sont réglés.",
