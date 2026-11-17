@@ -77,21 +77,23 @@ const DateRangeFilter: React.FC<DateRangeFilterProps> = ({ activeStartDate, acti
   const isFiltered = !!(activeStartDate && activeEndDate);
 
   return (
-    <div className="relative" ref={containerRef}>
+    <div className="relative flex items-center gap-1" ref={containerRef}>
       <button 
+        type="button"
+        aria-expanded={isOpen}
         onClick={() => setIsOpen(!isOpen)}
         className={`flex items-center gap-2 px-4 py-2.5 bg-[#ffffff] rounded-[4px] border transition-all ${isFiltered ? 'border-[#080808] ring-1 ring-[#080808]' : 'border-[#d8d8d8] hover:bg-[#f9f9f9]'}`}
       >
         {isPending ? <Loader2 size={16} className="text-[#080808] animate-spin" /> : <Calendar size={16} className="text-[#080808]" />}
         <span className="text-[14px] font-medium text-[#080808] tracking-tight">
-          {isFiltered ? `${format(state[0].startDate, 'MMM d, yyyy', {locale: dfnsLocale})} - ${format(state[0].endDate, 'MMM d, yyyy', {locale: dfnsLocale})}` : t.adminWidgets.selectPeriod || 'Select Period'}
+          {isFiltered ? `${format(initialStartDate, 'PP', {locale: dfnsLocale})} – ${format(initialEndDate, 'PP', {locale: dfnsLocale})}` : locale === 'fr' ? 'Toutes les dates' : locale === 'ar' ? 'كل التواريخ' : 'All dates'}
         </span>
-        {isFiltered && (
-          <div onClick={clearFilter} className="ml-1 hover:bg-slate-100 p-0.5 rounded-full transition-colors cursor-pointer">
-            <X size={14} className="text-slate-500 hover:text-slate-800" />
-          </div>
-        )}
       </button>
+      {isFiltered ? (
+        <button type="button" onClick={clearFilter} aria-label={locale === 'fr' ? 'Effacer la période' : locale === 'ar' ? 'إلغاء تحديد الفترة' : 'Clear date range'} className="rounded-lg p-2 text-slate-600 hover:bg-slate-100">
+          <X size={16} aria-hidden="true" />
+        </button>
+      ) : null}
 
       {isOpen && (
         <div className="absolute top-full right-0 mt-2 bg-white rounded-xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] border border-slate-100 z-50 animate-in fade-in slide-in-from-top-2 overflow-hidden flex flex-col">

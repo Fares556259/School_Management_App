@@ -1,35 +1,23 @@
 "use client";
 
 import Link from 'next/link';
-import { Plus, Wallet, HandCoins, Receipt } from 'lucide-react';
+import { Plus, ChevronDown } from 'lucide-react';
 import { useLanguage } from '@/lib/translations/LanguageContext';
 
-const QuickAction = ({ icon: Icon, label, variant, href }: { icon: any, label: string, variant: 'primary' | 'secondary' | 'income' | 'expense', href: string }) => {
-  const baseClasses = "flex items-center gap-2 px-5 py-2.5 rounded-[4px] transition-all group font-medium border";
-  const variants = {
-    primary: "bg-[#080808] hover:bg-[#222222] text-[#ffffff] border-transparent",
-    secondary: "bg-[#ffffff] hover:bg-[#f9f9f9] text-[#080808] border-[#d8d8d8]",
-    income: "bg-emerald-600 hover:bg-emerald-700 text-white border-transparent shadow-sm",
-    expense: "bg-white hover:bg-rose-50 text-rose-600 border-rose-200 shadow-sm"
-  };
+export default function QuickActionBar() {
+  const { t, locale } = useLanguage();
 
   return (
-    <Link href={href} className={`${baseClasses} ${variants[variant]}`}>
-      <Icon size={16} strokeWidth={2.5} className="group-hover:scale-110 transition-transform" />
-      <span className="text-[14px] tracking-tight">{label}</span>
-    </Link>
+    <details className="relative">
+      <summary className="flex cursor-pointer list-none items-center gap-2 rounded-lg bg-blue-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700 [&::-webkit-details-marker]:hidden">
+        <Plus size={16} aria-hidden="true" />
+        {locale === 'fr' ? 'Nouvelle opération' : locale === 'ar' ? 'عملية جديدة' : 'New transaction'}
+        <ChevronDown size={14} aria-hidden="true" />
+      </summary>
+      <div className="absolute end-0 z-30 mt-2 grid min-w-max gap-1 rounded-lg border border-slate-200 bg-white p-1 shadow-lg">
+        <Link className="rounded-md px-3 py-2 text-sm hover:bg-slate-100" href="/list/incomes?add=true">{t.adminWidgets.addIncome}</Link>
+        <Link className="rounded-md px-3 py-2 text-sm hover:bg-slate-100" href="/list/expenses?add=true">{t.adminWidgets.addExpense}</Link>
+      </div>
+    </details>
   );
-};
-
-const QuickActionBar = () => {
-  const { t } = useLanguage();
-  
-  return (
-    <div className="flex gap-3 overflow-x-auto pb-2 no-scrollbar">
-      <QuickAction icon={Plus} label={t.adminWidgets.addIncome} variant="income" href="/list/incomes?add=true" />
-      <QuickAction icon={Receipt} label={t.adminWidgets.addExpense} variant="expense" href="/list/expenses?add=true" />
-    </div>
-  );
-};
-
-export default QuickActionBar;
+}

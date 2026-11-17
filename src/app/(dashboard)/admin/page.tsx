@@ -7,7 +7,9 @@ import DateRangeFilter from "./components/DateRangeFilter";
 import DashboardAppendage from "./components/DashboardAppendage";
 import DashboardSkeleton from "./components/DashboardSkeleton";
 import { cookies } from "next/headers";
-import { translations, Locale } from "@/lib/translations";
+import type { Locale } from "@/lib/translations";
+import Link from "next/link";
+import { ChevronRight } from "lucide-react";
 import { getSchoolId } from "@/lib/school";
 import { getCachedTenantData } from "@/lib/cache";
 import React, { Suspense } from "react";
@@ -26,7 +28,11 @@ const AdminPage = async (
   const cookieStore = await cookies();
   const rawLocale = cookieStore.get("NEXT_LOCALE")?.value || "en";
   const locale = (["en", "fr", "ar"].includes(rawLocale) ? rawLocale : "en") as Locale;
-  const t = translations[locale] || translations.en;
+  const copy = {
+    fr: { title: 'Vue d’ensemble', attention: 'À traiter', unpaid: 'Scolarité restant à encaisser', parents: 'Demandes de parents à examiner', payroll: 'Rémunérations à vérifier' },
+    en: { title: 'Overview', attention: 'Needs attention', unpaid: 'Tuition still due', parents: 'Parent requests to review', payroll: 'Payroll to review' },
+    ar: { title: 'نظرة عامة', attention: 'المهام المعلقة', unpaid: 'معاليم الدراسة المتبقية', parents: 'طلبات الأولياء للمراجعة', payroll: 'الأجور للمراجعة' },
+  }[locale];
 
   const { 
     start: queryStart,
@@ -53,7 +59,11 @@ const AdminPage = async (
   let prevStartDate: Date;
   let prevEndDate: Date;
 
-  if (queryStart && queryEnd) {
+  const isCustomRange = Boolean(queryStart && queryEnd &&
+    Number.isFinite(Date.parse(queryStart)) && Number.isFinite(Date.parse(queryEnd)) &&
+    Date.parse(queryStart) < Date.parse(queryEnd));
+
+  if (isCustomRange && queryStart && queryEnd) {
     startDate = new Date(queryStart);
     endDate = new Date(queryEnd);
     
@@ -73,7 +83,6 @@ const AdminPage = async (
 
   const twelveMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 11, 1);
 
-  const isCustomRange = !!(queryStart && queryEnd);
 
   // Robust month & year extraction using midpoint to eliminate UTC midnight timezone shifts:
   const midDate = new Date((startDate.getTime() + endDate.getTime()) / 2);
@@ -89,6 +98,7 @@ const AdminPage = async (
           (SELECT COUNT(*) FROM "Teacher" WHERE "schoolId" = ${schoolId})::int as teacher_count,
           (SELECT COUNT(*) FROM "Staff" WHERE "schoolId" = ${schoolId})::int as staff_count,
           (SELECT COUNT(*) FROM "Class" WHERE "schoolId" = ${schoolId})::int as class_count,
+          (SELECT COUNT(*) FROM "ParentAccessRequest" WHERE "schoolId" = ${schoolId} AND status = 'PENDING')::int as parent_requests,
           (SELECT COALESCE(SUM(amount), 0) FROM "Income" WHERE "schoolId" = ${schoolId} AND date >= ${startDate} AND date < ${endDate})::float as current_income_general,
           (SELECT COALESCE(SUM(amount), 0) FROM "Expense" WHERE "schoolId" = ${schoolId} AND date >= ${startDate} AND date < ${endDate})::float as current_expense_general,
           (SELECT COALESCE(SUM(amount), 0) FROM "Income" WHERE "schoolId" = ${schoolId} AND date >= ${prevStartDate} AND date < ${prevEndDate})::float as prev_income_general,
@@ -159,6 +169,8 @@ const AdminPage = async (
         teacher_count: data.teacher_count || 0,
         staff_count: data.staff_count || 0,
         class_count: data.class_count || 0,
+        parent_requests: data.parent_requests || 0,
+        current_unpaid_tuition: data.current_unpaid_tuition || 0,
         current_income_general: data.current_income_general || 0,
         current_expense_general: data.current_expense_general || 0,
         prev_income_general: data.prev_income_general || 0,
@@ -175,7 +187,7 @@ const AdminPage = async (
   const cachedStats = await getCachedTenantData(
     schoolId,
     'dashboard',
-    [startDate.toISOString(), endDate.toISOString(), isCustomRange ? `period-${targetMonth}-${targetYear}-v4` : 'all-time-v4'],
+    [startDate.toISOString(), endDate.toISOString(), isCustomRange ? `period-${targetMonth}-${targetYear}-v5` : 'all-time-v5'],
     () => getMegaStats(),
     120
   ).catch(() => null);
@@ -185,6 +197,8 @@ const AdminPage = async (
     teacher_count: 0,
     staff_count: 0,
     class_count: 0,
+    parent_requests: null,
+    current_unpaid_tuition: null,
     current_income_general: 0,
     current_expense_general: 0,
     prev_income_general: 0,
@@ -201,23 +215,29 @@ const AdminPage = async (
   const prevIncome = (stats.prev_income_general || 0);
   const prevExpense = (stats.prev_expense_general || 0);
   const prevBalance = prevIncome - prevExpense;
+  const formatAmount = new Intl.NumberFormat(locale, { maximumFractionDigits: 3 });
+  const monthLabel = new Intl.DateTimeFormat(locale, { month: 'long', year: 'numeric' });
+  const attention = [
+    { label: copy.unpaid, href: { pathname: '/admin', query: { ...searchParams, pendingMonth: now.getMonth() + 1, pendingYear: now.getFullYear() }, hash: 'pending-finance' }, detail: stats.current_unpaid_tuition === null ? '—' : `${formatAmount.format(stats.current_unpaid_tuition)} TND`, period: monthLabel.format(now) },
+    { label: copy.parents, href: '/admin/parent-requests', detail: stats.parent_requests === null ? '—' : formatAmount.format(stats.parent_requests) },
+    { label: copy.payroll, href: '#pending-finance', detail: monthLabel.format(new Date(pendingYear, pendingMonth - 1, 1)) },
+  ];
 
   return (
-    <div className="p-6 md:p-8 flex flex-col gap-8 bg-[#ffffff] min-h-screen">
+    <div className="flex min-h-screen flex-col gap-6 rounded-2xl bg-slate-50/60 p-4 md:p-7">
       {/* 1. HEADER SECTION */}
       <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6">
         <div>
-          <h1 className="text-[32px] font-normal text-[#181d26] leading-[1.2]">{t.adminDashboard.commandCenter}</h1>
-          <p className="text-[#333840] text-[14px] font-normal max-w-[600px] leading-[1.25] mt-2">{t.adminDashboard.commandCenterDesc}</p>
+          <h1 className="text-3xl font-semibold tracking-tight text-slate-900">{copy.title}</h1>
         </div>
         <div className="flex flex-wrap items-center gap-4">
-           <DateRangeFilter activeStartDate={queryStart} activeEndDate={queryEnd} />
+           <DateRangeFilter activeStartDate={isCustomRange ? queryStart : undefined} activeEndDate={isCustomRange ? queryEnd : undefined} />
            <QuickActionBar />
         </div>
       </div>
 
       {/* 2. UNIFIED COMMAND CENTER (PRIMARY KPIs) */}
-      <div className="flex flex-col">
+      <div className="flex flex-col gap-5">
         <FinancialKpiSection 
           currentIncome={currentIncome}
           prevIncome={prevIncome}
@@ -230,6 +250,21 @@ const AdminPage = async (
           revenueGap={0}
           isCustomRange={isCustomRange}
         />
+
+        <section aria-labelledby="dashboard-attention" className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+          <h2 id="dashboard-attention" className="px-4 py-3 text-sm font-semibold text-slate-900">{copy.attention}</h2>
+          <ul className="divide-y divide-slate-100 border-t border-slate-100">
+            {attention.map(item => (
+              <li key={item.label}>
+                <Link href={item.href} className="flex flex-wrap items-center gap-2 px-4 py-3 text-sm hover:bg-slate-50 focus-visible:bg-slate-100">
+                  <span className="flex-1 font-medium text-slate-800">{item.label}{item.period ? <span className="block text-xs font-normal text-slate-500">{item.period}</span> : null}</span>
+                  <span className="font-semibold tabular-nums text-slate-700">{item.detail}</span>
+                  <ChevronRight size={16} aria-hidden="true" className="text-blue-700 rtl:rotate-180" />
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
 
         <OperationsSnapshot 
             students={stats.student_count}

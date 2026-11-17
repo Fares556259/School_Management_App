@@ -330,16 +330,12 @@ export default async function DashboardAppendage({
   const incomeBreakdown = (secondaryStats.income_categories || []).map((cat: any) => ({ name: normalize(cat.category), value: cat.total || 0, type: 'income' as const }));
   const expenseBreakdown = (secondaryStats.expense_categories || []).map((cat: any) => ({ name: normalize(cat.category), value: cat.total || 0, type: 'expense' as const }));
 
-  const fullBreakdown = [...incomeBreakdown, ...expenseBreakdown];
-
   return (
     <>
       <section className="mt-8">
         <FiscalDistribution 
           incomeData={incomeBreakdown}
           expenseData={expenseBreakdown}
-          fullBreakdown={fullBreakdown}
-          timeFilter="thisMonth" 
         />
       </section>
 
@@ -354,7 +350,7 @@ export default async function DashboardAppendage({
         </div>
       </section>
 
-      <section className="border-t border-slate-100 pt-8 mt-8">
+      <section id="pending-finance" className="scroll-mt-24 border-t border-slate-100 pt-8 mt-8">
         <ActionCenter 
           unpaidFees={unpaidFees}
           unpaidEmployees={unpaidEmployees}
