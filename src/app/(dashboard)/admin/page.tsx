@@ -166,9 +166,9 @@ const AdminPage = async (
   const recoveryPeriod = new Date(Date.UTC(targetYear, targetMonth - 1, 1)).toISOString();
 
   return (
-    <div className="flex min-h-screen flex-col gap-6 rounded-2xl bg-slate-50/60 p-4 md:p-7">
+    <div className="flex min-h-screen flex-col gap-5 p-4 md:p-6">
       {/* 1. HEADER SECTION */}
-      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6">
+      <div className="flex flex-col justify-between gap-3 xl:flex-row xl:items-center">
         <div>
           <h1 className="text-3xl font-semibold tracking-tight text-slate-900">{copy.title}</h1>
         </div>
@@ -179,7 +179,7 @@ const AdminPage = async (
       </div>
 
       {/* 2. UNIFIED COMMAND CENTER (PRIMARY KPIs) */}
-      <div className="flex flex-col gap-5">
+      <div className="flex flex-col gap-4">
         <FinancialKpiSection 
           currentIncome={currentIncome}
           prevIncome={prevIncome}

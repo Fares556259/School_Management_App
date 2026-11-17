@@ -25,10 +25,10 @@ const KpiCard: React.FC<KpiCardProps> = ({
 }) => {
   return (
     <div
-      className="min-w-0 rounded-xl border border-slate-200 bg-white p-4 sm:p-5 flex flex-col gap-3"
+      className="min-w-0 bg-white px-4 py-3.5 sm:py-4 flex flex-col gap-2"
     >
-      <div className="flex items-center gap-2.5 mb-2.5">
-        <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${iconBg}`}>
+      <div className="flex items-center gap-2">
+        <div className={`w-7 h-7 rounded-md flex items-center justify-center shrink-0 ${iconBg}`}>
           {icon}
         </div>
         <span className="text-sm font-medium text-slate-600">
@@ -37,12 +37,12 @@ const KpiCard: React.FC<KpiCardProps> = ({
       </div>
       
       <div className="flex flex-col justify-end">
-        <div className="flex items-baseline flex-wrap">
+        <div className="flex items-baseline flex-wrap gap-x-1.5">
           <span className={`break-words [overflow-wrap:anywhere] text-xl sm:text-[22px] font-semibold tabular-nums tracking-tight ${isNegative ? 'text-rose-700' : 'text-slate-900'}`}>
             {value}
           </span>
           {suffix && (
-            <span className="ml-1.5 text-xs sm:text-[13px] font-semibold text-slate-400">
+            <span className="text-xs font-medium text-slate-500">
               {suffix}
             </span>
           )}
@@ -114,7 +114,7 @@ export default function FinancialKpiSection({
   }).format(recoveryRate);
 
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="grid grid-cols-1 gap-px overflow-hidden rounded-xl border border-slate-200 bg-slate-200 sm:grid-cols-2 xl:grid-cols-4">
       {/* 1. Chiffre d'affaires */}
       <KpiCard 
         icon={<Wallet className="w-4 h-4 text-emerald-600 stroke-[2.2]" />}
@@ -141,7 +141,7 @@ export default function FinancialKpiSection({
         value={formatMoney(currentBalance)}
         suffix={currency}
         isNegative={currentBalance < 0}
-        extra={currentIncome > 0 ? <span className="mt-2 text-xs text-slate-600">{t.adminWidgets.profitMargin} · {isMarginNegative ? '−' : ''}{formattedMargin}%</span> : undefined}
+        extra={currentIncome > 0 ? <span className="mt-1 text-xs text-slate-600">{t.adminWidgets.profitMargin} · {isMarginNegative ? '−' : ''}{formattedMargin}%</span> : undefined}
       />
 
       {/* 5. Taux de recouvrement */}
@@ -151,10 +151,10 @@ export default function FinancialKpiSection({
         title={t.adminWidgets.recoveryRate || "Taux de recouvrement"}
         value={formattedRate}
         extra={
-          <div className="mt-2 w-full">
-            <p className="mb-2 text-xs font-medium text-slate-600">{periodLabel}</p>
-            {recoveryRate !== null ? <progress aria-label={t.adminWidgets.recoveryRate} value={recoveryRate} max={1} className="block h-1.5 w-full accent-blue-700" /> : null}
-            {recoveryRate !== null && <p className="mt-2 text-xs text-slate-600 tabular-nums">
+          <div className="mt-1.5 w-full space-y-1.5">
+            <p className="text-xs font-medium text-slate-600">{periodLabel}</p>
+            {recoveryRate !== null ? <progress aria-label={t.adminWidgets.recoveryRate} value={recoveryRate} max={1} className="block h-1.5 w-full appearance-none overflow-hidden rounded-full bg-slate-100 [&::-moz-progress-bar]:bg-blue-700 [&::-webkit-progress-bar]:bg-slate-100 [&::-webkit-progress-value]:bg-blue-700" /> : null}
+            {recoveryRate !== null && <p className="text-xs leading-snug text-slate-600 tabular-nums">
               {formatMoney(displayCollected)} {currency} {locale === 'fr' ? 'encaissés sur' : locale === 'ar' ? 'محصّلة من' : 'collected of'} {formatMoney(displayTotalDue)} {currency}
             </p>}
           </div>
