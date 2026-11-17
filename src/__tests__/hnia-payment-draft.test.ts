@@ -64,7 +64,7 @@ async function main() {
     assert.deepEqual(ambiguous.followUpSuggestions?.map(value => JSON.parse(value.slice('payment-choice:'.length))[0]), ['Fares fares · 1A', 'Fares fares · 2A']);
     const selected = await runMobileAgent({ adminId: 'admin-test', schoolId: 'school-test', userMessage: 'the one in 1A' });
     assert(selected.pendingConfirmation && !Array.isArray(selected.pendingConfirmation), selected.message);
-    assert.equal(selected.pendingConfirmation.arguments.studentNameOrId, 'student-exact-id');
+    assert.equal(selected.pendingConfirmation.arguments?.studentNameOrId, 'student-exact-id');
     history = [{ role: 'assistant', content: selected.message, toolCallId: 'proposal-test' } as typeof history[number]];
     replace(prisma.aIToolCall, 'findFirst', async ({ where }: any) => {
       assert.equal(where.conversationId, 'conv-test');
@@ -75,11 +75,11 @@ async function main() {
     const updated = await runMobileAgent({ adminId: 'admin-test', schoolId: 'school-test', userMessage: '45 DT' });
     assert(updated.pendingConfirmation && !Array.isArray(updated.pendingConfirmation));
     assert.equal(updated.pendingConfirmation.toolCallId, 'proposal-test');
-    assert.equal(updated.pendingConfirmation.arguments.amount, 45);
+    assert.equal(updated.pendingConfirmation.arguments?.amount, 45);
     const december = await runMobileAgent({ adminId: 'admin-test', schoolId: 'school-test', userMessage: 'same student, but for December' });
     assert(december.pendingConfirmation && !Array.isArray(december.pendingConfirmation), december.message);
     assert.equal(december.pendingConfirmation.toolCallId, 'proposal-test');
-    assert.equal(december.pendingConfirmation.arguments.month, 12);
+    assert.equal(december.pendingConfirmation.arguments?.month, 12);
     assert.equal(writes, 0);
     assert(getMobileDeclarations('Fares fares khalasni lyouma').some(tool => tool.name === 'record_payment'));
     const ghost = await runMobileAgent({ adminId: 'admin-test', schoolId: 'school-test', userMessage: 'Prépare un paiement' });
