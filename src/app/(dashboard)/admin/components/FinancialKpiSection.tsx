@@ -63,9 +63,7 @@ export interface FinancialKpiSectionProps {
   studentCount?: number;
   collectedTuition?: number;
   totalTuitionDue?: number;
-  uncollectedTuition?: number;
-  revenueGap?: number;
-  isCustomRange?: boolean;
+  recoveryPeriod: string;
 }
 
 export default function FinancialKpiSection({
@@ -74,8 +72,7 @@ export default function FinancialKpiSection({
   currentBalance,
   collectedTuition,
   totalTuitionDue,
-  uncollectedTuition,
-  revenueGap = 0,
+  recoveryPeriod,
 }: FinancialKpiSectionProps) {
   const { t, locale } = useLanguage();
   const currency = t.adminWidgets.currency || "TND";
@@ -107,15 +104,14 @@ export default function FinancialKpiSection({
   // Card 5: Collection / Recovery Rate
   const displayCollected = collectedTuition ?? 0;
 
-  const displayTotalDue = (uncollectedTuition !== undefined && uncollectedTuition > 0)
-    ? displayCollected + uncollectedTuition
-    : (totalTuitionDue !== undefined && totalTuitionDue > 0
-        ? Math.max(totalTuitionDue, displayCollected)
-        : (revenueGap > 0 ? displayCollected + revenueGap : displayCollected));
-
-  const recoveryRate = displayTotalDue > 0
-    ? Math.min(100, Math.round((displayCollected / displayTotalDue) * 100))
-    : null;
+  const displayTotalDue = totalTuitionDue ?? 0;
+  const periodLabel = new Intl.DateTimeFormat(locale, {
+    month: 'long', year: 'numeric', timeZone: 'UTC',
+  }).format(new Date(recoveryPeriod));
+  const recoveryRate = displayTotalDue > 0 ? displayCollected / displayTotalDue : null;
+  const formattedRate = recoveryRate === null ? '—' : new Intl.NumberFormat(locale, {
+    style: 'percent', maximumFractionDigits: 1,
+  }).format(recoveryRate);
 
   return (
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -153,13 +149,14 @@ export default function FinancialKpiSection({
         icon={<Activity className="w-4 h-4 text-blue-700" />}
         iconBg="bg-blue-50"
         title={t.adminWidgets.recoveryRate || "Taux de recouvrement"}
-        value={recoveryRate === null ? '—' : `${recoveryRate}%`}
+        value={formattedRate}
         extra={
-          <div className="w-full mt-2">
-            {recoveryRate !== null ? <progress aria-label={t.adminWidgets.recoveryRate} value={recoveryRate} max={100} className="block h-1.5 w-full accent-blue-700" /> : null}
-            <p className="mt-2 text-xs text-slate-600 tabular-nums">
+          <div className="mt-2 w-full">
+            <p className="mb-2 text-xs font-medium text-slate-600">{periodLabel}</p>
+            {recoveryRate !== null ? <progress aria-label={t.adminWidgets.recoveryRate} value={recoveryRate} max={1} className="block h-1.5 w-full accent-blue-700" /> : null}
+            {recoveryRate !== null && <p className="mt-2 text-xs text-slate-600 tabular-nums">
               {formatMoney(displayCollected)} {currency} {locale === 'fr' ? 'encaissés sur' : locale === 'ar' ? 'محصّلة من' : 'collected of'} {formatMoney(displayTotalDue)} {currency}
-            </p>
+            </p>}
           </div>
         }
       />
