@@ -2,7 +2,7 @@ import { preparePaymentAction } from "./paymentActions";
 import { executeFreshSchoolRead, formatSchoolRead, getExactSchoolRead } from "./schoolRead";
 import { buildReadPresentation } from './readPresentation';
 import { buildMobileImageMessage, explicitCurrencyAmounts, getPurchaseDraft } from './purchaseDraft';
-import { getNamedPaymentDraft, PAYMENT_WORDS } from './paymentDraft';
+import { getNamedPaymentDraft, PAYMENT_WORDS, resumePaymentClarification, paymentMonthFollowup } from './paymentDraft';
 import { outputText, outputLanguageInstruction, proposalMessage, claimsUnbackedAction } from './outputLanguage';
 import { prepareExpenseReversal } from './expenseReversal';
 import { prepareConfirmedArguments, freezeMobileActionArguments } from './actionPolicy';
@@ -17,6 +17,8 @@ export { cleanTelegramFormattingForMobile } from "./mobileFormatting";
 export { confirmMobileAction } from "./mobileConfirmation";
 import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from "@google/generative-ai";
 import prisma from "@/lib/prisma";
+import type { Prisma } from '@prisma/client';
+import { isActionExpired } from './actionPolicy';
 import { TOOLS, getGeminiFunctionDeclarations, getPrunedGeminiDeclarations } from "@/lib/telegram/tools";
 import { ToolContext } from "@/lib/telegram/tools/readTools";
 import { buildMobileHniaSystemInstruction } from "./hniaPrompt";
@@ -423,7 +425,7 @@ export async function runMobileAgent(input: MobileAgentInput): Promise<MobileAge
   let conversation: any = conversationLookup;
 
   let conversationId: string;
-  let historyMessages: { role: string; content: string }[] = [];
+  let historyMessages: { role: string; content: string; toolCallId?: string | null }[] = [];
 
   // Format clean user message for DB storage
   let userMessageForDB = originalUserText;
@@ -513,7 +515,59 @@ export async function runMobileAgent(input: MobileAgentInput): Promise<MobileAge
     return { success: true, conversationId, message, pendingConfirmation: card || null, widget: card ? { type: 'action_card', data: card } : null, followUpSuggestions: [] };
   }
 
-  const paymentDraft = await getNamedPaymentDraft(intentMessage, context);
+  const resumedPayment = !input.imageBase64 && !input.refreshReadId
+    ? resumePaymentClarification(intentMessage, historyMessages)
+    : null;
+  const lastReply = historyMessages.at(-1);
+  const amountReply = !input.imageBase64 && !input.refreshReadId &&
+    intentMessage.trim().match(/^(?:actually\s+|finalement\s+)?(\d+(?:[.,]\d{1,3})?)\s*(?:tnd|dt|دينار)?$/iu);
+  const monthReply = !input.imageBase64 && !input.refreshReadId ? paymentMonthFollowup(intentMessage) : null;
+  if ((amountReply || monthReply) && lastReply?.role === 'assistant' && lastReply.toolCallId) {
+    const draft = await prisma.aIToolCall.findFirst({
+      where: { id: lastReply.toolCallId, conversationId, status: 'PENDING', requiresConfirm: true, toolName: 'record_payment' },
+    });
+    if (draft && !isActionExpired(draft.createdAt)) {
+      const previousArgs = draft.arguments as Record<string, any>;
+      const amount = amountReply ? Number(amountReply[1].replace(',', '.')) : previousArgs.amount;
+      let prepared;
+      try {
+        const args = { ...previousArgs };
+        if ((amountReply && amount <= 0) || args.items?.some((item: any) => item.kind !== 'TUITION')) {
+          throw new Error('Use the payment editor to adjust this selection.');
+        }
+        delete args.amount;
+        delete args.items;
+        delete args._paymentVersion;
+        if (monthReply) {
+          const schoolYearStart = args.year - (args.month < 9 ? 1 : 0);
+          args.month = monthReply;
+          args.year = schoolYearStart + (monthReply < 9 ? 1 : 0);
+          if (amount > 0) {
+            const period = `${args.year}-${String(monthReply).padStart(2, '0')}`;
+            args.items = [{ kind: 'TUITION', period, amount }];
+          }
+        } else {
+          args.amount = amount;
+        }
+        prepared = await preparePaymentAction(draft.toolName, args, context);
+      } catch {
+        // Return the existing card so the admin can choose months or correct the amount.
+      }
+      const changed = prepared && await prisma.aIToolCall.updateMany({
+        where: { id: draft.id, conversationId, status: 'PENDING', arguments: { equals: draft.arguments as Prisma.InputJsonValue } },
+        data: { arguments: prepared.args, result: { proposalDisplay: JSON.parse(JSON.stringify(prepared.display)) } },
+      });
+      const message = changed?.count
+        ? proposalMessage(input.language, prepared?.args.amount === undefined)
+        : outputText(input.language, 'Vérifiez le montant et les mois dans la carte de paiement.', 'Check the amount and months in the payment card.', 'تحقق من المبلغ والأشهر في بطاقة الدفع.');
+      const card = changed?.count && prepared
+        ? buildActionCardMetadata(draft.id, draft.toolName, prepared.args, message, prepared.display)
+        : null;
+      await prisma.aIMessage.create({ data: { conversationId, role: 'assistant', content: message, toolCallId: draft.id } });
+      return { success: true, conversationId, message, pendingConfirmation: card, widget: card ? { type: 'action_card', data: card } : null, followUpSuggestions: [] };
+    }
+  }
+  const paymentDraft = await getNamedPaymentDraft(resumedPayment || intentMessage, context);
   if (paymentDraft) {
     let message = paymentDraft.clarification;
     let card: ActionCardData | undefined;
@@ -529,7 +583,7 @@ export async function runMobileAgent(input: MobileAgentInput): Promise<MobileAge
     }
     message ||= proposalMessage(input.language, true);
     await prisma.aIMessage.create({ data: { conversationId, role: 'assistant', content: message, ...(card ? { toolCallId: card.toolCallId } : {}) } });
-    return { success: true, conversationId, message, transcription, pendingConfirmation: card || null, widget: card ? { type: 'action_card', data: card } : null, followUpSuggestions: [] };
+    return { success: true, conversationId, message, transcription, pendingConfirmation: card || null, widget: card ? { type: 'action_card', data: card } : null, followUpSuggestions: paymentDraft.suggestions || [] };
   }
 
   // Resolve explicit purchases before general chat/history can select an unrelated read.
@@ -585,14 +639,15 @@ export async function runMobileAgent(input: MobileAgentInput): Promise<MobileAge
     }
   }
   const verifying = isVerificationFollowup(intentMessage);
-  if (!input.refreshReadId && (verifying || isNextPage(intentMessage))) {
+  const nextPage = isNextPage(intentMessage);
+  if (!input.refreshReadId && (verifying || nextPage)) {
     const previous = await prisma.aIToolCall.findFirst({
-      where: { conversationId, status: "EXECUTED", requiresConfirm: false, toolName: { in: [...READ_ONLY_ACTIONS] } },
+      where: { conversationId, status: "EXECUTED", requiresConfirm: false, toolName: { in: [...READ_ONLY_ACTIONS] }, ...(nextPage ? { id: lastReply?.toolCallId || '' } : {}) },
       orderBy: { createdAt: "desc" },
     });
     if (previous) {
       const args = { ...((previous.arguments as Record<string, any>) || {}) };
-      if (isNextPage(intentMessage)) {
+      if (nextPage) {
         const result = previous.result as any;
         if (result?.nextOffset === null || result?.hasMore === false) {
           const message = "La liste vérifiée est déjà complète pour ce filtre. Dites-moi si vous souhaitez consulter une autre classe.";
@@ -600,11 +655,17 @@ export async function runMobileAgent(input: MobileAgentInput): Promise<MobileAge
           return { success: true, conversationId, message };
         }
         if (typeof result?.nextOffset === "number") args.offset = result.nextOffset;
-        else exactRead = null;
+        else {
+          const message = outputText(input.language, 'Ce résultat n’a pas de page suivante.', 'This result has no next page.', 'لا توجد صفحة تالية لهذه النتيجة.');
+          await prisma.aIMessage.create({ data: { conversationId, role: "assistant", content: message, toolCallId: previous.id } });
+          return { success: true, conversationId, message };
+        }
       }
       if (verifying || typeof (previous.result as any)?.nextOffset === "number") exactRead = { name: previous.toolName, args };
-    } else if (verifying) {
-      const message = "Je n'ai pas de consultation vérifiable à reprendre dans cette discussion. Précisez la classe ou les données à vérifier, par exemple « élèves de la classe 1A ».";
+    } else {
+      const message = nextPage
+        ? outputText(input.language, 'Quelle liste souhaitez-vous continuer ?', 'Which list would you like to continue?', 'أي قائمة تريد متابعتها؟')
+        : "Je n'ai pas de consultation vérifiable à reprendre dans cette discussion. Précisez la classe ou les données à vérifier, par exemple « élèves de la classe 1A ».";
       await prisma.aIMessage.create({ data: { conversationId, role: "assistant", content: message } });
       return { success: true, conversationId, message };
     }

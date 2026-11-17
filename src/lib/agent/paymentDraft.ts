@@ -11,9 +11,36 @@ const NAMED_PAYMENT = new RegExp(
   'iu',
 );
 
+export function resumePaymentClarification(
+  reply: string,
+  history: { role: string; content: string }[],
+): string | null {
+  const [request, response] = history.slice(-2);
+  if (request?.role !== 'user' || response?.role !== 'assistant' ||
+      !/^(Plusieurs personnes correspondent|Several people match|توجد عدة نتائج مطابقة)/u.test(response.content)) return null;
+  const previous = request.content.match(NAMED_PAYMENT);
+  const selectedClass = reply.trim().match(/^(?:(?:the one|celui|celle)\s+)?(?:(?:in|en)\s+)?(?:class(?:e)?\s+)?(\d{1,2}[a-z])\s*[.!]?$/i);
+  if (!previous || !selectedClass || /^(?:parent|weli|ولي)\s/i.test(previous[1])) return null;
+  return `${previous[1]} classe ${selectedClass[1]} ${previous[2]}${previous[3]}`;
+}
+
+export function paymentMonthFollowup(reply: string): number | null {
+  const match = reply.trim().match(/^(?:same student,?\s+(?:but\s+)?for|même élève,?\s+(?:mais\s+)?pour)\s+([\p{L}]+)[.!]?$/iu);
+  if (!match) return null;
+  const monthName = match[1].toLowerCase();
+  for (const locale of ['en', 'fr']) {
+    const formatter = new Intl.DateTimeFormat(locale, { month: 'long', timeZone: 'UTC' });
+    for (let month = 1; month <= 12; month++) {
+      if (formatter.format(new Date(Date.UTC(2026, month - 1))).toLowerCase() === monthName) return month;
+    }
+  }
+  return null;
+}
+
 /** A named payment statement becomes a real proposal, never a narrative claim or an inferred price. */
 export async function getNamedPaymentDraft(message: string, context: ToolContext): Promise<{
   toolName?: 'record_payment' | 'record_parent_payment'; args?: Record<string, any>; beneficiary?: string; clarification?: string;
+  suggestions?: string[];
 } | null> {
   if (/[?؟]\s*$/.test(message) || /^\s*(?:who|which|how|has |did |combien|qui |quels|quelles|montre|liste|affiche|هل|من |شكون)/i.test(message)) return null;
   const match = message.match(NAMED_PAYMENT);
@@ -42,7 +69,7 @@ export async function getNamedPaymentDraft(message: string, context: ToolContext
       where: {
         schoolId: context.schoolId,
         OR: [...conditions, { nationalId: query }],
-        ...(className ? { class: { name: { equals: className, mode: 'insensitive' } } } : {}),
+        ...(className ? { class: { schoolId: context.schoolId, name: { equals: className, mode: 'insensitive' } } } : {}),
       },
       select: { ...select, class: { select: { name: true } } },
       take: 3,
@@ -50,7 +77,17 @@ export async function getNamedPaymentDraft(message: string, context: ToolContext
     requestedRole === 'student' || className ? [] : prisma.parent.findMany({ where: { schoolId: context.schoolId, OR: conditions }, select, take: 3 }),
   ]);
   const candidates = [...students.map(student => ({ ...student, role: 'student' })), ...parents.map(parent => ({ ...parent, role: 'parent' }))];
-  if (candidates.length !== 1) return { clarification: candidates.length
+  const choices = candidates.map(person => {
+    const name = `${person.name} ${person.surname}`.trim().replace(/\s+/g, ' ');
+    const group = 'class' in person ? (person.class as { name: string } | null)?.name : undefined;
+    const label = person.role === 'parent' ? `${name} · Parent` : group ? `${name} · ${group}` : name;
+    const target = person.role === 'parent' ? `Parent ${name}` : `Élève ${name}${group ? ` classe ${group}` : ''}`;
+    return { label, target };
+  });
+  if (candidates.length !== 1) return { suggestions: choices
+    .filter(choice => choices.filter(other => other.target.toLowerCase() === choice.target.toLowerCase()).length === 1)
+    .map(({ label, target }) => `payment-choice:${JSON.stringify([label, `${target} ${match[2]}${match[3]}`])}`),
+    clarification: candidates.length
     ? outputText(context.language, 'Plusieurs personnes correspondent. Reformulez par exemple : « Élève Prénom Nom classe 1A a payé 50 DT » ou « Parent Prénom Nom a payé 50 DT ». Si le nom reste ambigu, utilisez l’identifiant exact.', 'Several people match. Try “Student First Last class 1A paid 50 TND” or “Parent First Last paid 50 TND”. If the name is still ambiguous, use the exact identifier.', 'توجد عدة نتائج مطابقة. أعد كتابة الطلب مع تحديد «تلميذ» أو «ولي» قبل الاسم الكامل، وأضف معرّف الشخص عند الحاجة.')
     : outputText(context.language, 'Aucun élève ou parent ne correspond à ce nom exact dans votre école. Précisez son nom complet ou son identifiant.', 'No student or parent matches that exact name in your school. Provide the full name or identifier.', 'لم يُعثر على تلميذ أو ولي مطابق لهذا الاسم في مدرستكم. يرجى ذكر الاسم الكامل أو المعرّف.') };
   const person = candidates[0]; const period = schoolMonth();

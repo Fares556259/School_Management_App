@@ -27,7 +27,7 @@ export function isVerificationFollowup(message: string) {
   return /^(?:u sure|are you sure|you sure|tu es s[uû]r(?:e)?|t'es s[uû]r(?:e)?|s[uû]r(?:e)?|v[ée]rifie(?: encore)?|recheck|confirm the list|c'est tout|that's all|khw hedhou?m(?: eli ya[9q]raw)?|khw hedhom eli ya9raw|متأكد|متاك[دذ]|هاذم الكل)[\s?!.]*$/i.test(message.trim());
 }
 export function isNextPage(message: string) {
-  return /^(?:la suite|suite|suivant(?:e)?|page suivante|next(?: page)?|continue la liste|كمل|البقية)[\s?!.]*$/i.test(message.trim());
+  return /^(?:la suite|suite|suivant(?:e)?|page suivante|next(?: page)?|continue la liste|show me the rest|montre-moi la suite|كمل|البقية)[\s?!.]*$/i.test(message.trim());
 }
 export function needsFreshSchoolData(message: string) {
   if (/^(?:who are you|what(?:'s| is) your name|qui es[- ]tu|chnwa esm(?:e)?k(?: enti)?)[\s?!.]*$/i.test(message.trim())) return false;
