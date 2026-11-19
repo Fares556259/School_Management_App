@@ -24,49 +24,15 @@ export const extractionSchema = z.object({
 export type Extraction = z.infer<typeof extractionSchema>;
 export type PdfRow = Extraction["rows"][number];
 
-export const auditSchema = z.object({
-  sourceSha256: z.string(), page: z.number().int().positive(),
-  checks: z.array(z.object({
-    rowId: z.string(), field: z.enum(fields), status: z.enum(["match", "mismatch", "uncertain"]),
-    reason: z.string().max(1000),
-  }).strict()).max(1000),
-}).strict();
-export type PageAudit = z.infer<typeof auditSchema>;
-
-/** A partial, duplicated, invented, or wrong-document audit is never a pass. */
-export function validateAudit(value: unknown, extraction: Extraction, page: number): PageAudit {
-  const audit = auditSchema.parse(value);
-  if (audit.sourceSha256 !== extraction.sourceSha256 || audit.page !== page) throw new Error("Audit source mismatch");
-  const expected = new Set(extraction.rows.filter(r => r.page === page).flatMap(r => fields.map(f => `${r.id}:${f}`)));
-  if (!expected.size) throw new Error("No rows to audit");
-  for (const check of audit.checks) {
-    if (!expected.delete(`${check.rowId}:${check.field}`)) throw new Error("Unexpected or duplicate audit cell");
-  }
-  if (expected.size) throw new Error("Incomplete audit coverage");
-  return audit;
-}
-
-/** Review status only. This module deliberately exposes no database payload or commit permission. */
-export function reviewSummary(extraction: Extraction, audits: PageAudit[], expectedCount: number | null) {
-  const issues = [...extraction.issues, ...extraction.rows.flatMap(r => r.issues)];
-  const verifiedCells = extraction.rows.every(r => fields.every(f => r.cells[f].verified));
-  const pages = [...new Set(extraction.rows.map(r => r.page))];
-  let auditedPages = 0;
-  let discrepancies = 0;
-  for (const page of pages) {
-    const matching = audits.filter(a => a.page === page);
-    if (matching.length !== 1) continue;
-    try {
-      const audit = validateAudit(matching[0], extraction, page);
-      auditedPages++;
-      discrepancies += audit.checks.filter(c => c.status !== "match").length;
-    } catch { /* Invalid audit remains pending. */ }
-  }
+/** Extraction status only: manual verification happens outside the importer. */
+export function reviewSummary(extraction: Extraction, expectedCount: number | null) {
+  const issueCount = extraction.issues.length + extraction.rows.reduce((sum, row) => sum + row.issues.length, 0);
   return {
-    issueCount: issues.length, auditedPages, totalPages: pages.length, discrepancies,
+    issueCount,
+    totalPages: extraction.pageCount,
     countMatches: expectedCount !== null && expectedCount === extraction.rows.length,
-    reviewComplete: issues.length === 0 && verifiedCells && extraction.rows.length > 0 &&
-      expectedCount === extraction.rows.length && auditedPages === pages.length && discrepancies === 0,
+    extractionValid: issueCount === 0 && extraction.rows.length > 0 && extraction.rows.every(row => fields.every(field => row.cells[field].verified)),
+    manualReviewRequired: true as const,
     canCommit: false as const,
   };
 }

@@ -1,6 +1,6 @@
 # Strict PDF staging importer
 
-Open Students → Importer → PDF — extraction stricte et revue. Upload the register, extract, reconcile the expected count, run the AI audit and export the review dossier. Source page links open the local PDF. No PDF is uploaded to public storage. Closing the modal discards its in-memory staging state; export the dossier to retain it.
+Open Students → Importer → PDF — extraction stricte et revue. Upload the register, extract, reconcile the expected count, export the review dossier and compare it manually with the source PDF. Source page links open the local PDF. No PDF is uploaded to public storage. Closing the modal discards its in-memory staging state; export the dossier to retain it.
 
 ## Runtime
 
@@ -8,7 +8,7 @@ Vercel builds `api/student_pdf.py` with the root `requirements.txt`. The authent
 
 ## Safety boundaries
 
-Coordinates are fixed to the inspected landscape Tunisian register. Page rotation is applied when selecting characters. Original Unicode, presentation forms and diacritics remain unchanged; registration date is ignored. Missing/invalid cells, duplicate identifiers, changed layouts, count mismatch and incomplete AI coverage block review completion. AI receives rendered page images and extracted cells solely for comparison; it cannot alter extraction. Audit responses must reference the same document hash and cover every cell exactly once. Audit can resume after a failed page. Its use consumes the existing administrator AI quota.
+Coordinates are fixed to the inspected landscape Tunisian register. Page rotation is applied when selecting characters. Original Unicode, presentation forms and diacritics remain unchanged; registration date is ignored. Missing/invalid cells, duplicate identifiers, changed layouts and count mismatch are surfaced for review. The importer makes no AI calls. Exports identify the review mode as manual and never claim completed verification. Use the original PDF and exported JSON for external comparison.
 
 The screen is staging-only and has no commit endpoint. Birth dates, address and blood type required by the current Student schema are absent from this register. These must be resolved before any future transactional import. Guardian names are kept whole rather than guessing their split. Exact class assignment is a separate workflow.
 
