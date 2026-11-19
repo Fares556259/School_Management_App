@@ -10,7 +10,9 @@ Vercel builds `api/student_pdf.py` with the root `requirements.txt`. The authent
 
 Coordinates are fixed to the inspected landscape Tunisian register. Page rotation is applied when selecting characters. Original Unicode, presentation forms and diacritics remain unchanged; registration date is ignored. Missing/invalid cells, duplicate identifiers, changed layouts and count mismatch are surfaced for review. The importer makes no AI calls. Exports identify the review mode as manual and never claim completed verification. Use the original PDF and exported JSON for external comparison.
 
-The screen is staging-only and has no commit endpoint. Birth dates, address and blood type required by the current Student schema are absent from this register. These must be resolved before any future transactional import. Guardian names are kept whole rather than guessing their split. Exact class assignment is a separate workflow.
+The Create students and guardians action requires the expected count, explicit review confirmation, and real birth dates supplied per student or via a JSON identifier-to-date file. The server re-extracts the source PDF and validates everything again. Empty address and blood type remain empty strings; dates are never fabricated. Existing school levels (including preparatory grade 0) must exist before import. Class assignment remains separate.
+
+One serializable transaction locks student identifiers and PDF parent imports, creates or reuses guardians by exact phone and full source name, links all matching siblings to the same parent ID, and creates students. Guardian conflicts and existing student differences abort the transaction. Matching reimports skip existing students. New guardians remain PENDING without passwords. Every created record is read back and checked before commit. No production import was executed during implementation.
 
 ## Checks
 
