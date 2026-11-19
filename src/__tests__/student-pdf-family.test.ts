@@ -8,7 +8,7 @@ const result=preparePdfImport(extraction,dates);
 assert.equal(result.parents.size,1);
 assert.equal(result.students.length,2);
 assert.equal(result.students[0].grade,0);
-assert.throws(()=>preparePdfImport(extraction,{}),/naissance/);
+assert.equal(preparePdfImport(extraction,{}).students[0].birthday,null);
 assert.throws(()=>preparePdfImport(extraction,{...dates,"000000000001":"2020-02-31"}),/naissance/);
 const conflict=structuredClone(extraction);conflict.rows[1].cells.guardianName.text="Autre responsable";
 assert.throws(()=>preparePdfImport(conflict,dates),/plusieurs noms/);

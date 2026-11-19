@@ -64,7 +64,7 @@ model Student {
   createdAt     DateTime       @default(now())
   parentId      String?
   classId       Int?
-  birthday      DateTime
+  birthday      DateTime?
   levelId       Int
   customTuition Float?
   tuitionOverrides Json?

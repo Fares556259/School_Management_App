@@ -17,7 +17,7 @@ interface StudentDetailsModalProps {
     phone: string | null;
     address: string;
     img: string | null;
-    birthday: Date | string;
+    birthday: Date | string | null;
     sex: "MALE" | "FEMALE";
     bloodType: string;
     createdAt: Date | string;
@@ -45,7 +45,8 @@ export default function StudentDetailsModal({
   const [open, setOpen] = useState(false);
 
   // Date Formatting Helper
-  const formatDate = (dateVal: Date | string) => {
+  const formatDate = (dateVal: Date | string | null) => {
+    if (!dateVal) return "—";
     try {
       const d = new Date(dateVal);
       return new Intl.DateTimeFormat("en-GB").format(d);

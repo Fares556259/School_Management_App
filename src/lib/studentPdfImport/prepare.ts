@@ -8,7 +8,7 @@ const grades: Record<string, number> = {
 };
 /** Only labels are normalized for exact lookup; original names remain untouched. */
 const label = (text: string) => text.normalize("NFKC").replace(/\s+/g, " ").trim();
-export function preparePdfImport(extraction: Extraction, birthdays: Record<string, string>) {
+export function preparePdfImport(extraction: Extraction, birthdays: Record<string, string> = {}) {
   if (extraction.issues.length || !extraction.rows.length) throw new Error("Le PDF contient des anomalies à résoudre.");
   const parents = new Map<string, string>();
   const ids = new Set<string>();
@@ -27,7 +27,7 @@ export function preparePdfImport(extraction: Extraction, birthdays: Record<strin
     if (grade === undefined || !sex) throw new Error(`Niveau ou sexe non reconnu : ${row.id}`);
     const date = birthdays[raw.nationalId];
     const birthday = date && /^\d{4}-\d{2}-\d{2}$/.test(date) ? new Date(`${date}T00:00:00.000Z`) : null;
-    if (!birthday || !Number.isFinite(birthday.getTime()) || birthday.toISOString().slice(0,10) !== date || birthday > new Date()) throw new Error(`Date de naissance requise ou invalide pour ${raw.nationalId}.`);
+    if (date && (!birthday || !Number.isFinite(birthday.getTime()) || birthday.toISOString().slice(0,10) !== date || birthday > new Date())) throw new Error(`Date de naissance requise ou invalide pour ${raw.nationalId}.`);
     return { ...raw, grade, sex, birthday };
   });
   return { students, parents };
