@@ -15,6 +15,7 @@ export default function StrictPdfImport() {
   async function extract(){setAudits([]);if(!file)return;setBusy(true);setError("");setData(null);try{const form=new FormData();form.append("file",file);const res=await fetch("/api/admin/student-pdf-import",{method:"POST",body:form});const json=await readResponse(res);if(!res.ok)throw new Error(json.error);setData(extractionSchema.parse(json.extraction));}catch(e){setError(e instanceof Error?e.message:"Extraction échouée");}finally{setBusy(false);}}
   function download(){if(!data)return;const blob=new Blob([JSON.stringify({extraction:data,expectedCount:count?Number(count):null,audits,summary:reviewSummary(data,audits,count?Number(count):null)},null,2)],{type:"application/json"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download="student-pdf-staging.json";a.click();URL.revokeObjectURL(url);}
   async function readResponse(res: Response) {
+    if (res.status === 504 || res.status === 502) throw new Error("La vérification a pris trop de temps. Relancez-la pour reprendre aux pages restantes ; les pages déjà vérifiées sont conservées.");
     if (res.redirected || !res.headers.get("content-type")?.includes("application/json")) throw new Error("Le service n’a pas répondu. Actualisez la page et réessayez. Si votre session a expiré, reconnectez-vous.");
     return res.json();
   }
