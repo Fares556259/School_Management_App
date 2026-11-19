@@ -1,0 +1,11 @@
+import assert from "node:assert/strict";
+import { matchClassRoster } from "../lib/classRoster";
+const students=[{id:"a",name:"أحمد",surname:"تجربة",nationalId:"001234567890",classId:null,level:{level:1}},{id:"b",name:"آدم",surname:"تجربة",nationalId:"001234567891",classId:9,level:{level:1}}];
+assert.equal(matchClassRoster("001234567890 أحمد",students,1,1)[0].student?.id,"a");
+assert.equal(matchClassRoster("أحمد تجربة",students,1,1)[0].student?.id,"a");
+assert.equal(matchClassRoster("001234567891",students,1,1)[0].error,"Déjà affecté à une autre classe");
+assert.equal(matchClassRoster("001234567890",students,1,0)[0].error,"Niveau différent de la classe");
+assert.equal(matchClassRoster("001234567890\n001234567890",students,1,1)[1].error,"Élève répété dans la liste");
+assert.equal(matchClassRoster("أحمد تجرب",students,1,1)[0].error,"Introuvable");
+assert.equal(matchClassRoster("أحمد تجربة",[...students,{...students[0],id:"c"}],1,1)[0].error,"Plusieurs élèves correspondent");
+console.log("Class roster matching checks passed");

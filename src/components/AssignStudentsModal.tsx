@@ -1,5 +1,6 @@
 "use client";
 
+import ClassRosterImport from "./ClassRosterImport";
 import { useState, useTransition, useMemo, useEffect } from "react";
 import {
   Users,
@@ -237,6 +238,7 @@ export default function AssignStudentsModal({
                 </button>
               </div>
 
+              <div className="px-6 pt-4"><ClassRosterImport classId={classId} className={className} onAssigned={()=>{setOpen(false);router.refresh();}} /></div>
               {/* TABS & LEVEL SCOPE TOGGLE */}
               <div className="px-6 pt-4 pb-2 border-b border-slate-200 bg-white flex flex-col gap-3">
                 <div className="flex items-center justify-between flex-wrap gap-2">
