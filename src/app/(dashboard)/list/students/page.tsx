@@ -141,7 +141,7 @@ const StudentListPage = async (
     ]);
 
   // 2. Dynamic paginated student data & month payment summaries (TTL: 5 min / 300s)
-  const fetchDynamicData = () =>
+  const fetchDynamicData = (includeServices = true) =>
     Promise.all([
       prisma.student.findMany({
         where: query,
@@ -152,10 +152,7 @@ const StudentListPage = async (
           payments: {
             select: { id: true, amount: true, month: true, year: true, status: true, paidAt: true, deferredAmount: true },
           },
-          serviceAssignments: {
-            where: { active: true },
-            select: { kind: true },
-          },
+          ...(includeServices ? { serviceAssignments: { where: { active: true }, select: { kind: true } } } : {}),
         },
       }),
       prisma.student.count({ where: query }),
@@ -225,12 +222,13 @@ const StudentListPage = async (
     try {
       const [fallbackStatic, fallbackDynamic] = await Promise.all([
         fetchStaticReferences(),
-        fetchDynamicData(),
+        fetchDynamicData(false),
       ]);
       [parents, classes, levels, admin, school, institution] = fallbackStatic;
       [data, count, summaryTotal, summaryPaid, summaryPartial] = fallbackDynamic;
     } catch (dbErr) {
       console.error("[StudentListPage] Direct DB fallback also failed:", dbErr);
+      throw new Error("Impossible de charger les élèves. La base de données nécessite une mise à jour. Les données existantes sont conservées.");
     }
   }
 
