@@ -148,12 +148,13 @@ async function unifiedAIRouter(params: {
   fileBase64?: string;
   fileMimeType?: string;
   jsonMode?: boolean;
+  pdfAudit?: boolean;
 }) {
   const primaryKey = process.env.OPENROUTER_API_KEY;
   const secondaryKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
 
-  const MAX_RETRIES = 2;
-  const TIMEOUT_MS = 30000; // 30s timeout
+  const MAX_RETRIES = params.pdfAudit ? 0 : 2;
+  const TIMEOUT_MS = params.pdfAudit ? 90000 : 30000;
 
   async function callWithTimeout(promise: Promise<any>, timeoutMs: number) {
     let timeoutId: any;
@@ -305,6 +306,13 @@ async function unifiedAIRouter(params: {
     }
   }
   throw lastErr;
+}
+
+/** PDF comparisons need more time than short chat responses; stay within the route budget. */
+export async function auditStudentPdfPage(prompt: string, imageBase64: string) {
+  const usage = await checkAndIncrementUsage();
+  if (!usage.allowed) throw new Error(`DAILY_QUOTA_REACHED|${usage.quota}`);
+  return unifiedAIRouter({ userPrompt: prompt, fileBase64: imageBase64, fileMimeType: "image/png", jsonMode: true, pdfAudit: true });
 }
 
 export async function callGeminiDirect(prompt: string, fileBase64?: string, fileMimeType?: string) {
