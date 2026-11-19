@@ -10,7 +10,7 @@ export async function processClassRoster(classId:number,text:string,expectedCoun
   const schoolId=await getStudentAdminSchool();
   if(!Number.isInteger(classId)||typeof text!=="string"||text.length>100000)throw new Error("Liste invalide.");
   return await prisma.$transaction(async(tx:Prisma.TransactionClient)=>{
-   if(commit)await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext('class-roster'), ${classId})`;
+   if(commit)await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext('class-roster'), ${classId}::integer)`;
    const target=await tx.class.findFirst({where:{id:classId,schoolId},select:{id:true,levelId:true,level:{select:{level:true}},capacity:true}});
    if(!target)throw new Error("Classe introuvable.");
    const students=await tx.student.findMany({where:{schoolId},select:{id:true,name:true,surname:true,nationalId:true,classId:true,level:{select:{level:true}}}});
