@@ -11,7 +11,7 @@ import { compressImage } from "@/lib/imageCompression";
 
 export default function BulkStudentImport({ onClose }: { onClose: () => void }) {
   const [step, setStep] = useState<"input" | "parsing" | "review" | "success">("input");
-  const [importMode, setImportMode] = useState<"excel" | "text" | "image">("excel");
+  const [importMode, setImportMode] = useState<"pdf" | "excel" | "text" | "image">("pdf");
   const [selectedLevel, setSelectedLevel] = useState<number>(1);
   const [excelFile, setExcelFile] = useState<File | null>(null);
   const [rawText, setRawText] = useState("");
@@ -115,8 +115,8 @@ export default function BulkStudentImport({ onClose }: { onClose: () => void }) 
               <Sparkles size={18} />
             </div>
             <div>
-              <h2 className="text-[17px] font-bold text-[#181d26]">{t.students.modal.title}</h2>
-              <p className="text-[13px] text-indigo-600/80 font-medium">{t.students.modal.subtitle}</p>
+              <h2 className="text-[17px] font-bold text-[#181d26]">Importer des élèves</h2>
+              <p className="text-[13px] text-indigo-600/80 font-medium">Choisissez votre fichier, puis vérifiez les informations extraites.</p>
             </div>
           </div>
           <button onClick={onClose} className="p-2.5 hover:bg-indigo-100/50 rounded-[8px] text-indigo-900/40 hover:text-indigo-600 transition-colors">
@@ -128,9 +128,9 @@ export default function BulkStudentImport({ onClose }: { onClose: () => void }) 
         <div className="flex-1 overflow-auto p-6 bg-slate-50/30">
           {step === "input" && (
             <div className="flex flex-col gap-6">
-              <StrictPdfImport />
               {/* MODE TOGGLE */}
               <div className="flex p-1.5 bg-slate-100/80 rounded-[10px] w-fit border border-slate-200/60 shadow-inner flex-wrap gap-1">
+                <button type="button" onClick={() => { setImportMode("pdf"); setError(null); }} className={`flex items-center gap-2 px-4 py-2 rounded-[8px] text-[13px] font-semibold transition-all ${importMode === "pdf" ? "bg-white text-indigo-700 shadow-sm" : "text-slate-500 hover:text-indigo-600"}`}><FileText size={16} />Registre PDF</button>
                 <button
                   onClick={() => {
                     setImportMode("excel");
@@ -170,6 +170,7 @@ export default function BulkStudentImport({ onClose }: { onClose: () => void }) 
                 </button>
               </div>
 
+              {importMode === "pdf" && <StrictPdfImport />}
               {/* EXCEL MODE */}
               {importMode === "excel" && (
                 <div className="flex flex-col gap-3">
@@ -234,7 +235,7 @@ export default function BulkStudentImport({ onClose }: { onClose: () => void }) 
               )}
 
               {/* NON-EXCEL LEVEL SELECTOR */}
-              {importMode !== "excel" && (
+              {importMode !== "excel" && importMode !== "pdf" && (
                 <>
                   <div className="bg-indigo-50/80 border border-indigo-100 p-4 rounded-[10px] flex items-start gap-3 shadow-sm">
                     <AlertCircle size={18} className="text-indigo-500 mt-0.5 shrink-0" />
@@ -392,7 +393,7 @@ export default function BulkStudentImport({ onClose }: { onClose: () => void }) 
                 </div>
               )}
 
-              <div className="flex justify-end pt-5 border-t border-slate-200 mt-2">
+              {importMode !== "pdf" && <div className="flex justify-end pt-5 border-t border-slate-200 mt-2">
                 <button
                   onClick={handleParse}
                   disabled={
@@ -420,7 +421,7 @@ export default function BulkStudentImport({ onClose }: { onClose: () => void }) 
                     </>
                   )}
                 </button>
-              </div>
+              </div>}
             </div>
           )}
 

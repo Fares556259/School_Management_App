@@ -53,7 +53,7 @@ export async function middleware(request: NextRequest) {
   if (pathname === "/api/student_pdf") return NextResponse.next({ request });
   // These APIs verify the Supabase user or mobile token and active admin membership themselves.
   // A second auth lookup here can time out and redirect a valid POST to /sign-in.
-  if (pathname === '/api/admin/parent-access' || pathname === '/api/admin/student-charges') return NextResponse.next({ request });
+  if (pathname === '/api/admin/student-pdf-import' || pathname === '/api/admin/parent-access' || pathname === '/api/admin/student-charges') return NextResponse.next({ request });
   // Mobile routes authenticate their own Bearer tokens; a web-cookie lookup
   // adds an unrelated network round trip to every phone request.
   // Public documents also need no session lookup or token rotation.
