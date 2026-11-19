@@ -9,7 +9,7 @@ export async function extractStudentPdf(pdf: Buffer) {
 export async function renderStudentPdfPage(pdf: Buffer, page: number) { return (await runPdf(pdf, page)).trim(); }
 async function runPdf(pdf: Buffer, page?: number) {
   if (process.env.VERCEL) {
-    const host = process.env.VERCEL_URL;
+    const host = process.env.VERCEL_ENV === "production" ? "www.snapschool.academy" : process.env.VERCEL_URL;
     const secret = process.env.JWT_SECRET;
     if (!host || !secret) throw new Error("Le service PDF est temporairement indisponible.");
     const stamp = String(Math.floor(Date.now() / 1000));
@@ -19,7 +19,7 @@ async function runPdf(pdf: Buffer, page?: number) {
     const headers: Record<string, string> = { "Content-Type": "application/pdf", "X-Pdf-Time": stamp, "X-Pdf-Page": pageValue, "X-Pdf-Signature": signature };
     if (process.env.VERCEL_AUTOMATION_BYPASS_SECRET) headers["x-vercel-protection-bypass"] = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
     const response = await fetch(`https://${host}/api/student_pdf`, { method: "POST", headers, body: new Uint8Array(pdf), signal: AbortSignal.timeout(55000), cache: "no-store" });
-    if (!response.ok) throw new Error("Le service PDF est temporairement indisponible. Aucun élève enregistré.");
+    if (!response.ok || !response.headers.get("content-type")?.includes("application/json")) throw new Error("Le service PDF est temporairement indisponible. Aucun élève enregistré.");
     const result = await response.json();
     return page ? result.image : JSON.stringify(result.extraction);
   }
