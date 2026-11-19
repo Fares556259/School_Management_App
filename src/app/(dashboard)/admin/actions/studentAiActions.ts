@@ -95,6 +95,9 @@ export async function parseStudentsFromImage(imageUrl: string) {
   try {
     const res = await fetch(imageUrl);
     if (!res.ok) throw new Error("Failed to fetch image from storage.");
+    if ((res.headers.get("content-type") || "").includes("pdf") || /\.pdf(?:[?#]|$)/i.test(imageUrl)) {
+      return { error: "Utilisez l’extraction PDF stricte dans l’importateur." };
+    }
     
     const arrayBuffer = await res.arrayBuffer();
     const base64Str = Buffer.from(arrayBuffer).toString('base64');

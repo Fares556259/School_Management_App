@@ -6,6 +6,7 @@ import { bulkCreateStudents } from "@/lib/crudActions";
 import { X, Check, Loader2, AlertCircle, Sparkles, FileText, UserPlus, Image as ImageIcon, Type, UploadCloud, FileSpreadsheet } from "lucide-react";
 import Image from "next/image";
 import { useLanguage } from "@/lib/translations/LanguageContext";
+import StrictPdfImport from "./StrictPdfImport";
 import { compressImage } from "@/lib/imageCompression";
 
 export default function BulkStudentImport({ onClose }: { onClose: () => void }) {
@@ -127,6 +128,7 @@ export default function BulkStudentImport({ onClose }: { onClose: () => void }) 
         <div className="flex-1 overflow-auto p-6 bg-slate-50/30">
           {step === "input" && (
             <div className="flex flex-col gap-6">
+              <StrictPdfImport />
               {/* MODE TOGGLE */}
               <div className="flex p-1.5 bg-slate-100/80 rounded-[10px] w-fit border border-slate-200/60 shadow-inner flex-wrap gap-1">
                 <button
@@ -334,10 +336,11 @@ export default function BulkStudentImport({ onClose }: { onClose: () => void }) 
                           type="file"
                           id="bulk-import-upload"
                           className="hidden"
-                          accept="image/*,.pdf"
+                          accept="image/*"
                           onChange={async (e) => {
                             const file = e.target.files?.[0];
                             if (!file) return;
+                            if (file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")) { setError("Utilisez l’extraction PDF stricte ci-dessus."); return; }
                             
                             try {
                               const optimizedFile = await compressImage(file, {
