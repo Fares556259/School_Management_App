@@ -23,6 +23,10 @@ export async function POST(request: NextRequest) {
     }
     return NextResponse.json({ extraction }, { headers: { "Cache-Control": "private, no-store" } });
   } catch (error) {
+    // Log schema metadata only, never PDF contents or student/guardian values.
+    if (error && typeof error === "object" && "code" in error && (error.code === "P2022" || error.code === "P2021")) {
+      console.error("[PDF_IMPORT_SCHEMA]", { code: error.code, meta: "meta" in error ? error.meta : undefined });
+    }
     const rawMessage = error instanceof Error ? error.message : "Extraction failed";
     const message = /column.*does not exist|Null constraint violation.*birthday/i.test(rawMessage)
       ? "La base de données doit être mise à jour avant l’import. Aucun élève ni responsable n’a été créé par cette tentative."
