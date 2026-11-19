@@ -41,3 +41,7 @@ next-env.d.ts
 # temporary browser sessions, downloads, artifacts
 tmp/
 voice-agent
+
+# Python runtime caches
+__pycache__/
+*.pyc

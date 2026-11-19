@@ -4,7 +4,7 @@ Open Students → Importer → PDF — extraction stricte et revue. Upload the r
 
 ## Runtime
 
-This Node route requires a Python runtime with `services/student-pdf-import/requirements.txt` installed. Set `STUDENT_PDF_PYTHON` to its executable. Local development defaults to `tmp/pdf-import-venv/bin/python3`. A standard Vercel Node deployment does not bundle this Python environment: provision a compatible runtime before using this route there. No deployment or production changes were made.
+Vercel builds `api/student_pdf.py` with the root `requirements.txt`. The authenticated Node route signs internal worker requests with the existing server-only `JWT_SECRET`; the worker verifies the timestamp, page and complete PDF hash. No local virtual environment is required on Vercel. Deployment Protection, when enabled, requires the standard `VERCEL_AUTOMATION_BYPASS_SECRET` for server-to-server calls. Local development uses `STUDENT_PDF_PYTHON`, defaulting to `tmp/pdf-import-venv/bin/python3`.
 
 ## Safety boundaries
 

@@ -23,5 +23,11 @@
   ],
   "regions": [
     "dub1"
-  ]
+  ],
+  "functions": {
+    "api/student_pdf.py": {
+      "maxDuration": 60,
+      "excludeFiles": "{node_modules/**,.next/**,tmp/**,src/**,public/**,.git/**}"
+    }
+  }
 }

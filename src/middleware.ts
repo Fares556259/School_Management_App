@@ -49,6 +49,8 @@ const getMatcherRoles = (pathname: string) => {
 
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
+  // Internal Python worker validates a short-lived HMAC over the complete PDF body.
+  if (pathname === "/api/student_pdf") return NextResponse.next({ request });
   // These APIs verify the Supabase user or mobile token and active admin membership themselves.
   // A second auth lookup here can time out and redirect a valid POST to /sign-in.
   if (pathname === '/api/admin/parent-access' || pathname === '/api/admin/student-charges') return NextResponse.next({ request });
