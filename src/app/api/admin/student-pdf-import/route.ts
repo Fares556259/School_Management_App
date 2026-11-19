@@ -23,7 +23,10 @@ export async function POST(request: NextRequest) {
     }
     return NextResponse.json({ extraction }, { headers: { "Cache-Control": "private, no-store" } });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Extraction failed";
+    const rawMessage = error instanceof Error ? error.message : "Extraction failed";
+    const message = /column.*does not exist|Null constraint violation.*birthday/i.test(rawMessage)
+      ? "La base de données doit être mise à jour avant l’import. Aucun élève ni responsable n’a été créé par cette tentative."
+      : rawMessage;
     return NextResponse.json({ error: message }, { status: 400, headers: { "Cache-Control": "no-store" } });
   }
 }
