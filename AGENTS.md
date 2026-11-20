@@ -50,3 +50,31 @@ Use checks appropriate to the change. Do not run live imports, activate accounts
 ## Historical tooling
 
 `scripts/legacy/INDEX.md` maps old root filenames to their new locations. These tools are preserved reference material, not maintained application entry points. Many rewrite source files or change database contents; read them before considering use.
+
+## Mandatory handoff maintenance — every change
+
+The user requires this guide to stay current for the next agent. This applies to code, UI, tests, configuration, migrations, operational repairs and documentation changes.
+
+Before starting, read:
+
+1. This file and `docs/agents/README.md`.
+2. `docs/agents/current-state.md` for implemented behavior, verified results and open issues.
+3. The latest entries in `docs/agents/change-log.md`.
+4. `docs/agents/feature-map.md` for the feature you will change.
+
+For every logical change, before committing or handing work back:
+
+- Update the relevant feature/state notes when behavior, paths, requirements or deployment status changes.
+- Append a dated entry to `docs/agents/change-log.md`: what changed and why, affected paths, checks actually performed, database/deployment actions, remaining limitations and the next useful step.
+- Update this file's **Latest handoff** below with the date and a short description/link. Every change must therefore include an `AGENTS.md` update, even when details live in the folder.
+- Include handoff updates in the same commit as the implementation. For uncommitted work, describe its status explicitly; do not commit unrelated collaborators' files to satisfy this rule.
+- Record failed or blocked operations accurately. Distinguish code committed, code pushed, deployment ready, schema applied and live behavior verified.
+- Never put credentials, hashes, private PDFs, student identifiers or personal records in these notes. Link to code and describe evidence without copying sensitive data.
+
+Keep entries factual and concise. Correct stale current-state notes rather than appending contradictory instructions. Use Git history for line-by-line changes; the handoff log explains the meaningful result. If more detail is needed, add a focused file under `docs/agents/` and link it from its index.
+
+These instructions govern this web repository. They do not automatically update sibling repositories; when working there, maintain their own applicable handoff guides too.
+
+## Latest handoff
+
+2026-11-20 — Expanded agent onboarding into `docs/agents/` with feature navigation, current state, known production schema gaps and a required per-change maintenance workflow. Read the [handoff index](docs/agents/README.md) next. No runtime or database changes in this documentation update.
