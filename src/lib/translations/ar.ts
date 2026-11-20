@@ -144,7 +144,7 @@ export const ar = {
     }
   },
   "menu": {
-    "parentRequests": "طلبات الأولياء",
+    "parentRequests": "طلبات ربط الأطفال",
     "home": "الرئيسية",
     "expenses": "المصاريف",
     "cash-register": "خزينة اليوم",

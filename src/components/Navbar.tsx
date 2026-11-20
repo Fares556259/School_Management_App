@@ -42,6 +42,7 @@ const Navbar = ({ adminData: initialAdminData, role = "User", onMobileMenuOpen }
             const lastSegment = pathSegments[pathSegments.length - 1];
             const isId = /^[0-9a-fA-F-]{10,}$|^\d+$/.test(lastSegment) || lastSegment.length > 20;
             const targetSegment = isId && pathSegments.length > 1 ? pathSegments[pathSegments.length - 2] : lastSegment;
+            if (targetSegment === "parent-requests") return t.menu.parentRequests;
             return (t.menu as any)?.[targetSegment] || targetSegment.charAt(0).toUpperCase() + targetSegment.slice(1);
           })()}
         </h1>

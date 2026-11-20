@@ -144,7 +144,7 @@ export const fr = {
     }
   },
   "menu": {
-    "parentRequests": "Demandes des parents",
+    "parentRequests": "Rattachement des enfants",
     "home": "Accueil",
     "expenses": "Dépenses",
     "cash-register": "Caisse du jour",

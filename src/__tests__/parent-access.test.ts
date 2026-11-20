@@ -108,7 +108,7 @@ async function main() {
         updateMany: async ({ where, data }: any) => { if (where.OR && linkedTo && linkedTo !== 'parent-a') return { count: 0 }; linkedTo = data.parentId; return { count: 1 }; },
         count: async () => linkedTo ? 1 : 0,
       },
-      parent: { update: async (args: any) => { statusUpdates.push(args.data.accessStatus); return args; } },
+      parent: { updateMany: async (args: any) => { statusUpdates.push(args.data.accessStatus); return { count: 1 }; } },
       auditLog: { create: async (args: any) => { audits.push(args.data); return args; } },
       notification: { create: async (args: any) => { notifications.push(args.data); return { id: notifications.length }; } },
       parentAccessDelivery: { updateMany: async () => ({ count: 0 }), create: async (args: any) => { deliveries.push(args.data); return args; } },
@@ -121,7 +121,7 @@ async function main() {
     assert.equal((await review('APPROVE')).status, 'APPROVED');
     assert.equal(linkedTo, 'parent-a'); assert.equal(statusUpdates.at(-1), 'ACTIVE');
     assert.equal(audits[0].performedBy, 'admin-a'); assert.equal(notifications.length, 1); assert.equal(deliveries[0].notificationId, 1);
-    assert.equal(notifications[0].title, 'تم تفعيل حسابك');
+    assert.equal(notifications[0].title, 'تم ربط طفلك');
     await assert.rejects(() => review('APPROVE'), (e: any) => e.code === 'ALREADY_REVIEWED');
     assert.equal(notifications.length, 1, 'A double approval must not duplicate notifications');
     await assert.rejects(() => review('REVOKE'), (e: any) => e.code === 'REASON_REQUIRED');

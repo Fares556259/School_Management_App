@@ -1,7 +1,8 @@
 import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { authenticateMobileRequest } from "@/lib/mobileAuth";
-import { submitAccessRequest } from "@/lib/parentAccess";
+import { isParentAccessSchemaError } from "@/lib/parentAccessSchema";
+import { ParentAccessError, submitAccessRequest } from "@/lib/parentAccess";
 import { checkPersistentRateLimit } from "@/lib/mobileRateLimit";
 
 export const dynamic = "force-dynamic";
@@ -74,6 +75,8 @@ export async function POST(request: NextRequest) {
     }
     return NextResponse.json({ success: true, ...result });
   } catch (error) {
+    if (error instanceof ParentAccessError) return NextResponse.json({ success: false, code: error.code }, { status: error.status });
+    if (isParentAccessSchemaError(error)) return NextResponse.json({ success: false, code: 'SCHEMA_REQUIRED', error: 'Les demandes de rattachement sont temporairement indisponibles. Contactez l’école.' }, { status: 503 });
     console.error('[Child access request]', error);
     return NextResponse.json({ success: false, code: 'REQUEST_FAILED' }, { status: 500 });
   }

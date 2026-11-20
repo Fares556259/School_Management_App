@@ -4,17 +4,17 @@ import { sendDirectPushTokens } from './notifications';
 export function accessDecisionMessage(locale: string, action: string, reference: string) {
   const messages = {
     fr: {
-      APPROVE: ['Votre compte est activé', `L’école a approuvé votre accès (${reference}). Connectez-vous avec votre numéro et votre mot de passe.`],
+      APPROVE: ['Votre enfant est rattaché', `L’école a approuvé le rattachement (${reference}). Retrouvez cet enfant dans votre compte avec vos identifiants habituels.`],
       REJECT: ['Votre demande a été examinée', `Votre demande (${reference}) nécessite une correction. Ouvrez l’application pour consulter le motif.`],
       REVOKE: ['Accès mis à jour', `L’école a retiré cet accès (${reference}). Contactez l’établissement pour en savoir plus.`],
     },
     en: {
-      APPROVE: ['Your account is activated', `The school approved your access (${reference}). Sign in with your phone number and password.`],
+      APPROVE: ['Your child is linked', `The school approved the child link (${reference}). Find this child in your account using your existing sign-in details.`],
       REJECT: ['Your request has been reviewed', `Your request (${reference}) needs a correction. Open the app to see the reason.`],
       REVOKE: ['Access updated', `The school removed this access (${reference}). Contact the school for assistance.`],
     },
     ar: {
-      APPROVE: ['تم تفعيل حسابك', `وافقت المدرسة على طلبك (${reference}). ادخل برقم هاتفك وكلمة المرور التي اخترتها.`],
+      APPROVE: ['تم ربط طفلك', `وافقت المدرسة على ربط الطفل (${reference}). تجده في حسابك باستعمال بيانات الدخول المعتادة.`],
       REJECT: ['تمت مراجعة طلبك', `يحتاج طلبك (${reference}) إلى تصحيح. افتح التطبيق للاطلاع على السبب.`],
       REVOKE: ['تم تحديث صلاحيات الدخول', `ألغت المدرسة هذا الربط (${reference}). اتصل بالإدارة للاستفسار.`],
     },

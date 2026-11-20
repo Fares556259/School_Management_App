@@ -1,38 +1,47 @@
-# Parent access approval
+# Parent child-link requests
 
-## Implemented flow
+Updated: 2026-11-20. Current approach: schools import students and shared guardian records, then prepare phone/code access through [class slips](class-parent-access-slips.md). An existing parent can request another child from the mobile app. This inbox reviews the link; it does not create a student or a second family account.
 
-Parent registers in Arabic, French or English with the school identifier, name, phone, relationship and their own password. The server creates a PENDING account and one request per existing child; it does not assign student ownership. No date of birth or activation code is required. Before approval, only masked references, the parent's own request state, account notifications and correction actions are available.
+## Current workflow
 
-An active school admin uses **People → Parent requests** (`/admin/parent-requests`). Requests can be filtered by class, status and search, with 25 per page. Duplicate claims are marked for individual review and excluded from bulk selection. Approval requires confirmation of identity/guardianship; refusal or revocation requires a parent-visible reason. Each child is approved separately. A conflicting existing owner can never be overwritten through approval.
+1. The parent signs in with their existing school-provided credentials or their personal password.
+2. In the mobile app, Add a child submits the existing student's identifier to `POST /api/mobile/students`, with `approvalFlowVersion: 1`.
+3. The server resolves exactly one student within the authenticated parent's school. It returns `alreadyLinked` for a child already attached to that parent; repeated pending requests reuse the request.
+4. A new request remains PENDING. Submission never sets `Student.parentId` or creates a student.
+5. The administrator opens People → Child-link requests (`/admin/parent-requests`). Each request shows the parent's contact details, requested student and currently linked children/classes.
+6. Approval requires confirmation of identity/guardianship, links only the requested student, and preserves the same account, phone and password. Refusing an additional-child request does not downgrade an ACTIVE account. Suspended/unavailable accounts cannot be activated by approving a link.
+7. A conflicting existing parent link cannot be overwritten. Duplicate pending claims require individual review and are excluded from bulk selection. Refusal/revocation requires a parent-visible reason.
 
-The same phone/password work before and after approval. Waiting parents can refresh, receive activation alerts, sign out, cancel a request, correct their contact details and resubmit. Existing active parents can track additional-child requests from Profile. The app refreshes status on return, notification and periodic checks. Existing accounts stay ACTIVE through the additive migration.
+Students not yet registered must be added through school administration first. The existing request model represents a link to an existing student, not a new-enrollment application. Legacy self-registration endpoints remain separate; this change does not redesign or remove them.
 
-## Phone verification
+## Notifications and access
 
-School verification was explicitly chosen for this release. No SMS verification is claimed or simulated. The dashboard labels phone numbers as requiring school verification. Staff must establish identity/guardianship before confirming approval; names and identifiers entered in an app do not prove guardianship.
+Decisions, link changes, audit entries, an in-app notification and the durable push outbox are written transactionally. Approval notifications now describe a child link, not replacement credentials. No SMS verification is claimed; administrators verify identity and guardianship using school records.
 
-## Notification behavior
+Push uses the existing Expo integration. Retries and registered-device handling remain unchanged. A failed transaction must not leave a child linked without its decision. Existing children stay accessible when a request for another child is refused. Revoking the last approved child still follows the existing access-removal policy; it is distinct from refusing an additional link.
 
-Every approval, rejection or revocation creates an in-app notification and durable outbox entry in the same transaction as the decision and audit record. Push dispatch uses the existing Expo integration and localized text. Only registered devices are selected. Failed sends become eligible for retry after five minutes (up to six attempts). Authenticated dashboard and parent status checks retry due entries, with a daily cron fallback compatible with the current Vercel Hobby plan; a newly registered device can requeue exhausted attempts. Pending notification entries are superseded when the same request receives a later decision. An Expo accepted ticket is not a device delivery guarantee. If permission is denied or the device is offline, the parent can still see the saved decision on return.
+## Missing database tables
 
-## Deployment sequence
+The earlier production handoff recorded missing ParentAccessRequest. The inbox now explicitly renders `SCHEMA_REQUIRED` rather than crashing or presenting missing tables as zero requests. Other database failures are not converted into a successful empty inbox. The mobile submission endpoint returns a JSON 503 for this known schema gap; administrator decisions fail without committing links when the required tables are unavailable.
 
-1. Confirm a database backup and review the additive migration `20261016120000_parent_access_approval`. It adds parent access/locale fields, request records, notification outbox records and persistent rate-limit counters. New tables enable row-level security and revoke direct anon/authenticated REST access; the server must use its trusted database owner/service role.
-2. Run `npx prisma migrate deploy` against the intended environment, then deploy the web/backend code and generated Prisma client together.
-3. Confirm `JWT_SECRET` (at least 32 characters), existing Expo push configuration and `CRON_SECRET` are configured. Add the `/api/cron/parent-access-notifications` daily schedule from `vercel.json`; it is protected with `Authorization: Bearer $CRON_SECRET`. New writes fail closed if database access is unavailable.
-4. Release the mobile JS through the appropriate compatible runtime/build. New signup, pending sign-in and child-link requests require `approvalFlowVersion: 1`; older apps receive an update-required response instead of an empty or misleading success screen. Do not send native-module changes to an incompatible runtime.
-5. Use two controlled parent accounts and one test child to test on a real Android device: pending → denied data access → admin approval → notification → same credentials → correct child. Also test refusal/correction, a conflicting claim and revocation. Verify active existing parents still sign in.
-6. Start with one class. Confirm school staff can verify the requests, and check notification outbox/audit entries before inviting the next class.
+Prepared repair: [20261120110000_repair_parent_child_link_requests](../prisma/migrations/20261120110000_repair_parent_child_link_requests/migration.sql).
 
-## Verification completed during implementation
+This additive transaction creates missing request/outbox tables, indexes and foreign keys, preserves existing parent columns and records, enables RLS, and revokes direct anon/authenticated REST access. It deliberately does not modify students, guardian links or passwords. It does not reconcile every possible partially installed schema.
 
-- Prisma schema validation/client generation; migration generated with Prisma schema diff.
-- TypeScript checks in web and mobile.
-- Backend test: `npm run test:parent-access` (mocked isolated data layer; no production records changed).
-- Existing security, student-isolation and notification ownership tests.
-- Mobile Jest tests, including waiting, activation, notification opt-in, Arabic rejection and cancellation.
-- Android Expo production export.
-- Browser interaction checks on isolated fixtures: registration → waiting screen → alert opt-in, admin identity confirmation, approval payload, conflict/rejection handling and Arabic at 390px.
+For deployment, inspect the target schema and migration history first. The original `20261016120000_parent_access_approval` also adds parent columns and MobileRateLimit; parts were previously repaired manually. Do not blindly rerun that SQL or mark it applied without checking every statement. A maintainer must reconcile the history and apply the relevant reviewed repair to the intended database. This change prepares the repair; it does not establish that production received it.
 
-Production migration, authenticated live admin/database verification and real-device push delivery are deployment checks. They were not performed by the local fixture tests.
+## Code map
+
+- Page: `src/app/(dashboard)/admin/parent-requests/page.tsx`.
+- UI and translations: `src/components/ParentAccessInbox.tsx`, `src/lib/parentAccessCopy.ts`.
+- Query and explicit response DTO: `src/lib/parentAccessInbox.ts`.
+- Admin API and transaction rules: `src/app/api/admin/parent-access/route.ts`, `src/lib/parentAccess.ts`.
+- Missing-schema classifier: `src/lib/parentAccessSchema.ts`.
+- Parent submission: `src/app/api/mobile/students/route.ts`.
+- Notifications: `src/lib/parentAccessNotifications.ts`.
+
+## Verification boundary
+
+The 2026-11-20 change received TypeScript and targeted static review. No test suite, browser/mobile live flow, production migration, account activation or notification delivery was run for this change, following the user's preference to perform testing themselves. Existing mocked test expectations were maintained for the guarded account update and new notification wording; they were not executed.
+
+Historical test reports for the earlier self-registration flow are not acceptance evidence for this revised inbox. Live acceptance and schema application remain separate release steps.

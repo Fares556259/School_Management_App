@@ -73,6 +73,10 @@ Preparing access can activate eligible passwordless accounts. Existing personal 
 
 The administrator must deliver each slip to the correct child. Treat printed slips as private account access information. A duplicated parent record can defeat sibling consistency, so the family relationships must be reviewed before distribution.
 
+### Additional children after sign-in
+
+A parent can request a link to another student already registered in the same school. The Child-link requests inbox shows the requested child and the parent's existing children. Staff verify guardianship before approval. The same account and credentials are kept; refusing an extra-child request preserves existing ACTIVE access. Requests do not enroll a new student or transfer a child from another guardian. See the [current rollout guide](../parent-access-rollout.md) for the prepared database repair and verification limits.
+
 ### 5. Accept the rollout
 
 The user previously chose to perform live testing themselves. Real credential preparation, parent login, password change and actual A4 pagination remain unverified in the recorded handoff. The team should record the result of each acceptance step with its environment and date. Do not tell a school that mobile onboarding is verified solely because the UI exists.

@@ -40,6 +40,8 @@ export default function ParentAccessInbox({ initialData }: { initialData: Inbox 
   const controller = useRef<AbortController | null>(null);
   const mounted = useRef(false);
   const dataCache = useRef(new Map<string, Inbox>([['PENDING|||1', initialData]]));
+  const unavailableRef = useRef(initialData.unavailable);
+  unavailableRef.current = data.unavailable;
   const pendingCountRef = useRef(initialData.counts.PENDING || 0);
   pendingCountRef.current = data.counts.PENDING || 0;
   const label = (s: string) => ({ PENDING: c.pending, APPROVED: c.approved, REJECTED: c.rejected, CANCELLED: c.cancelled, REVOKED: c.revoked }[s] || s);
@@ -83,7 +85,7 @@ export default function ParentAccessInbox({ initialData }: { initialData: Inbox 
     // several joined queries and used to run every 30 seconds even while an
     // administrator was reading an already processed tab.
     const poll = async () => {
-      if (document.hidden || controller.current?.signal.aborted) return;
+      if (document.hidden || controller.current?.signal.aborted || unavailableRef.current) return;
       try {
         const response = await fetch('/api/admin/parent-access?summary=1', { cache: 'no-store' });
         if (!response.ok) return;
@@ -150,17 +152,18 @@ export default function ParentAccessInbox({ initialData }: { initialData: Inbox 
       <div><p className="text-xs font-bold tracking-[.16em] text-brand-600">{c.eyebrow}</p><h1 className="mt-2 text-3xl font-semibold tracking-tight text-ink-900">{c.title}</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-ink-500">{c.intro}</p></div>
       <div className="flex items-center gap-3"><span aria-live="polite" className="hidden text-xs text-ink-400 sm:block">{refreshing ? c.syncing : updatedLabel}</span><button onClick={() => void load(true, true)} disabled={loading || refreshing} className={secondary}><RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />{c.refresh}</button></div>
     </header>
-    <section className="grid grid-cols-3 gap-3">
+    {!data.unavailable && <section className="grid grid-cols-3 gap-3">
       {[['PENDING', Clock3, 'text-amber-700 bg-amber-50'], ['APPROVED', CheckCircle2, 'text-emerald-700 bg-emerald-50'], ['REJECTED', Users, 'text-slate-600 bg-slate-100']].map(([key, Icon, tone]) => {
         const StatusIcon = Icon as typeof Clock3; const k = key as string;
         return <button key={k} onClick={() => { setStatus(k); setPage(1); setSelected([]); }} className={`ss-panel flex items-center justify-between gap-2 p-3 text-start transition sm:p-5 ${status === k ? 'ring-2 ring-brand-500' : 'hover:border-brand-200'}`} aria-pressed={status === k}>
           <span><span className="block text-xs text-ink-500 sm:text-sm">{label(k)}</span><span className="mt-1 block text-2xl font-semibold text-ink-900 sm:text-3xl">{data.counts[k] ?? 0}</span></span><span className={`hidden h-11 w-11 place-items-center rounded-xl sm:grid ${tone}`}><StatusIcon size={20} /></span>
         </button>;
       })}
-    </section>
+    </section>}
     <aside className="flex gap-3 rounded-2xl border border-brand-100 bg-brand-50/60 px-4 py-3 text-sm leading-5"><ShieldCheck size={19} className="mt-0.5 shrink-0 text-brand-600" /><div><h2 className="font-semibold text-ink-900">{c.guideTitle}</h2><p className="mt-0.5 text-ink-600">{c.guide}</p></div></aside>
     {notice && <div role="status" className="flex items-start justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800"><span>{notice}</span><button aria-label={c.close} onClick={() => setNotice('')}><X size={18} /></button></div>}
-    <section className="ss-panel overflow-hidden">
+    {data.unavailable && <div role="alert" className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm leading-6 text-amber-900"><h2 className="font-semibold">{c.schemaTitle}</h2><p className="mt-2">{c.SCHEMA_REQUIRED}</p><p className="mt-2">{c.schemaBody}</p></div>}
+    {!data.unavailable && <section className="ss-panel overflow-hidden">
       <div className="flex flex-wrap gap-3 border-b border-ink-100 p-4">
         <div className="relative min-w-52 flex-1"><Search size={17} className="pointer-events-none absolute start-3 top-3.5 text-ink-400" /><input value={search} onChange={e => setSearch(e.target.value)} aria-label={c.search} placeholder={c.search} className="h-11 w-full rounded-xl border border-ink-200 bg-white pe-10 ps-10 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100" />{search && <button type="button" onClick={() => setSearch('')} aria-label={c.clearSearch} className="absolute end-2 top-2 grid h-7 w-7 place-items-center rounded-lg text-ink-400 hover:bg-ink-100 hover:text-ink-700"><X size={15} /></button>}</div>
         <select aria-label={c.allClasses} value={classId} onChange={e => { setClassId(e.target.value); setPage(1); setSelected([]); }} className="h-11 rounded-xl border border-ink-200 bg-white px-3 text-sm"><option value="">{c.allClasses}</option>{data.classes.map(cls => <option key={cls.id} value={cls.id}>{cls.name}</option>)}</select>
@@ -181,6 +184,11 @@ export default function ParentAccessInbox({ initialData }: { initialData: Inbox 
               <div className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-ink-500"><span className="inline-flex items-center gap-2"><Phone size={14} /><bdi>{r.parent.phone}</bdi></span><span>{(c as Record<string, string>)[r.relation] || r.relation}</span><span>{date(r.createdAt)}</span></div>
               <div className="mt-3 flex items-start gap-2 text-sm text-ink-600"><MapPin size={15} aria-hidden="true" className="mt-0.5 shrink-0 text-ink-400" /><dl className="min-w-0"><dt className="text-xs font-medium text-ink-500">{c.address}</dt><dd dir="auto" className="mt-0.5 whitespace-pre-line break-words [overflow-wrap:anywhere]">{address(r.parent.address)}</dd></dl></div>
               <div className="mt-4 flex flex-wrap items-center gap-2 rounded-xl bg-ink-50 p-3 text-sm"><GraduationCap size={18} className="text-brand-600" /><span className="font-semibold text-ink-800">{r.student.name} {r.student.surname}</span><span className="rounded-lg border border-ink-200 bg-white px-2 py-1 text-xs font-medium">{r.student.class?.name || c.noClass}</span><bdi className="ms-auto font-mono text-xs text-ink-500">{r.student.nationalId}</bdi></div>
+              <div className="mt-3 rounded-xl border border-ink-100 p-3 text-sm text-ink-600">
+                <p className="font-medium text-ink-800">{c.existingChildren} ({r.parent.students.length})</p>
+                {r.parent.students.length ? <ul className="mt-2 flex flex-wrap gap-2">{r.parent.students.map(child => <li key={child.id} dir="auto" className="rounded-lg bg-ink-50 px-2 py-1">{child.name} {child.surname}{child.class ? ` · ${child.class.name}` : ''}</li>)}</ul> : <p className="mt-1 text-ink-500">{c.noLinkedChildren}</p>}
+                <p className="mt-2 text-xs text-ink-500">{c.sameAccount}</p>
+              </div>
               {r.conflicting && r.status === 'PENDING' && <p className="mt-3 inline-flex items-center gap-2 text-xs font-semibold text-amber-800"><AlertCircle size={15} />{c.conflict}</p>}
               {r.reason && <p className="mt-3 rounded-xl bg-rose-50 p-3 text-sm text-rose-800">{r.reason}</p>}
               <div className="mt-4 flex flex-wrap items-center justify-between gap-3"><span className="text-xs text-ink-400">{r.reviewedAt ? `${c.reviewed} ${date(r.reviewedAt)} · ${c.by} ${r.reviewedByName || '—'}` : `#${r.id.slice(-8).toUpperCase()}`}</span><div className="flex gap-2"><button onClick={() => setDetails(r)} className={secondary}>{c.details}<ArrowRight size={15} className="rtl:rotate-180" /></button>{status === 'PENDING' && !r.conflicting && <button onClick={() => openDecision('APPROVE', [r])} className={primary}><Check size={16} />{c.approve}</button>}</div></div>
@@ -189,7 +197,7 @@ export default function ParentAccessInbox({ initialData }: { initialData: Inbox 
         </article>)}
       </div>}
       {!!data.total && <footer className="flex items-center justify-between border-t border-ink-100 p-4 text-sm text-ink-500"><span>{c.page} {page} / {Math.ceil(data.total / 25)} · {data.total}</span><div className="flex gap-2"><button aria-label={c.previous} className={secondary} disabled={page === 1} onClick={() => setPage(p => p - 1)}><ArrowLeft size={17} className="rtl:rotate-180" /></button><button aria-label={c.next} className={secondary} disabled={page * 25 >= data.total} onClick={() => setPage(p => p + 1)}><ArrowRight size={17} className="rtl:rotate-180" /></button></div></footer>}
-    </section>
+    </section>}
     <Dialog.Root open={!!details || !!decision} onOpenChange={open => { if (!open && !saving) { setDetails(null); setDecision(null); } }}><Dialog.Portal><Dialog.Overlay className="fixed inset-0 z-50 bg-ink-900/40 backdrop-blur-sm" /><Dialog.Content dir={locale === 'ar' ? 'rtl' : 'ltr'} className="fixed left-1/2 top-1/2 z-50 max-h-[90dvh] w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-3xl border border-ink-200 bg-white p-6 shadow-xl" onEscapeKeyDown={e => { if (saving) e.preventDefault(); }} onPointerDownOutside={e => { if (saving) e.preventDefault(); }}>
       <Dialog.Title className="pe-8 text-xl font-semibold text-ink-900">{details ? c.details : decision?.action === 'APPROVE' ? c.approveTitle : decision?.action === 'REVOKE' ? c.revokeTitle : c.rejectTitle}</Dialog.Title>
       <Dialog.Description className="mt-2 text-sm leading-6 text-ink-500">{details ? c.guide : decision?.action === 'APPROVE' ? c.approveBody : decision?.action === 'REVOKE' ? c.revokeBody : c.reason}</Dialog.Description>

@@ -27,3 +27,11 @@ Append one entry per logical change. Update the root `AGENTS.md` Latest handoff 
 - Verification: inspected existing web architecture/setup/handoff notes, Prisma models, route inventory, deployment configuration and sibling mobile/voice manifests; checked local Markdown links and diff whitespace. No runtime tests run for this documentation-only change.
 - Operations: no application, database, account or deployment changes. Sibling projects were read for context, not modified or fully audited.
 - Remaining work: maintain these guides with behavior changes; current-state remains the source for unresolved production gaps. Named owners, commercial terms and sibling release readiness are not established by this guide.
+
+## 2026-11-20 — Align parent inbox with school-provisioned child linking
+
+- Request/reason: adapt the failing parent-requests page to parents adding another child under the school-provided account/code approach.
+- Changes: child-link wording in FR/EN/AR and navigation/header, existing sibling context in the inbox DTO/UI, school-scoped related records, explicit schema-unavailable state and API responses, guarded approval account activation, preserved ACTIVE status on refusal, updated child-link notifications. Added additive request/outbox repair migration and revised rollout/partner documentation. Existing mocked test expectations updated without execution.
+- Verification: TypeScript passed; targeted static lint/review and diff whitespace checks. No test suites or live browser/mobile tests run, respecting the user's testing preference.
+- Operations: code and migration prepared only; no production SQL, credential changes, imports, real linking or notification dispatch performed by the agent. Production schema repair remains unapplied in the recorded evidence.
+- Remaining work: reconcile/apply the request/outbox repair to the intended database and complete user-run acceptance. Scope is links to existing students, not new-student enrollment. Legacy self-signup remains separately implemented.

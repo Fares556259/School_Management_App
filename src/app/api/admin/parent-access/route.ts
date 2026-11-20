@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { isParentAccessSchemaError } from '@/lib/parentAccessSchema';
 import { getParentAccessAdmin } from '@/lib/parentAccessAdmin';
 import { ParentAccessError, reviewAccessRequest } from '@/lib/parentAccess';
 import { flushAccessNotifications } from '@/lib/parentAccessNotifications';
@@ -21,25 +22,31 @@ async function authenticateAdmin() {
 export async function GET(request: Request) {
   const { admin, response } = await authenticateAdmin();
   if (!admin) return response!;
-  const url = new URL(request.url);
-  if (url.searchParams.get('summary') === '1') return NextResponse.json({ pending: await prisma.parentAccessRequest.count({ where: { schoolId: admin.schoolId, status: 'PENDING' } }) }, { headers: { 'Cache-Control': 'private, no-store' } });
-  const status = url.searchParams.get('status') || 'PENDING';
-  if (!isParentAccessStatus(status)) return NextResponse.json({ error: 'Invalid status' }, { status: 400 });
-  const classId = Number(url.searchParams.get('classId')) || undefined;
-  const search = (url.searchParams.get('q') || '').trim().slice(0, 100);
-  const page = Math.max(1, Math.min(10000, Math.floor(Number(url.searchParams.get('page')) || 1)));
-  const data = await getParentAccessInboxData(admin.schoolId, {
-    status,
-    classId,
-    search,
-    page,
-    includeMeta: url.searchParams.get('meta') !== '0',
-  });
-  if (url.searchParams.get('meta') !== '0') {
-    const deliveryRetry = flushAccessNotifications().catch(error => console.error('[Activation retry]', error));
-    try { waitUntil(deliveryRetry); } catch { void deliveryRetry; }
+  try {
+    const url = new URL(request.url);
+    if (url.searchParams.get('summary') === '1') return NextResponse.json({ pending: await prisma.parentAccessRequest.count({ where: { schoolId: admin.schoolId, status: 'PENDING' } }) }, { headers: { 'Cache-Control': 'private, no-store' } });
+    const status = url.searchParams.get('status') || 'PENDING';
+    if (!isParentAccessStatus(status)) return NextResponse.json({ error: 'Invalid status' }, { status: 400 });
+    const classId = Number(url.searchParams.get('classId')) || undefined;
+    const search = (url.searchParams.get('q') || '').trim().slice(0, 100);
+    const page = Math.max(1, Math.min(10000, Math.floor(Number(url.searchParams.get('page')) || 1)));
+    const data = await getParentAccessInboxData(admin.schoolId, {
+      status,
+      classId,
+      search,
+      page,
+      includeMeta: url.searchParams.get('meta') !== '0',
+    });
+    if (!data.unavailable && url.searchParams.get('meta') !== '0') {
+      const deliveryRetry = flushAccessNotifications().catch(error => console.error('[Activation retry]', error));
+      try { waitUntil(deliveryRetry); } catch { void deliveryRetry; }
+    }
+    return NextResponse.json(data, { headers: { 'Cache-Control': 'private, no-store' } });
+  } catch (error) {
+    if (isParentAccessSchemaError(error)) return NextResponse.json({ code: 'SCHEMA_REQUIRED' }, { status: 503 });
+    console.error('[Parent child-link inbox]', error);
+    return NextResponse.json({ code: 'INBOX_UNAVAILABLE' }, { status: 503 });
   }
-  return NextResponse.json(data, { headers: { 'Cache-Control': 'private, no-store' } });
 }
 export async function POST(request: Request) {
   const origin = request.headers.get('origin');
@@ -70,15 +77,17 @@ export async function POST(request: Request) {
           return { success: true, ...await reviewAccessRequest({ requestId, schoolId: admin.schoolId, adminId: admin.id, action: body.action, reason: body.reason, batch: ids.length > 1 }) };
         } catch (error) {
           if (!(error instanceof ParentAccessError)) console.error('[Parent access decision]', requestId, error);
-          return { requestId, success: false, code: error instanceof ParentAccessError ? error.code : 'REVIEW_FAILED' };
+          return { requestId, success: false, code: error instanceof ParentAccessError ? error.code : isParentAccessSchemaError(error) ? 'SCHEMA_REQUIRED' : 'REVIEW_FAILED' };
         }
       }));
       results.push(...chunk);
     }
     if (results.some(result => result.success)) invalidateTenantTags(admin.schoolId, 'parents', 'students', 'dashboard');
     // Decisions are committed first; transient push failures remain in the outbox.
-    const dispatch = flushAccessNotifications().catch(error => console.error('[Activation push]', error));
-    try { waitUntil(dispatch); } catch { await dispatch; }
+    if (results.some(result => result.success)) {
+      const dispatch = flushAccessNotifications().catch(error => console.error('[Parent child-link push]', error));
+      try { waitUntil(dispatch); } catch { await dispatch; }
+    }
     return NextResponse.json({ results });
   } catch (error) {
     console.error('[Parent access review]', error);

@@ -12,7 +12,7 @@ Paths are relative to the web repository root. Follow actual imports before edit
 | Parent slips | `src/app/(dashboard)/list/classes/[id]/parent-access/` | `src/lib/parentSlipCode.ts`; admin-only generation; private code handling |
 | Parent account directory | `src/app/(dashboard)/list/parents/` | Shared parent ID links all siblings |
 | Phone lookup / sign-in | `src/app/api/mobile/login/route.ts`, `auth/route.ts` | `src/lib/parentAccess.ts`, `mobileAuth.ts`, `mobileRateLimit.ts` |
-| Parent approval | `src/lib/parentAccessAdmin.ts`, `parentAccessInbox.ts`, `parentAccess.ts` | ParentAccessRequest / ParentAccessDelivery tables; inspect pending migrations |
+| Parent child-link review | `src/lib/parentAccessAdmin.ts`, `parentAccessInbox.ts`, `parentAccess.ts` | Existing-child links; sibling context; parentAccessSchema.ts; request/outbox repair migration pending |
 | Data authorization | `src/lib/studentProfile.ts`, `school.ts`, `role.ts` | Server-owned active admin + school membership |
 | Database evolution | `prisma/schema.prisma`, `prisma/migrations/` | Generate Client and apply migrations are separate operations |
 | Hnia and Telegram | `src/lib/agent/`, `src/lib/telegram/` | Existing unrelated local changes may be in these folders |

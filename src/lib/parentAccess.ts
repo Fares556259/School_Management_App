@@ -67,7 +67,9 @@ export async function reviewAccessRequest(input: {
         data: { parentId: entry.parentId },
       });
       if (linked.count !== 1) throw new ParentAccessError('CHILD_ALREADY_LINKED');
-      await tx.parent.update({ where: { id: entry.parentId }, data: { accessStatus: 'ACTIVE' } });
+      const activated = await tx.parent.updateMany({ where: { id: entry.parentId, schoolId: input.schoolId,
+        accessStatus: { in: ['ACTIVE', 'PENDING', 'REJECTED'] } }, data: { accessStatus: 'ACTIVE' } });
+      if (activated.count !== 1) throw new ParentAccessError('ACCOUNT_UNAVAILABLE');
     } else {
       if (input.action === 'REVOKE') await tx.student.updateMany({
         where: { id: entry.studentId, schoolId: input.schoolId, parentId: entry.parentId }, data: { parentId: null },
@@ -75,7 +77,9 @@ export async function reviewAccessRequest(input: {
       const children = await tx.student.count({ where: { parentId: entry.parentId, schoolId: input.schoolId } });
       if (!children) {
         const pending = await tx.parentAccessRequest.count({ where: { parentId: entry.parentId, schoolId: input.schoolId, status: 'PENDING' } });
-        await tx.parent.update({ where: { id: entry.parentId }, data: { accessStatus: pending ? 'PENDING' : 'REJECTED' } });
+        // School-provisioned active accounts keep their login when an additional-child request is refused.
+        await tx.parent.updateMany({ where: { id: entry.parentId, schoolId: input.schoolId,
+          accessStatus: { in: input.action === 'REVOKE' ? ['ACTIVE', 'PENDING', 'REJECTED'] : ['PENDING', 'REJECTED'] } }, data: { accessStatus: pending ? 'PENDING' : 'REJECTED' } });
       }
     }
     await tx.auditLog.create({ data: {

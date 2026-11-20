@@ -77,4 +77,4 @@ These instructions govern this web repository. They do not automatically update 
 
 ## Latest handoff
 
-2026-11-20 — Added the detailed [cofounder, partner and engineering handbook](docs/handbook/README.md): product workflows, three-project boundaries, domain relationships, code navigation, setup, release responsibilities and verification limits. Linked from README and the agent index. Documentation only; no runtime or database changes. Continue with the [handoff index](docs/agents/README.md) for current issues.
+2026-11-20 — Updated the parent inbox to review links to existing students under the school-provisioned family-account approach. Shows existing siblings, preserves credentials and ACTIVE accounts on refusal, blocks suspended account activation, and renders missing request schema explicitly. Added an additive request/outbox repair migration; NOT applied to production. Read [parent link rollout](docs/parent-access-rollout.md) and [current state](docs/agents/current-state.md). TypeScript/static checks only; no test suites or live actions.

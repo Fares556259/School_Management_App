@@ -32,6 +32,12 @@ The existing mobile phone/password sign-in accepts the code in the password fiel
 
 Still unverified: real parent credential preparation/login, user password changes after using a paper code, and actual A4 print preview/pagination. The user previously asked to perform live testing themselves. Do not activate or reset real parent accounts just to test without renewed task authorization.
 
+## Parent additional-child requests
+
+The administrator inbox at `/admin/parent-requests` now presents child-link requests for existing registered students, consistent with school-provisioned phone/code accounts. It shows the requesting parent's already linked children/classes. Submission remains pending until school approval and does not create student/parent records or transfer another parent's child. Approval preserves credentials and rejects activation of unavailable/suspended accounts. Refusing an additional-child request preserves ACTIVE account status; revoking the last approved child retains the previous access-removal policy.
+
+Missing ParentAccessRequest schema now produces an explicit unavailable state rather than a Server Component crash or misleading empty inbox. Added repair `20261120110000_repair_parent_child_link_requests` for request/outbox tables; prepared only, not applied. TypeScript/static checks performed; no test suite or live testing for this change. See [rollout notes](../parent-access-rollout.md).
+
 ## Production schema drift — important
 
 Code and database migrations have diverged. Do not assume production matches schema.prisma merely because the build succeeds.
@@ -46,7 +52,7 @@ Applied and verified in Supabase during this session:
 Known missing-schema errors observed in logs before this handoff, with no confirmed repair recorded here:
 
 - StudentServiceAssignment: student list retries without this optional relation as a compatibility fallback.
-- ParentAccessRequest: parent-requests page fails until the corresponding schema is restored.
+- ParentAccessRequest: child-link inbox displays a schema-required state until the corresponding schema is restored; the prepared repair is not confirmed applied.
 - StudentChargeCategory and Payment.overtimeHours: errors seen on finance/charges pages; not resolved by the import fixes.
 
 The student list must not show a query failure as a genuine zero-student result. Core fallback failures now throw an error instead.

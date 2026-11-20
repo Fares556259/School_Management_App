@@ -144,7 +144,7 @@ export const en = {
     }
   },
   "menu": {
-    "parentRequests": "Parent requests",
+    "parentRequests": "Child-link requests",
     "home": "Home",
     "expenses": "Expenses",
     "cash-register": "Daily cash register",
