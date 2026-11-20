@@ -5,7 +5,7 @@ with open(file, "r") as f:
     content = f.read()
 
 # Replace the single receiveStudentPayment import with the new one
-content = content.replace('import { receiveStudentPayment } from "./actions";', 'import { receiveMultipleStudentPayments } from "./actions";')
+content = content.replace('import { receiveStudentPayment } from "../../../actions";', 'import { receiveMultipleStudentPayments } from "../../../actions";')
 
 # Add payments prop
 content = content.replace(

@@ -25,7 +25,9 @@
     "test:parent-access": "node --import tsx src/__tests__/parent-access.test.ts",
     "test:hnia-runtime": "node --import tsx src/__tests__/hnia-model-runtime.test.ts",
     "test:hnia-confirmation": "node --import tsx src/__tests__/hnia-confirmation.test.ts",
-    "test:hnia-data": "node --import tsx src/__tests__/hnia-data-accuracy.test.ts"
+    "test:hnia-data": "node --import tsx src/__tests__/hnia-data-accuracy.test.ts",
+    "typecheck": "tsc --noEmit",
+    "test:imports": "node --import tsx src/__tests__/student-pdf-staging.test.ts && node --import tsx src/__tests__/student-pdf-family.test.ts && node --import tsx src/__tests__/class-roster.test.ts && node --import tsx src/__tests__/parent-slip-code.test.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seeds.ts"
