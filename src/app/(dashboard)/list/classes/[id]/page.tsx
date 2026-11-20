@@ -1,3 +1,4 @@
+import Link from "next/link";
 import prisma from "@/lib/prisma";
 import { getSchoolId } from "@/lib/school";
 import { getRole } from "@/lib/role";
@@ -57,6 +58,7 @@ export default async function ClassStudentsPage(
   if (!activeClass) return notFound();
 
   return (
+    <div>{role === "admin" && <div className="flex justify-end px-6 pt-4"><Link className="rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-700" href={`/list/classes/${classId}/parent-access`}>Accès parents · Fiches A4</Link></div>}
     <ClassStudentsTable
       activeClass={{
         id: activeClass.id,
@@ -78,6 +80,6 @@ export default async function ClassStudentsPage(
         })),
       }}
       role={role || ""}
-    />
+    /></div>
   );
 }

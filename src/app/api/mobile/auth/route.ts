@@ -208,7 +208,7 @@ export async function POST(request: NextRequest) {
                   level: true,
                 },
               },
-              payments: true,
+              payments: { select: { id: true, amount: true, month: true, year: true, status: true, paidAt: true, deferredAmount: true } },
             },
           },
         },
