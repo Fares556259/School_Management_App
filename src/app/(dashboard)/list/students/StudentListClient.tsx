@@ -13,7 +13,7 @@ import AttendanceCertificateModal from "@/components/AttendanceCertificateModal"
 
 import MonthPaymentSummary from "@/components/MonthPaymentSummary";
 import { useLanguage } from "@/lib/translations/LanguageContext";
-import { Sparkles, Users, Eye, ExternalLink } from "lucide-react";
+import { Sparkles, Users, Eye, ExternalLink, Printer } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { MONTHS, getSchoolYearMonths } from "@/lib/dateUtils";
@@ -456,6 +456,15 @@ export default function StudentListClient({
         <div className="flex items-center gap-2 self-end lg:self-auto shrink-0 mt-4 lg:mt-0 w-full lg:w-auto justify-end">
           {role === "admin" && (
             <div className="flex items-center gap-2">
+              {/^\d+$/.test(clientClassId) && (
+                <Link
+                  href={`/list/classes/${clientClassId}/parent-access`}
+                  className="flex items-center gap-2 px-3.5 py-2.5 bg-white text-indigo-700 border border-indigo-200 text-[13px] font-semibold rounded-control hover:bg-indigo-50 transition-all shadow-sm shrink-0"
+                >
+                  <Printer size={15} />
+                  <span>{locale === "ar" ? "بطاقات دخول الأولياء A4" : locale === "en" ? "Parent access · A4 slips" : "Accès parents · Fiches A4"}</span>
+                </Link>
+              )}
               <button 
                 onClick={() => setIsBulkImportOpen(true)}
                 className="flex items-center gap-2 px-3.5 py-2.5 bg-indigo-50 text-indigo-700 border border-indigo-200 text-[13px] font-semibold rounded-control hover:bg-indigo-100 transition-all shadow-sm group shrink-0"
