@@ -1,18 +1,21 @@
-version: '3.8'
 
 services:
-  db:
-    image: postgres:alpine
-    container_name: school-postgres
-    restart: always
-    environment:
-      POSTGRES_USER: fares
-      POSTGRES_PASSWORD: fares123
-      POSTGRES_DB: school
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
 
-volumes:
-  postgres_data:
+    container_name: school-management-app
+
+    restart: unless-stopped
+
+    ports:
+      - "3000:3000"
+
+    env_file:
+      - .env
+
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      HOSTNAME: 0.0.0.0
