@@ -1,9 +1,9 @@
-import { getRole } from "@/lib/role";
+﻿import { getRole } from "@/lib/role";
 import CrudFormModal from "@/components/CrudFormModal";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
-import { createClient, getAuthenticatedUser } from "@/utils/supabase/server";
+import { createClient, getAuthenticatedUser } from "@lib/supabase/server";
 import Image from "next/image";
 import Link from "next/link";
 import prisma from "@/lib/prisma";
@@ -233,7 +233,7 @@ const StudentListPage = async ({
   const safePaid = typeof summaryPaid === "number" ? summaryPaid : 0;
   const safePartial = typeof summaryPartial === "number" ? summaryPartial : 0;
 
-  // Safe client-side class ordering: Level 0 (Préscolaire) first, then level ascending, then class name ascending
+  // Safe client-side class ordering: Level 0 (PrÃ©scolaire) first, then level ascending, then class name ascending
   safeClasses.sort((a, b) => {
     const lvlA = a.level?.level ?? 0;
     const lvlB = b.level?.level ?? 0;
@@ -249,12 +249,12 @@ const StudentListPage = async ({
       searchString: `${p.name} ${p.surname} ${p.phone || ""}`
     })),
     classId: [
-      { value: "null", label: "Non affecté(e)" },
+      { value: "null", label: "Non affectÃ©(e)" },
       ...safeClasses.map((c) => ({ value: String(c.id), label: c.name }))
     ],
     levelId: safeLevels.map((l) => ({
       value: String(l.id),
-      label: l.level === 0 ? "Préscolaire (تحضيري)" : `Level ${l.level}`
+      label: l.level === 0 ? "PrÃ©scolaire (ØªØ­Ø¶ÙŠØ±ÙŠ)" : `Level ${l.level}`
     })),
     schoolName: school?.name || "SnapSchool",
     schoolSubdomain: school?.subdomain || "snapschool-academy",
@@ -281,3 +281,4 @@ const StudentListPage = async ({
 };
 
 export default StudentListPage;
+

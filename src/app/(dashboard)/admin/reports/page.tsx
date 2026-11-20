@@ -1,7 +1,7 @@
 import prisma from "@/lib/prisma";
 import { getCachedTenantData } from "@/lib/cache";
 import { getSchoolId } from "@/lib/school";
-import { addSubscriber, removeSubscriber } from "./actions";
+import { addSubscriber, removeSubscriber } from "@actions/reports";
 import { cookies } from "next/headers";
 import { translations, Locale } from "@/lib/translations";
 import { Mail, Send, Trash2, UserPlus, Users } from "lucide-react";

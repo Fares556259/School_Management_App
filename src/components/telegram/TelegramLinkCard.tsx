@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
@@ -26,7 +26,7 @@ import {
   getTelegramLinkStatus,
   requestTelegramLinkCode,
   disconnectTelegramAccount,
-} from "@/app/(dashboard)/admin/actions/telegramActions";
+} from "@actions/telegramActions";
 import { QRCodeSVG } from "qrcode.react";
 
 export default function TelegramLinkCard() {
@@ -72,12 +72,12 @@ export default function TelegramLinkCard() {
       setActiveCode(res.code);
       setMsg({
         type: "success",
-        text: "Nouveau code généré ! Scannez le QR code ci-dessous avec votre smartphone.",
+        text: "Nouveau code gÃ©nÃ©rÃ© ! Scannez le QR code ci-dessous avec votre smartphone.",
       });
     } else {
       setMsg({
         type: "error",
-        text: res.error || "Impossible de générer le code.",
+        text: res.error || "Impossible de gÃ©nÃ©rer le code.",
       });
     }
     setActionLoading(false);
@@ -90,9 +90,9 @@ export default function TelegramLinkCard() {
     if (res.success) {
       setActiveCode(null);
       await fetchStatus();
-      setMsg({ type: "success", text: "Compte Telegram dissocié avec succès." });
+      setMsg({ type: "success", text: "Compte Telegram dissociÃ© avec succÃ¨s." });
     } else {
-      setMsg({ type: "error", text: res.error || "Erreur lors de la déconnexion." });
+      setMsg({ type: "error", text: res.error || "Erreur lors de la dÃ©connexion." });
     }
     setActionLoading(false);
   };
@@ -146,16 +146,16 @@ export default function TelegramLinkCard() {
               </h2>
               {status?.isLinked ? (
                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                  <CheckCircle2 size={12} /> Connecté
+                  <CheckCircle2 size={12} /> ConnectÃ©
                 </span>
               ) : (
                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">
-                  Non lié
+                  Non liÃ©
                 </span>
               )}
             </div>
             <p className="text-[13px] text-[#5a5a5a]">
-              Pilotez votre école par message texte ou note vocale avec <strong className="text-[#2AABEE]">@HniaSnapSchoolBot</strong>
+              Pilotez votre Ã©cole par message texte ou note vocale avec <strong className="text-[#2AABEE]">@HniaSnapSchoolBot</strong>
             </p>
           </div>
         </div>
@@ -197,14 +197,14 @@ export default function TelegramLinkCard() {
                 {status.telegramUsername ? `@${status.telegramUsername}` : `Utilisateur #${status.telegramId}`}
               </span>
               <span className="text-[10px] text-emerald-600 font-medium">
-                ✓ Déjà associé (aucun code requis)
+                âœ“ DÃ©jÃ  associÃ© (aucun code requis)
               </span>
             </div>
 
             <div className="flex flex-col gap-1 p-3 bg-slate-50/70 rounded-xl border border-slate-100">
               <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
                 <School size={13} className="text-slate-400" />
-                École associée
+                Ã‰cole associÃ©e
               </span>
               <span className="text-[14px] font-semibold text-[#181d26] truncate">
                 {status.schoolName}
@@ -217,7 +217,7 @@ export default function TelegramLinkCard() {
                 Briefing matinal
               </span>
               <span className="text-[14px] font-semibold text-emerald-600 flex items-center gap-1">
-                <CheckCircle2 size={13} /> Actif à 7h30
+                <CheckCircle2 size={13} /> Actif Ã  7h30
               </span>
             </div>
           </div>
@@ -248,7 +248,7 @@ export default function TelegramLinkCard() {
               <div className="flex items-center gap-2">
                 <Smartphone size={16} className="text-[#2AABEE]" />
                 <h3 className="text-[14px] font-bold text-[#181d26]">
-                  Comment ouvrir et utiliser Hnia sur votre téléphone :
+                  Comment ouvrir et utiliser Hnia sur votre tÃ©lÃ©phone :
                 </h3>
               </div>
 
@@ -274,7 +274,7 @@ export default function TelegramLinkCard() {
                   <div className="flex flex-col gap-0.5">
                     <span className="text-[12px] font-bold text-slate-800">Ouvrez Telegram</span>
                     <span className="text-[11px] text-slate-500 leading-snug">
-                      Touchez le lien pour ouvrir <strong className="text-slate-700">@HniaSnapSchoolBot</strong> (aucun code requis, votre compte est déjà reconnu !).
+                      Touchez le lien pour ouvrir <strong className="text-slate-700">@HniaSnapSchoolBot</strong> (aucun code requis, votre compte est dÃ©jÃ  reconnu !).
                     </span>
                   </div>
                 </div>
@@ -285,9 +285,9 @@ export default function TelegramLinkCard() {
                     3
                   </div>
                   <div className="flex flex-col gap-0.5">
-                    <span className="text-[12px] font-bold text-slate-800">Parlez ou écrivez 🇹🇳 🇫🇷</span>
+                    <span className="text-[12px] font-bold text-slate-800">Parlez ou Ã©crivez ðŸ‡¹ðŸ‡³ ðŸ‡«ðŸ‡·</span>
                     <span className="text-[11px] text-slate-500 leading-snug">
-                      Posez vos questions par texte ou vocal : élèves, caisse, reçus, impayés, classes...
+                      Posez vos questions par texte ou vocal : Ã©lÃ¨ves, caisse, reÃ§us, impayÃ©s, classes...
                     </span>
                   </div>
                 </div>
@@ -298,9 +298,9 @@ export default function TelegramLinkCard() {
                     4
                   </div>
                   <div className="flex flex-col gap-0.5">
-                    <span className="text-[12px] font-bold text-slate-800">Reçus PDF & Briefings</span>
+                    <span className="text-[12px] font-bold text-slate-800">ReÃ§us PDF & Briefings</span>
                     <span className="text-[11px] text-slate-500 leading-snug">
-                      Téléchargez vos reçus officiels, bordereaux de caisse, et briefing chaque matin à 7h30.
+                      TÃ©lÃ©chargez vos reÃ§us officiels, bordereaux de caisse, et briefing chaque matin Ã  7h30.
                     </span>
                   </div>
                 </div>
@@ -309,21 +309,21 @@ export default function TelegramLinkCard() {
               {/* Sample Voice/Text Prompts */}
               <div className="p-2.5 rounded-lg bg-white/70 border border-slate-200/70 text-[11px] text-slate-600 flex flex-wrap items-center gap-1.5">
                 <Sparkles size={13} className="text-amber-500 shrink-0" />
-                <span className="font-semibold text-slate-700">Exemples à tester :</span>
+                <span className="font-semibold text-slate-700">Exemples Ã  tester :</span>
                 <code className="bg-slate-100 px-1.5 py-0.5 rounded text-slate-800 font-normal">
-                  « فما تلامذة موش مفرّقين في أقسام؟ »
+                  Â« ÙÙ…Ø§ ØªÙ„Ø§Ù…Ø°Ø© Ù…ÙˆØ´ Ù…ÙØ±Ù‘Ù‚ÙŠÙ† ÙÙŠ Ø£Ù‚Ø³Ø§Ù…ØŸ Â»
                 </code>
-                <span>•</span>
+                <span>â€¢</span>
                 <code className="bg-slate-100 px-1.5 py-0.5 rounded text-slate-800 font-normal">
-                  « حط أحمد في 4ème B »
+                  Â« Ø­Ø· Ø£Ø­Ù…Ø¯ ÙÙŠ 4Ã¨me B Â»
                 </code>
-                <span>•</span>
+                <span>â€¢</span>
                 <code className="bg-slate-100 px-1.5 py-0.5 rounded text-slate-800 font-normal">
-                  « Reçu de paiement de Sarah »
+                  Â« ReÃ§u de paiement de Sarah Â»
                 </code>
-                <span>•</span>
+                <span>â€¢</span>
                 <code className="bg-slate-100 px-1.5 py-0.5 rounded text-slate-800 font-normal">
-                  « Recette de caisse du jour »
+                  Â« Recette de caisse du jour Â»
                 </code>
               </div>
             </div>
@@ -349,7 +349,7 @@ export default function TelegramLinkCard() {
               <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 flex flex-col gap-3 text-[12px] animate-in fade-in duration-200">
                 <span className="font-semibold text-slate-800 flex items-center gap-2">
                   <Search size={14} className="text-[#2AABEE]" />
-                  Deux façons simples d&apos;ouvrir Hnia sans utiliser l&apos;appareil photo :
+                  Deux faÃ§ons simples d&apos;ouvrir Hnia sans utiliser l&apos;appareil photo :
                 </span>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -360,7 +360,7 @@ export default function TelegramLinkCard() {
                         Option 1 : Cherchez le bot dans Telegram
                       </span>
                       <p className="text-slate-500 text-[11px] leading-relaxed">
-                        Ouvrez votre application Telegram sur téléphone, tapez dans la barre de recherche :{" "}
+                        Ouvrez votre application Telegram sur tÃ©lÃ©phone, tapez dans la barre de recherche :{" "}
                         <strong className="text-slate-800">@HniaSnapSchoolBot</strong> et envoyez n&apos;importe quel message.
                       </p>
                     </div>
@@ -372,7 +372,7 @@ export default function TelegramLinkCard() {
                       {copiedUsername ? (
                         <>
                           <Check size={13} className="text-emerald-600" />
-                          <span className="text-emerald-700 font-semibold">@HniaSnapSchoolBot copié !</span>
+                          <span className="text-emerald-700 font-semibold">@HniaSnapSchoolBot copiÃ© !</span>
                         </>
                       ) : (
                         <>
@@ -401,7 +401,7 @@ export default function TelegramLinkCard() {
                       {copiedLink ? (
                         <>
                           <Check size={13} className="text-emerald-600" />
-                          <span className="text-emerald-700 font-semibold">Lien direct copié !</span>
+                          <span className="text-emerald-700 font-semibold">Lien direct copiÃ© !</span>
                         </>
                       ) : (
                         <>
@@ -449,13 +449,13 @@ export default function TelegramLinkCard() {
             <div className="flex items-center gap-2 text-indigo-600">
               <Sparkles size={16} />
               <span className="text-[13px] font-semibold uppercase tracking-wider">
-                Associez Hnia à votre école en quelques secondes
+                Associez Hnia Ã  votre Ã©cole en quelques secondes
               </span>
             </div>
             <p className="text-[13px] text-[#444444] leading-relaxed">
               Discutez directement avec SnapSchool comme avec un collaborateur :
-              enregistrez les règlements des familles, notez des dépenses, vérifiez les absences du jour,
-              ou demandez le bilan financier du mois par texte ou note vocale (arabe tunisien, français, anglais).
+              enregistrez les rÃ¨glements des familles, notez des dÃ©penses, vÃ©rifiez les absences du jour,
+              ou demandez le bilan financier du mois par texte ou note vocale (arabe tunisien, franÃ§ais, anglais).
             </p>
           </div>
 
@@ -489,7 +489,7 @@ export default function TelegramLinkCard() {
               <div className="flex items-center gap-2">
                 <Smartphone size={16} className="text-indigo-600" />
                 <h3 className="text-[14px] font-bold text-indigo-950">
-                  Comment connecter votre téléphone en 4 étapes simples :
+                  Comment connecter votre tÃ©lÃ©phone en 4 Ã©tapes simples :
                 </h3>
               </div>
 
@@ -513,9 +513,9 @@ export default function TelegramLinkCard() {
                     2
                   </div>
                   <div className="flex flex-col gap-0.5">
-                    <span className="text-[12px] font-bold text-slate-800">Appuyez sur Démarrer</span>
+                    <span className="text-[12px] font-bold text-slate-800">Appuyez sur DÃ©marrer</span>
                     <span className="text-[11px] text-slate-500 leading-snug">
-                      Dans Telegram, touchez le bouton <strong>Démarrer</strong> (<code className="text-indigo-600">/start</code>).
+                      Dans Telegram, touchez le bouton <strong>DÃ©marrer</strong> (<code className="text-indigo-600">/start</code>).
                     </span>
                   </div>
                 </div>
@@ -526,9 +526,9 @@ export default function TelegramLinkCard() {
                     3
                   </div>
                   <div className="flex flex-col gap-0.5">
-                    <span className="text-[12px] font-bold text-slate-800">Liaison instantanée</span>
+                    <span className="text-[12px] font-bold text-slate-800">Liaison instantanÃ©e</span>
                     <span className="text-[11px] text-slate-500 leading-snug">
-                      Hnia reconnaît automatiquement votre école et associe votre compte en 1 seconde.
+                      Hnia reconnaÃ®t automatiquement votre Ã©cole et associe votre compte en 1 seconde.
                     </span>
                   </div>
                 </div>
@@ -539,9 +539,9 @@ export default function TelegramLinkCard() {
                     4
                   </div>
                   <div className="flex flex-col gap-0.5">
-                    <span className="text-[12px] font-bold text-slate-800">Prenez le contrôle !</span>
+                    <span className="text-[12px] font-bold text-slate-800">Prenez le contrÃ´le !</span>
                     <span className="text-[11px] text-slate-500 leading-snug">
-                      Pilotez vos élèves, finances et cours par texte ou note vocale de n&apos;importe où.
+                      Pilotez vos Ã©lÃ¨ves, finances et cours par texte ou note vocale de n&apos;importe oÃ¹.
                     </span>
                   </div>
                 </div>
@@ -579,7 +579,7 @@ export default function TelegramLinkCard() {
                     onClick={handleGenerateCode}
                     disabled={actionLoading}
                     className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-white rounded-lg transition-colors"
-                    title="Régénérer un nouveau code"
+                    title="RÃ©gÃ©nÃ©rer un nouveau code"
                   >
                     <RefreshCw size={14} className={actionLoading ? "animate-spin" : ""} />
                   </button>
@@ -608,7 +608,7 @@ export default function TelegramLinkCard() {
               <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 flex flex-col gap-3 text-[12px] animate-in fade-in duration-200 shadow-2xs">
                 <span className="font-semibold text-indigo-950 flex items-center gap-2">
                   <Search size={14} className="text-indigo-600" />
-                  Comment associer votre école sans scanner le code :
+                  Comment associer votre Ã©cole sans scanner le code :
                 </span>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -618,7 +618,7 @@ export default function TelegramLinkCard() {
                         1. Recherche + Code dans Telegram
                       </span>
                       <p className="text-slate-500 text-[11px] leading-relaxed">
-                        Sur votre téléphone, ouvrez Telegram, cherchez <strong className="text-slate-800">@HniaSnapSchoolBot</strong>, puis envoyez simplement le code :{" "}
+                        Sur votre tÃ©lÃ©phone, ouvrez Telegram, cherchez <strong className="text-slate-800">@HniaSnapSchoolBot</strong>, puis envoyez simplement le code :{" "}
                         <code className="bg-slate-100 px-1.5 py-0.5 rounded font-bold text-indigo-700 border border-slate-200">
                           {activeCode || "..."}
                         </code>
@@ -632,7 +632,7 @@ export default function TelegramLinkCard() {
                       {copied ? (
                         <>
                           <Check size={13} className="text-emerald-600" />
-                          <span className="text-emerald-700 font-semibold">Code copié !</span>
+                          <span className="text-emerald-700 font-semibold">Code copiÃ© !</span>
                         </>
                       ) : (
                         <>
@@ -649,7 +649,7 @@ export default function TelegramLinkCard() {
                         2. S&apos;envoyer le lien d&apos;invitation direct
                       </span>
                       <p className="text-slate-500 text-[11px] leading-relaxed">
-                        Copiez le lien direct avec code intégré et collez-le dans WhatsApp pour l&apos;ouvrir directement sur votre smartphone.
+                        Copiez le lien direct avec code intÃ©grÃ© et collez-le dans WhatsApp pour l&apos;ouvrir directement sur votre smartphone.
                       </p>
                     </div>
                     <button
@@ -666,7 +666,7 @@ export default function TelegramLinkCard() {
                       {copiedLink ? (
                         <>
                           <Check size={13} className="text-emerald-600" />
-                          <span className="text-emerald-700 font-semibold">Lien d&apos;invitation copié !</span>
+                          <span className="text-emerald-700 font-semibold">Lien d&apos;invitation copiÃ© !</span>
                         </>
                       ) : (
                         <>
@@ -685,3 +685,4 @@ export default function TelegramLinkCard() {
     </div>
   );
 }
+

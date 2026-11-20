@@ -15,7 +15,7 @@ import {
   Check,
   X
 } from "lucide-react";
-import { updateAttendanceJustification } from "../actions";
+import { updateAttendanceJustification } from "@actions/student-detail";
 import { useLanguage } from "@/lib/translations/LanguageContext";
 
 interface AttendanceRecord {

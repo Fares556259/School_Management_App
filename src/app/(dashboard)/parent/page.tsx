@@ -1,6 +1,6 @@
-import BigCalendarContainer from "@/components/BigCalendarContainer";
+﻿import BigCalendarContainer from "@/components/BigCalendarContainer";
 import prisma from "@/lib/prisma";
-import { createClient } from "@/utils/supabase/server";
+import { createClient } from "@lib/supabase/server";
 import { getCachedTenantData } from "@/lib/cache";
 import { getSchoolId } from "@/lib/school";
 
@@ -42,3 +42,4 @@ const ParentPage = async () => {
 };
 
 export default ParentPage;
+

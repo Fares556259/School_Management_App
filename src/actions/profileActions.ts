@@ -1,8 +1,8 @@
-"use server";
+﻿"use server";
 
 import prisma from "@/lib/prisma";
-import { getAuthenticatedUser, createClient } from "@/utils/supabase/server";
-import { supabaseAdmin } from "@/utils/supabase/admin";
+import { getAuthenticatedUser, createClient } from "@lib/supabase/server";
+import { supabaseAdmin } from "@lib/supabase/admin";
 import { revalidatePath } from "next/cache";
 import { cache } from "react";
 import { getSchoolId } from "@/lib/school";
@@ -116,3 +116,4 @@ export async function updateAdminProfile(data: {
     return { success: false, error: error.message };
   }
 }
+

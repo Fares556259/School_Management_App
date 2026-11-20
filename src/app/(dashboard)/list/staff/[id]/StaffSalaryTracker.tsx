@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition, useMemo } from "react";
-import { payStaffSalary } from "../actions";
+import { payStaffSalary } from "@actions/staff";
 import { MONTHS } from "@/lib/dateUtils";
 import { useLanguage } from "@/lib/translations/LanguageContext";
 import { toast } from "react-toastify";

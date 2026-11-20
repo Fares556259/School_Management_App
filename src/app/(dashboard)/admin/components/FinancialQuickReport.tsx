@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactMarkdown from "react-markdown";
-import { getFinancialReportData, getAIFinancialReport, ReportData } from "../actions";
+import { getFinancialReportData, getAIFinancialReport, ReportData } from "@actions/admin";
 import { ChevronDown, ChevronUp } from "lucide-react";
 
 interface FinancialQuickReportProps {

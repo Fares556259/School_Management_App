@@ -21,7 +21,7 @@ import {
   Loader2,
   AlertCircle,
 } from "lucide-react";
-import { receiveStudentPayment } from "../students/actions";
+import { receiveStudentPayment } from "@actions/students";
 import { useLanguage } from "@/lib/translations/LanguageContext";
 import { downloadCSV } from "@/lib/csvExport";
 import { toast } from "react-toastify";

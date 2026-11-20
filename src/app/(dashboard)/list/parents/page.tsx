@@ -1,9 +1,9 @@
-import { getRole } from "@/lib/role";
+﻿import { getRole } from "@/lib/role";
 import { getCachedTenantData } from "@/lib/cache";
 import CrudFormModal from "@/components/CrudFormModal";
 import Pagination from "@/components/Pagination";
 import { getSchoolId } from "@/lib/school";
-import { createClient } from "@/utils/supabase/server";
+import { createClient } from "@lib/supabase/server";
 import Image from "next/image";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
@@ -165,7 +165,7 @@ const ParentListPage = async ({
 
   const relatedData = {
     classId: [
-      { value: "null", label: "Non affecté(e)" },
+      { value: "null", label: "Non affectÃ©(e)" },
       ...safeClasses.map((c: any) => ({ value: (c.id || '').toString(), label: c.name || '' }))
     ],
     schoolName: school?.name || "SnapSchool",
@@ -186,3 +186,4 @@ const ParentListPage = async ({
 };
 
 export default ParentListPage;
+

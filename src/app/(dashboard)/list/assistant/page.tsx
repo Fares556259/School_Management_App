@@ -1,7 +1,7 @@
 import prisma from "@/lib/prisma";
 import { MONTHS } from "@/lib/dateUtils";
 import AssistantClient from "./AssistantClient";
-import { getAIUsageStats } from "../../admin/actions/aiActions";
+import { getAIUsageStats } from "@actions/aiActions";
 
 export const dynamic = "force-dynamic";
 

@@ -1,7 +1,7 @@
-import prisma from "@/lib/prisma";
+﻿import prisma from "@/lib/prisma";
 import { getSchoolId, getSchoolIdFromHeader } from "@/lib/school";
 import { getRole } from "@/lib/role";
-import { createClient } from "@/utils/supabase/server";
+import { createClient } from "@lib/supabase/server";
 import { NextResponse } from "next/server";
 
 // Helper to parse "08:00 AM" to dummy Date
@@ -115,3 +115,4 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Failed to fetch lessons" }, { status: 500 });
   }
 }
+

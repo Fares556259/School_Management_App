@@ -1,11 +1,11 @@
-"use server";
+﻿"use server";
 
-import { supabaseAdmin } from "@/utils/supabase/admin";
+import { supabaseAdmin } from "@lib/supabase/admin";
 import prisma from "@/lib/prisma";
 import { getRole } from "@/lib/role";
 import { revalidatePath } from "next/cache";
 
-// ─── Unified Application Model ───────────────────────────────────────────────
+// â”€â”€â”€ Unified Application Model â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export type ApplicationDisplayType = "pending" | "inquiry" | "active";
 
 export type UnifiedApplication = {
@@ -38,7 +38,7 @@ export async function getUnifiedApplications(): Promise<UnifiedApplication[]> {
   const result: UnifiedApplication[] = [];
   const consumedRequestIds = new Set<string>();
 
-  // 1. Pending admins → "pending" rows (merge with matching SetupRequest if found)
+  // 1. Pending admins â†’ "pending" rows (merge with matching SetupRequest if found)
   for (const admin of pendingAdmins) {
     const fullName = [admin.name, admin.surname].filter(Boolean).join(" ") || admin.username;
 
@@ -56,7 +56,7 @@ export async function getUnifiedApplications(): Promise<UnifiedApplication[]> {
     result.push({
       id: admin.id,
       displayType: "pending",
-      schoolName: admin.pendingSchoolName || match?.schoolName || "—",
+      schoolName: admin.pendingSchoolName || match?.schoolName || "â€”",
       ownerName: fullName,
       email: admin.email ?? null,
       phone: match?.phoneNumber || null,
@@ -161,7 +161,7 @@ export async function deleteSetupRequest(id: string) {
   }
 }
 
-import { createClient } from "@/utils/supabase/server";
+import { createClient } from "@lib/supabase/server";
 import slugify from "slugify";
 
 export async function getPendingAdmins() {
@@ -250,7 +250,7 @@ export async function createTestLead() {
     const rand = Math.floor(Math.random() * 10000);
     const schoolName = `Test Academy ${rand}`;
     
-    // Create a SetupRequest (lead) only — no fake auth user needed
+    // Create a SetupRequest (lead) only â€” no fake auth user needed
     await prisma.setupRequest.create({
       data: {
         schoolName: schoolName,
@@ -327,7 +327,7 @@ export async function provisionSchool(adminId: string, schoolId: string, schoolN
   }
 }
 
-// ─── Subscriptions ─────────────────────────────────────────────────────────────
+// â”€â”€â”€ Subscriptions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function getSubscriptions() {
   await ensureSuperUser();
@@ -378,3 +378,4 @@ export async function toggleSchoolStatus(schoolId: string, newStatus: string) {
     return { success: false, error: error.message || "Failed to update school status." };
   }
 }
+

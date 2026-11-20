@@ -1,5 +1,5 @@
-import BigCalendarContainer from "@/components/BigCalendarContainer";
-import { createClient } from "@/utils/supabase/server";
+﻿import BigCalendarContainer from "@/components/BigCalendarContainer";
+import { createClient } from "@lib/supabase/server";
 
 const TeacherPage = async () => {
   const supabase = createClient();
@@ -21,3 +21,4 @@ const TeacherPage = async () => {
 };
 
 export default TeacherPage;
+

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -6,7 +6,7 @@ import { z } from "zod";
 import { useTransition } from "react";
 import InputField from "../InputField";
 import Image from "next/image";
-import { createTeacher, updateTeacher } from "@/lib/crudActions";
+import { createTeacher, updateTeacher } from "@actions/lib-crud";
 import { useState } from "react";
 import { compressImage } from "@/lib/imageCompression";
 import { useLanguage } from "@/lib/translations/LanguageContext";
@@ -184,7 +184,7 @@ const TeacherForm = ({
                   maxHeight: 800,
                   quality: 0.8,
                 });
-                const supabase = (await import('@/utils/supabase/client')).createClient();
+                const supabase = (await import('@lib/supabase/client')).createClient();
                 const fileName = `teacher-${Date.now()}`;
                 const filePath = `teachers/${fileName}`;
 
@@ -232,3 +232,4 @@ const TeacherForm = ({
 };
 
 export default TeacherForm;
+

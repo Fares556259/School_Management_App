@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin } from "@/utils/supabase/admin";
+﻿import { NextRequest, NextResponse } from "next/server";
+import { supabaseAdmin } from "@lib/supabase/admin";
 
 /**
- * DEV ONLY — Reset a user's password (creates them if they don't exist yet).
+ * DEV ONLY â€” Reset a user's password (creates them if they don't exist yet).
  * Usage: GET /api/dev-reset-password?email=foo@bar.com&password=NewPass123!
  *
  * Remove or protect this route before going to production!
@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
   const existingUser = users.users.find((u) => u.email === email);
 
   if (existingUser) {
-    // User exists — just update password + metadata
+    // User exists â€” just update password + metadata
     userId = existingUser.id;
 
     const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
     });
 
   } else {
-    // User doesn't exist — create them
+    // User doesn't exist â€” create them
     const { data: created, error: createError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password: newPassword,
@@ -87,3 +87,4 @@ export async function GET(request: NextRequest) {
     });
   }
 }
+

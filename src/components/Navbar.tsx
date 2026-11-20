@@ -1,10 +1,10 @@
-"use client";
+﻿"use client";
 
 import Image from "next/image"
 import LanguageSwitcher from "./LanguageSwitcher";
 import { useLanguage } from "@/lib/translations/LanguageContext";
 import { useEffect, useState } from "react";
-import { getAIUsageStats, toggleTestAIQuota } from "@/app/(dashboard)/admin/actions/aiActions";
+import { getAIUsageStats, toggleTestAIQuota } from "@actions/aiActions";
 import { Sparkles, Lock, Unlock, RefreshCw, Search, Bell, Menu as MenuIcon } from "lucide-react";
 import { motion } from "framer-motion";
 import { useRouter, usePathname } from "next/navigation";
@@ -36,7 +36,7 @@ const Navbar = ({ adminData: initialAdminData, role = "User", onMobileMenuOpen }
     <div className='flex items-center justify-between px-4 md:px-6 py-3 md:py-4 bg-[#F5F6F8]/80 backdrop-blur-md sticky top-0 z-50 border-b border-transparent transition-all'>
       {/* LEFT: Hamburger (mobile only) + PAGE TITLE */}
       <div className="flex items-center gap-3 flex-1">
-        {/* Hamburger — only visible on mobile */}
+        {/* Hamburger â€” only visible on mobile */}
         <button
           type="button"
           onClick={onMobileMenuOpen}
@@ -46,7 +46,7 @@ const Navbar = ({ adminData: initialAdminData, role = "User", onMobileMenuOpen }
           <MenuIcon size={20} />
         </button>
 
-        {/* Page title — always visible, smaller on mobile */}
+        {/* Page title â€” always visible, smaller on mobile */}
         <h1 className="text-[18px] md:text-[24px] font-normal text-[#181d26] leading-[1.35] tracking-[0.12px] truncate">
           {(() => {
             if (pathSegments.length === 0) return "Dashboard";

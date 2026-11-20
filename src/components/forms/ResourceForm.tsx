@@ -1,11 +1,11 @@
-"use client";
+﻿"use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useTransition, useState, useEffect, useMemo } from "react";
 import InputField from "../InputField";
-import { createResource } from "@/lib/crudActions";
+import { createResource } from "@actions/lib-crud";
 import { getSubjectName } from "@/lib/utils";
 import { compressImageFiles } from "@/lib/imageCompression";
 import { useLanguage } from "@/lib/translations/LanguageContext";
@@ -108,7 +108,7 @@ const ResourceForm = ({
         quality: 0.8,
       });
 
-      const supabase = (await import('@/utils/supabase/client')).createClient();
+      const supabase = (await import('@lib/supabase/client')).createClient();
       const newUrls: string[] = [];
 
       for (let i = 0; i < files.length; i++) {
@@ -167,7 +167,7 @@ const ResourceForm = ({
     <form className="flex flex-col gap-6 p-6 max-h-[90vh] overflow-y-auto" onSubmit={onSubmit}>
       <div>
         <h1 className="text-2xl font-black text-slate-800 tracking-tight">
-          📚 Upload Course Resources
+          ðŸ“š Upload Course Resources
         </h1>
         <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Share documents and materials with your students</p>
       </div>
@@ -266,9 +266,9 @@ const ResourceForm = ({
           >
             <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center group-hover:bg-indigo-100 transition-colors">
               {isUploading ? (
-                  <span className="text-lg animate-spin">⏳</span>
+                  <span className="text-lg animate-spin">â³</span>
               ) : (
-                <span className="text-2xl">📁</span>
+                <span className="text-2xl">ðŸ“</span>
               )}
             </div>
             <span className="text-xs font-bold text-slate-500">
@@ -281,7 +281,7 @@ const ResourceForm = ({
               {fileUrls.map((url, index) => (
                 <div key={index} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
                   <div className="flex items-center gap-2 overflow-hidden">
-                    <span className="text-sm">📄</span>
+                    <span className="text-sm">ðŸ“„</span>
                     <span className="text-xs text-slate-600 truncate max-w-[200px]">{url.split('/').pop()}</span>
                   </div>
                   <button 
@@ -302,10 +302,11 @@ const ResourceForm = ({
         className="bg-indigo-600 hover:bg-indigo-700 text-white p-4 rounded-2xl font-bold shadow-lg shadow-indigo-100 transition-all mt-4 disabled:opacity-50"
         disabled={isPending || isUploading}
       >
-        {isPending ? "🚀 Processing..." : "Publish Resource"}
+        {isPending ? "ðŸš€ Processing..." : "Publish Resource"}
       </button>
     </form>
   );
 };
 
 export default ResourceForm;
+

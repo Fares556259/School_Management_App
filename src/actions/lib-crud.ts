@@ -1,14 +1,14 @@
 "use server";
 
 import { getSchoolId } from "@/lib/school";
-import { DEFAULT_SUBJECTS } from "./subjectConstants";
+import { DEFAULT_SUBJECTS } from "@/lib/subjectConstants";
 
 
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { invalidateTenantTags } from "@/lib/cache";
 import { createAuditLog } from "@/lib/audit";
-import { createAssignmentNotification, createResourceNotification } from "./notifications";
+import { createAssignmentNotification, createResourceNotification } from "@/lib/notifications";
 import { UserSex } from "@prisma/client";
 
 // ===================== TEACHER =====================

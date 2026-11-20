@@ -1,9 +1,9 @@
-"use client";
+﻿"use client";
 
 import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, UploadCloud, FileImage, Sparkles, CheckCircle2, AlertCircle } from "lucide-react";
-import { processBulkGrades } from "../../admin/actions/aiBulkGradeActions";
+import { processBulkGrades } from "@actions/aiBulkGradeActions";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useLanguage } from "@/lib/translations/LanguageContext";
@@ -62,7 +62,7 @@ export default function BulkAIUploadModal({ isOpen, onClose, selectedTerm }: Pro
         quality: 0.85,
       });
 
-      const { createClient } = await import('@/utils/supabase/client');
+      const { createClient } = await import('@lib/supabase/client');
       const supabase = createClient();
       
       const uploadedUrls: string[] = [];
@@ -190,7 +190,7 @@ export default function BulkAIUploadModal({ isOpen, onClose, selectedTerm }: Pro
                 <div className="relative w-24 h-24 mb-8">
                    <div className="absolute inset-0 rounded-full border border-[#dddddd]"></div>
                    <div className="absolute inset-0 rounded-full border border-[#181d26] border-t-transparent animate-spin"></div>
-                   <div className="absolute inset-0 flex items-center justify-center text-[24px]">✨</div>
+                   <div className="absolute inset-0 flex items-center justify-center text-[24px]">âœ¨</div>
                 </div>
                 <h3 className="text-[18px] font-medium text-[#181d26] mb-2 animate-pulse">
                   {status === "uploading" ? "Encrypting & Uploading..." : "AI Reading Handwriting..."}
@@ -315,3 +315,4 @@ export default function BulkAIUploadModal({ isOpen, onClose, selectedTerm }: Pro
     </AnimatePresence>
   );
 }
+

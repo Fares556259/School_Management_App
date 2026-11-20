@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { getUserAvatar } from "@/lib/avatar";
-import { getStaffProfileBundle } from "../actions";
+import { getStaffProfileBundle } from "@actions/staff";
 import CrudFormModal from "@/components/CrudFormModal";
 import SalarySummaryCard from "./SalarySummaryCard";
 import StaffSalaryTracker from "./StaffSalaryTracker";

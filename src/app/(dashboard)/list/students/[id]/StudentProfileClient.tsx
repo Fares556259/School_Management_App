@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import FormModal from "@/components/FormModal";
 import { getUserAvatar } from "@/lib/avatar";
 import { useLanguage } from "@/lib/translations/LanguageContext";
-import { getStudentProfileBundle, getClassStudentsBundles } from "./actions";
+import { getStudentProfileBundle, getClassStudentsBundles } from "@actions/student-detail";
 import { 
   StudentBreadcrumbNav, 
   StudentSideDrawer, 

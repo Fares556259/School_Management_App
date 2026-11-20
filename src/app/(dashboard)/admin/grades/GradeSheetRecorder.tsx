@@ -1,13 +1,13 @@
-"use client";
+﻿"use client";
 
 import { useState, useRef, useTransition, useCallback, ReactNode, useEffect } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Maximize2, X, FileText, Pencil, ClipboardPaste, Trash2, Lock, Sparkles, RotateCw, SunMedium, Loader2, Check as CheckIcon, Upload, Download, ChevronLeft, ChevronRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { createGradeSheet, GradeEntry, getGradeSheet } from "./actions";
-import { extractGradesFromImage } from "./aiActions";
-import { isAIQuotaReached } from "../actions/aiActions";
+import { createGradeSheet, GradeEntry, getGradeSheet } from "@actions/grades";
+import { extractGradesFromImage } from "@actions/grades-ai";
+import { isAIQuotaReached } from "@actions/aiActions";
 import { compressImageFiles } from "@/lib/imageCompression";
 import { useLanguage } from "@/lib/translations/LanguageContext";
 import { toast } from "react-toastify";
@@ -449,7 +449,7 @@ export default function GradeSheetRecorder({
 
     startTransition(async () => {
       try {
-        const supabase = (await import('@/utils/supabase/client')).createClient();
+        const supabase = (await import('@lib/supabase/client')).createClient();
         let uploadedUrls: string[] = [];
 
         // Upload any new files
@@ -524,11 +524,11 @@ export default function GradeSheetRecorder({
             .filter((v) => v !== "")
             .reduce((sum, v) => sum + parseFloat(v), 0) / gradeCount
         ).toFixed(1)
-      : "—";
+      : "â€”";
 
   return (
     <div className="flex flex-col h-full bg-slate-50 overflow-hidden">
-      {/* ─── HEADER BAR ─── */}
+      {/* â”€â”€â”€ HEADER BAR â”€â”€â”€ */}
       <div className="flex items-center justify-between px-6 py-3 bg-white border-b border-[#e5e7eb]">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-[8px] bg-blue-50 flex items-center justify-center">
@@ -536,7 +536,7 @@ export default function GradeSheetRecorder({
           </div>
           <div>
             <h1 className="text-[15px] font-semibold text-[#181d26] tracking-tight">Grade Sheet Recorder</h1>
-            <p className="text-[11px] text-[#6b7280]">Upload Proof · Record Marks · Verify</p>
+            <p className="text-[11px] text-[#6b7280]">Upload Proof Â· Record Marks Â· Verify</p>
           </div>
         </div>
 
@@ -557,7 +557,7 @@ export default function GradeSheetRecorder({
               animate={{ opacity: 1, x: 0 }}
               className="text-[11px] font-medium text-rose-600 bg-rose-50 px-2.5 py-1 rounded-md border border-rose-100"
             >
-              Save failed — try again
+              Save failed â€” try again
             </motion.span>
           )}
 
@@ -575,7 +575,7 @@ export default function GradeSheetRecorder({
           >
             {isPending ? (
               <span className="flex items-center gap-1.5">
-                <Loader2 size={14} className="animate-spin" /> Saving…
+                <Loader2 size={14} className="animate-spin" /> Savingâ€¦
               </span>
             ) : isDirty ? "Save" : "Saved"}
           </button>
@@ -589,7 +589,7 @@ export default function GradeSheetRecorder({
         </div>
       </div>
 
-      {/* ─── FILTERS BAR ─── */}
+      {/* â”€â”€â”€ FILTERS BAR â”€â”€â”€ */}
       <div className="flex flex-wrap items-center gap-3 px-6 py-2.5 bg-white border-b border-[#e5e7eb] relative z-30">
         <CustomSelect
           label="Class"
@@ -620,7 +620,7 @@ export default function GradeSheetRecorder({
           value={teacherId}
           onChange={setTeacherId}
           options={[
-            { value: "", label: "— Not assigned —" },
+            { value: "", label: "â€” Not assigned â€”" },
             ...teachers.map((t) => ({ value: t.id, label: `${t.name} ${t.surname}` })),
           ]}
         />
@@ -636,7 +636,7 @@ export default function GradeSheetRecorder({
       {/* Hidden file input */}
       <input ref={fileRef} type="file" accept="image/*,.pdf" multiple className="hidden" onChange={handleFileSelect} />
 
-      {/* ─── FULL-HEIGHT GRADE ENTRY ─── */}
+      {/* â”€â”€â”€ FULL-HEIGHT GRADE ENTRY â”€â”€â”€ */}
       <div 
         className="flex flex-col flex-1 overflow-hidden bg-white relative"
         onDragOver={(e) => {
@@ -652,12 +652,12 @@ export default function GradeSheetRecorder({
         {/* Drag overlay */}
         {isDraggingFile && (
           <div className="absolute inset-0 z-50 bg-indigo-600/10 backdrop-blur-sm border-2 border-dashed border-indigo-400 rounded-xl flex flex-col items-center justify-center gap-3 pointer-events-none">
-            <motion.div animate={{ y: [0, -6, 0] }} transition={{ repeat: Infinity, duration: 1 }} className="text-4xl">📥</motion.div>
+            <motion.div animate={{ y: [0, -6, 0] }} transition={{ repeat: Infinity, duration: 1 }} className="text-4xl">ðŸ“¥</motion.div>
             <p className="text-sm font-black text-indigo-600 uppercase tracking-widest">Drop to Upload</p>
           </div>
         )}
 
-        {/* ── Toolbar ── */}
+        {/* â”€â”€ Toolbar â”€â”€ */}
         <div className="flex items-center justify-between px-5 py-2.5 bg-white border-b border-slate-100 shrink-0">
           {/* Left: Proof thumbnails */}
           <div className="flex items-center gap-2">
@@ -742,7 +742,7 @@ export default function GradeSheetRecorder({
         {/* Scan error / warnings */}
         {scanError && (
           <div className="px-5 py-2 bg-rose-50 border-b border-rose-100 text-[11px] font-bold text-rose-500 text-center shrink-0">
-            ⚠️ {scanError}
+            âš ï¸ {scanError}
           </div>
         )}
         {scanWarnings.length > 0 && !isScanning && (
@@ -751,10 +751,10 @@ export default function GradeSheetRecorder({
             animate={{ height: "auto", opacity: 1 }}
             className="px-5 py-2 bg-amber-50 border-b border-amber-200 flex items-center gap-3 shrink-0"
           >
-            <span className="text-xs">⚠️</span>
+            <span className="text-xs">âš ï¸</span>
             <div className="flex-1 flex flex-wrap gap-x-4 gap-y-1">
               {scanWarnings.map((w, i) => (
-                <span key={i} className="text-[11px] font-medium text-amber-700">• {w}</span>
+                <span key={i} className="text-[11px] font-medium text-amber-700">â€¢ {w}</span>
               ))}
             </div>
             <button 
@@ -781,7 +781,7 @@ export default function GradeSheetRecorder({
           </div>
         )}
 
-        {/* ── Student List (FULL HEIGHT) ── */}
+        {/* â”€â”€ Student List (FULL HEIGHT) â”€â”€ */}
         <div className="flex-1 overflow-auto relative">
           {(isLoadingStudents || isSyncing) && (
             <div className="absolute inset-0 bg-white/75 backdrop-blur-[2px] z-20 flex items-center justify-center animate-in fade-in duration-200">
@@ -841,13 +841,13 @@ export default function GradeSheetRecorder({
                             if (prevInput) (prevInput as HTMLInputElement).focus();
                           }
                         }}
-                        placeholder="—"
+                        placeholder="â€”"
                         className="w-full text-center text-[13px] font-medium rounded-lg border border-slate-200 bg-white px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all"
                       />
                     </td>
                     <td className="px-4 py-3 text-center">
                       <span className={`text-[12px] font-semibold ${raw !== "" ? "text-emerald-600" : "text-slate-300"}`}>
-                        {raw !== "" ? "✓" : "—"}
+                        {raw !== "" ? "âœ“" : "â€”"}
                       </span>
                     </td>
                   </tr>
@@ -860,7 +860,7 @@ export default function GradeSheetRecorder({
 
       </div>
 
-    {/* ─── FULLSCREEN PREVIEW MODAL (LIGHTBOX) ─── */}
+    {/* â”€â”€â”€ FULLSCREEN PREVIEW MODAL (LIGHTBOX) â”€â”€â”€ */}
     <AnimatePresence>
       {isFullscreen && (
         <motion.div 
@@ -950,7 +950,7 @@ export default function GradeSheetRecorder({
       )}
     </AnimatePresence>
 
-      {/* ─── BULK PASTE MODAL ─── */}
+      {/* â”€â”€â”€ BULK PASTE MODAL â”€â”€â”€ */}
       <AnimatePresence>
         {isBulkPasteOpen && (
           <motion.div 
@@ -1098,7 +1098,7 @@ function TimelineStep({ label, status }: { label: string; status: "completed" | 
         status === "active" ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 animate-pulse" :
         "bg-white/5 text-white/20 border border-white/5"
       }`}>
-        {status === "completed" ? "✓" : status === "active" ? "⚡" : "○"}
+        {status === "completed" ? "âœ“" : status === "active" ? "âš¡" : "â—‹"}
       </div>
       <span className={`text-[9px] font-black uppercase tracking-widest transition-all duration-300 ${
         status === "completed" ? "text-emerald-400" :
@@ -1108,3 +1108,4 @@ function TimelineStep({ label, status }: { label: string; status: "completed" | 
     </div>
   );
 }
+

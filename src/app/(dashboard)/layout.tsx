@@ -1,5 +1,5 @@
-import Menu from "@/components/Menu";
-import { getAuthenticatedUser } from "@/utils/supabase/server";
+﻿import Menu from "@/components/Menu";
+import { getAuthenticatedUser } from "@lib/supabase/server";
 import { getRole } from "@/lib/role";
 import { getSchoolId } from "@/lib/school";
 import Image from "next/image";
@@ -8,7 +8,7 @@ import { redirect } from "next/navigation";
 import PageTransition from "@/components/PageTransition";
 import DashboardShellClient from "@/components/DashboardShellClient";
 import prisma from "@/lib/prisma";
-import { getAdminProfile } from "@/app/(dashboard)/admin/actions/profileActions";
+import { getAdminProfile } from "@actions/profileActions";
 import { getCachedTenantData } from "@/lib/cache";
 
 // Multi-tenant caching for school configuration (1 hour TTL)
@@ -56,7 +56,7 @@ export default async function DashboardLayout({
   // Fetch schoolConfig and adminProfile in parallel with tenant cache (0ms on subsequent clicks)
   const [schoolConfigResult, adminProfileResult] = await Promise.all([
     getSchoolConfig(schoolId).catch((error) => {
-      console.warn("⚠️ [LAYOUT] Delayed config fetch (Non-critical):", error.message);
+      console.warn("âš ï¸ [LAYOUT] Delayed config fetch (Non-critical):", error.message);
       return null;
     }),
     role === "admin" && userId
@@ -70,7 +70,7 @@ export default async function DashboardLayout({
           },
           3600
         ).catch((error) => {
-          console.warn("⚠️ [LAYOUT] Failed to fetch admin profile:", error.message);
+          console.warn("âš ï¸ [LAYOUT] Failed to fetch admin profile:", error.message);
           return null;
         })
       : Promise.resolve(null),
@@ -81,7 +81,7 @@ export default async function DashboardLayout({
 
   return (
     <div className="h-screen flex text-slate-900 print:h-auto print:block bg-[#F5F6F8]">
-      {/* LEFT SIDEBAR — hidden on mobile, visible md+ */}
+      {/* LEFT SIDEBAR â€” hidden on mobile, visible md+ */}
       <aside className="hidden md:flex w-20 lg:w-[260px] xl:w-[275px] shrink-0 p-3.5 lg:p-4 print:hidden z-30 sticky top-0 h-screen flex-col bg-white text-slate-800 border-r border-slate-200/80 shadow-xs transition-all duration-300">
         <div className="flex items-center justify-center lg:justify-between mb-6 px-1 shrink-0">
           <Link
@@ -108,7 +108,7 @@ export default async function DashboardLayout({
 
       {/* RIGHT MAIN CONTENT */}
       <div className="flex-1 min-w-0 overflow-y-auto flex flex-col print:w-full print:p-0 print:bg-white print:overflow-visible print:h-auto print:block relative">
-        {/* DashboardShellClient owns mobile drawer state + wires hamburger → drawer */}
+        {/* DashboardShellClient owns mobile drawer state + wires hamburger â†’ drawer */}
         <DashboardShellClient role={role!} adminData={adminProfile} schoolConfig={schoolConfig}>
           <PageTransition>
             <div className="p-3 md:p-6 lg:p-8 print:p-0 print:m-0">
@@ -120,3 +120,4 @@ export default async function DashboardLayout({
     </div>
   );
 }
+

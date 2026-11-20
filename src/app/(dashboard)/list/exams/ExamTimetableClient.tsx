@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useTransition, useRef, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -8,10 +8,10 @@ import { useReactToPrint } from "react-to-print";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import { toast } from "react-toastify";
-import { createClient } from "@/utils/supabase/client";
+import { createClient } from "@lib/supabase/client";
 import ScheduleGrid from "../../admin/timetable/components/ScheduleGrid";
 import AiScheduleModal from "../../admin/timetable/components/AiScheduleModal";
-import { isAIQuotaReached } from "../../admin/actions/aiActions";
+import { isAIQuotaReached } from "@actions/aiActions";
 import { 
   getExamsByClass, 
   moveExam, 
@@ -23,10 +23,10 @@ import {
   publishDraftExams,
   discardDraftExams,
   publishExamScheduleToStudents
-} from "../../admin/actions/examActions";
+} from "@actions/examActions";
 import ExamTimetablePrint from "../../admin/timetable/components/ExamTimetablePrint";
-import { getSchoolConfig } from "../../admin/actions/schoolActions";
-import { generateExamsFromPrompt } from "../../admin/actions/examAiActions";
+import { getSchoolConfig } from "@actions/schoolActions";
+import { generateExamsFromPrompt } from "@actions/examAiActions";
 
 const ExamTimetableClient = ({ 
   classes, 
@@ -461,7 +461,7 @@ const ExamTimetableClient = ({
               />
             </div>
             
-            <span className="text-[#9297a0] text-xs font-medium">→</span>
+            <span className="text-[#9297a0] text-xs font-medium">â†’</span>
             
             <div className="flex items-center gap-2 relative group">
               <div className="absolute left-3 text-[11px] font-bold text-[#9297a0] uppercase tracking-wider pointer-events-none z-10">{t.exams.end}</div>
@@ -626,3 +626,4 @@ const ExamTimetableClient = ({
 };
 
 export default ExamTimetableClient;
+

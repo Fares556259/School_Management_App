@@ -1,5 +1,5 @@
-import { getAllClasses, getAllSubjectsAndTeachers, getAllRooms, getAllActiveTimetableSlots } from "../actions/timetableActions";
-import { getSchoolConfig } from "../actions/schoolActions";
+import { getAllClasses, getAllSubjectsAndTeachers, getAllRooms, getAllActiveTimetableSlots } from "@actions/timetableActions";
+import { getSchoolConfig } from "@actions/schoolActions";
 import { getSchoolId } from "@/lib/school";
 import { getCachedTenantData } from "@/lib/cache";
 

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
@@ -349,7 +349,7 @@ const SettingsPage = () => {
         quality: 0.85,
       });
 
-      const { createClient } = await import('@/utils/supabase/client');
+      const { createClient } = await import('@lib/supabase/client');
       const supabase = createClient();
       
       const fileName = `brand-${field}-${Date.now()}-${optimizedFile.name.replace(/\s+/g, '_')}`;
@@ -590,10 +590,10 @@ const SettingsPage = () => {
                     <div className="flex items-center justify-between">
                       <div className="flex flex-col gap-0.5">
                         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">
-                          {isPreschool ? (t.systemSettings?.preschoolGrade || "Année Préscolaire") : (t.systemSettings?.primary || "Primary")}
+                          {isPreschool ? (t.systemSettings?.preschoolGrade || "AnnÃ©e PrÃ©scolaire") : (t.systemSettings?.primary || "Primary")}
                         </span>
                         <span className="text-sm font-black text-slate-700">
-                          {isPreschool ? (t.systemSettings?.preschoolWithArabic || "Préscolaire (تحضيري)") : `${t.systemSettings?.level || "Level"} ${lvl.level}`}
+                          {isPreschool ? (t.systemSettings?.preschoolWithArabic || "PrÃ©scolaire (ØªØ­Ø¶ÙŠØ±ÙŠ)") : `${t.systemSettings?.level || "Level"} ${lvl.level}`}
                         </span>
                       </div>
                       <div className="relative max-w-[100px]">
@@ -644,17 +644,17 @@ const SettingsPage = () => {
                   <div key={lvl.id} className="flex items-center justify-between p-5 bg-white border border-[#dddddd] rounded-[12px] hover:border-[#9297a0] transition-all shadow-sm">
                      <div className="flex flex-col gap-0.5">
                         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">
-                          {isPreschool ? (t.systemSettings?.preschoolGrade || "Année Préscolaire") : (t.systemSettings?.primaryGrade || "Primary Grade")}
+                          {isPreschool ? (t.systemSettings?.preschoolGrade || "AnnÃ©e PrÃ©scolaire") : (t.systemSettings?.primaryGrade || "Primary Grade")}
                         </span>
                         <span className="text-sm font-black text-slate-700">
-                          {isPreschool ? (t.systemSettings?.preschoolWithArabic || "Préscolaire (تحضيري)") : `${t.systemSettings?.level || "Level"} ${lvl.level}`}
+                          {isPreschool ? (t.systemSettings?.preschoolWithArabic || "PrÃ©scolaire (ØªØ­Ø¶ÙŠØ±ÙŠ)") : `${t.systemSettings?.level || "Level"} ${lvl.level}`}
                         </span>
                      </div>
                      
                      <div className="flex items-center gap-4">
                         <div className="flex flex-col gap-1 items-end">
                           <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest px-1">
-                            {isPreschool ? (locale === 'ar' ? 'تفريعات (أ - ي)' : 'Variations (A-Z / أ-ي)') : (t.systemSettings?.variations || "Variations (A-Z)")}
+                            {isPreschool ? (locale === 'ar' ? 'ØªÙØ±ÙŠØ¹Ø§Øª (Ø£ - ÙŠ)' : 'Variations (A-Z / Ø£-ÙŠ)') : (t.systemSettings?.variations || "Variations (A-Z)")}
                           </label>
                           <input 
                             type="number"
@@ -811,7 +811,7 @@ const SettingsPage = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                {/* Day Start Time */}
                <div className="flex flex-col gap-1.5 w-full">
-                 <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest px-1">Heure de début (Start Time)</label>
+                 <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest px-1">Heure de dÃ©but (Start Time)</label>
                  <input 
                    type="time"
                    className="w-full bg-white border border-[#dddddd] rounded-[6px] px-3 py-2.5 text-[14px] font-medium text-[#181d26] focus:outline-none focus:border-[#458fff] transition-all"
@@ -832,7 +832,7 @@ const SettingsPage = () => {
                </div>
             </div>
             <p className="text-xs text-slate-500 bg-white p-3 rounded-md border border-slate-100">
-              Ces heures définissent le cadre de la journée. Chaque créneau d&apos;emploi du temps peut ensuite durer 1h, 1h30 ou 2h et s&apos;alignera automatiquement à l&apos;intérieur de ces horaires.
+              Ces heures dÃ©finissent le cadre de la journÃ©e. Chaque crÃ©neau d&apos;emploi du temps peut ensuite durer 1h, 1h30 ou 2h et s&apos;alignera automatiquement Ã  l&apos;intÃ©rieur de ces horaires.
             </p>
           </div>
 
@@ -899,3 +899,4 @@ const SettingsPage = () => {
 };
 
 export default SettingsPage;
+

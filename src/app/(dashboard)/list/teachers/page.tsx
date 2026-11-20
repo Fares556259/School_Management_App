@@ -1,5 +1,5 @@
-import { getRole } from "@/lib/role";
-import { createClient } from "@/utils/supabase/server";
+﻿import { getRole } from "@/lib/role";
+import { createClient } from "@lib/supabase/server";
 import { Prisma } from "@prisma/client";
 import prisma from "@/lib/prisma";
 
@@ -11,9 +11,9 @@ import { getCachedTenantData } from "@/lib/cache";
 
 const columns = [
   { header: "Info", accessor: "info" },
-  { header: "Matières", accessor: "subjects", className: "hidden md:table-cell" },
+  { header: "MatiÃ¨res", accessor: "subjects", className: "hidden md:table-cell" },
   { header: "Classes", accessor: "classes", className: "hidden md:table-cell" },
-  { header: "Téléphone", accessor: "phone", className: "hidden lg:table-cell" },
+  { header: "TÃ©lÃ©phone", accessor: "phone", className: "hidden lg:table-cell" },
   { header: "Statut de Paiement", accessor: "isPaid" },
   { header: "Activation", accessor: "isActivated" },
   { header: "Actions", accessor: "action" },
@@ -195,3 +195,4 @@ const TeacherListPage = async ({
 };
 
 export default TeacherListPage;
+

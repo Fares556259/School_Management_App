@@ -1,8 +1,8 @@
-"use server";
+﻿"use server";
 
 import prisma from "@/lib/prisma";
 import { getSchoolId } from "@/lib/school";
-import { createClient } from "@/utils/supabase/server";
+import { createClient } from "@lib/supabase/server";
 import { getRole } from "@/lib/role";
 
 export async function getReceiptContext() {
@@ -41,3 +41,4 @@ export async function getReceiptContext() {
     };
   }
 }
+

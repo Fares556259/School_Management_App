@@ -1,6 +1,6 @@
 import React from 'react';
-import { getFinancialReportData, getAIFinancialReport } from '../../../(dashboard)/admin/actions';
-import { createClient } from "@/utils/supabase/server";
+import { getFinancialReportData, getAIFinancialReport } from '@actions/admin';
+import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import nextDynamic from 'next/dynamic';
 

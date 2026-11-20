@@ -1,4 +1,4 @@
-import { createClient } from "@/utils/supabase/server";
+﻿import { createClient } from "@lib/supabase/server";
 import { getRole } from "@/lib/role";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -26,7 +26,7 @@ export default async function SuperadminLayout({
 
   return (
     <div className="min-h-screen bg-[#F7F8FA] flex flex-col print:bg-white">
-      {/* ── Top bar ── */}
+      {/* â”€â”€ Top bar â”€â”€ */}
       <header className="bg-white border-b border-slate-100 sticky top-0 z-30 print:hidden">
         <div className="max-w-screen-xl mx-auto px-6 h-14 flex items-center gap-6">
           {/* Logo */}
@@ -87,7 +87,7 @@ export default async function SuperadminLayout({
         </div>
       </header>
 
-      {/* ── Content ── */}
+      {/* â”€â”€ Content â”€â”€ */}
       <main className="flex-1">
         <PageTransition>
           <div className="max-w-screen-xl mx-auto px-6 py-8 print:p-0">
@@ -98,3 +98,4 @@ export default async function SuperadminLayout({
     </div>
   );
 }
+

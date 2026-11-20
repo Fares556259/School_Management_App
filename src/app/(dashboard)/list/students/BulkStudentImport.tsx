@@ -1,8 +1,8 @@
-"use client";
+﻿"use client";
 
 import { useState, useTransition } from "react";
-import { parseStudentsFromText, parseStudentsFromImage, parseStudentsFromExcel } from "../../admin/actions/studentAiActions";
-import { bulkCreateStudents } from "@/lib/crudActions";
+import { parseStudentsFromText, parseStudentsFromImage, parseStudentsFromExcel } from "@actions/studentAiActions";
+import { bulkCreateStudents } from "@actions/lib-crud";
 import { X, Check, Loader2, AlertCircle, Sparkles, FileText, UserPlus, Image as ImageIcon, Type, UploadCloud, FileSpreadsheet } from "lucide-react";
 import Image from "next/image";
 import { useLanguage } from "@/lib/translations/LanguageContext";
@@ -51,8 +51,8 @@ export default function BulkStudentImport({ onClose }: { onClose: () => void }) 
           ...s,
           name: s.name || s.firstName || "",
           surname: s.surname || s.lastName || "",
-          nationalId: s.nationalId || s["المعرف التربوي"] || null,
-          sex: s.sex === "FEMALE" || String(s.gender || "").includes("أنثى") ? "FEMALE" : "MALE",
+          nationalId: s.nationalId || s["Ø§Ù„Ù…Ø¹Ø±Ù Ø§Ù„ØªØ±Ø¨ÙˆÙŠ"] || null,
+          sex: s.sex === "FEMALE" || String(s.gender || "").includes("Ø£Ù†Ø«Ù‰") ? "FEMALE" : "MALE",
           levelId: Number(s.levelId || selectedLevel || 1),
           classId: s.classId && s.classId !== "null" ? Number(s.classId) : null,
         }));
@@ -137,7 +137,7 @@ export default function BulkStudentImport({ onClose }: { onClose: () => void }) 
                 >
                   <FileSpreadsheet size={16} className={importMode === "excel" ? "text-emerald-600" : ""} />
                   <span>Fichier Excel (.xlsx)</span>
-                  <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-1.5 py-0.5 rounded">Recommandé</span>
+                  <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-1.5 py-0.5 rounded">RecommandÃ©</span>
                 </button>
                 <button
                   onClick={() => setImportMode("text")}
@@ -164,7 +164,7 @@ export default function BulkStudentImport({ onClose }: { onClose: () => void }) 
                   <div className="bg-emerald-50/80 border border-emerald-200 p-4 rounded-[10px] flex items-start gap-3 shadow-sm">
                     <Check size={18} className="text-emerald-600 mt-0.5 shrink-0" />
                     <p className="text-[13px] text-emerald-900 leading-relaxed font-medium">
-                      Déposez votre fichier <b>.xlsx</b> officiel. SnapSchool détecte automatiquement le <b>المعرف التربوي</b>, le <b>Nom</b>, le <b>Prénom</b>, le <b>Genre</b> et le <b>Niveau (1ère à 6ème)</b> de chaque élève sans risque d&apos;erreur !
+                      DÃ©posez votre fichier <b>.xlsx</b> officiel. SnapSchool dÃ©tecte automatiquement le <b>Ø§Ù„Ù…Ø¹Ø±Ù Ø§Ù„ØªØ±Ø¨ÙˆÙŠ</b>, le <b>Nom</b>, le <b>PrÃ©nom</b>, le <b>Genre</b> et le <b>Niveau (1Ã¨re Ã  6Ã¨me)</b> de chaque Ã©lÃ¨ve sans risque d&apos;erreur !
                     </p>
                   </div>
 
@@ -193,10 +193,10 @@ export default function BulkStudentImport({ onClose }: { onClose: () => void }) 
                       <div className="text-center">
                         <p className="text-[15px] font-bold text-emerald-900">{excelFile.name}</p>
                         <p className="text-[12px] text-emerald-700 font-medium mt-0.5">
-                          {(excelFile.size / 1024).toFixed(1)} Ko • Prêt pour l&apos;importation
+                          {(excelFile.size / 1024).toFixed(1)} Ko â€¢ PrÃªt pour l&apos;importation
                         </p>
                         <span className="inline-block mt-2 text-xs font-semibold text-emerald-800 bg-emerald-100 px-3 py-1 rounded-full">
-                          ✓ Fichier sélectionné (Cliquez pour changer)
+                          âœ“ Fichier sÃ©lectionnÃ© (Cliquez pour changer)
                         </span>
                       </div>
                     ) : (
@@ -222,21 +222,21 @@ export default function BulkStudentImport({ onClose }: { onClose: () => void }) 
                   <div className="flex flex-col gap-2.5 bg-white p-4 rounded-[12px] border border-slate-200 shadow-sm">
                     <div className="flex items-center justify-between">
                       <label className="text-[13px] font-bold text-slate-800">
-                        Niveau des élèves à importer (السنة الدراسية)
+                        Niveau des Ã©lÃ¨ves Ã  importer (Ø§Ù„Ø³Ù†Ø© Ø§Ù„Ø¯Ø±Ø§Ø³ÙŠØ©)
                       </label>
                       <span className="text-[11.5px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded">
-                        Non classés (affectation ultérieure)
+                        Non classÃ©s (affectation ultÃ©rieure)
                       </span>
                     </div>
                     <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
                       {[
-                        { id: 0, label: "Préscolaire" },
-                        { id: 1, label: "1ère (Niv 1)" },
-                        { id: 2, label: "2ème (Niv 2)" },
-                        { id: 3, label: "3ème (Niv 3)" },
-                        { id: 4, label: "4ème (Niv 4)" },
-                        { id: 5, label: "5ème (Niv 5)" },
-                        { id: 6, label: "6ème (Niv 6)" },
+                        { id: 0, label: "PrÃ©scolaire" },
+                        { id: 1, label: "1Ã¨re (Niv 1)" },
+                        { id: 2, label: "2Ã¨me (Niv 2)" },
+                        { id: 3, label: "3Ã¨me (Niv 3)" },
+                        { id: 4, label: "4Ã¨me (Niv 4)" },
+                        { id: 5, label: "5Ã¨me (Niv 5)" },
+                        { id: 6, label: "6Ã¨me (Niv 6)" },
                       ].map((lvl) => {
                         const isSel = selectedLevel === lvl.id;
                         return (
@@ -314,7 +314,7 @@ export default function BulkStudentImport({ onClose }: { onClose: () => void }) 
                                 quality: 0.8,
                               });
 
-                              const supabase = (await import('@/utils/supabase/client')).createClient();
+                              const supabase = (await import('@lib/supabase/client')).createClient();
                               const ext = optimizedFile.name.split('.').pop()?.toLowerCase() || 'jpeg';
                               const fileName = `bulk-import-${Date.now()}.${ext}`;
                               const filePath = `imports/${fileName}`;
@@ -420,7 +420,7 @@ export default function BulkStudentImport({ onClose }: { onClose: () => void }) 
                   <table className="w-full text-left border-collapse">
                     <thead className="bg-slate-50 sticky top-0 z-10 border-b border-slate-200">
                       <tr>
-                        <th className="px-5 py-3.5 text-[13px] font-semibold text-slate-500">المعرف التربوي</th>
+                        <th className="px-5 py-3.5 text-[13px] font-semibold text-slate-500">Ø§Ù„Ù…Ø¹Ø±Ù Ø§Ù„ØªØ±Ø¨ÙˆÙŠ</th>
                         <th className="px-5 py-3.5 text-[13px] font-semibold text-slate-500">{t.bulkImport.studentName}</th>
                         <th className="px-5 py-3.5 text-[13px] font-semibold text-slate-500">{t.bulkImport.gender}</th>
                         <th className="px-5 py-3.5 text-[13px] font-semibold text-slate-500">Niveau</th>
@@ -433,7 +433,7 @@ export default function BulkStudentImport({ onClose }: { onClose: () => void }) 
                           <td className="px-5 py-4 text-[13px] font-mono font-bold text-blue-700">
                             {s.nationalId ? (
                               <span className="bg-blue-50 px-2 py-0.5 rounded border border-blue-200 font-mono">
-                                🆔 {s.nationalId}
+                                ðŸ†” {s.nationalId}
                               </span>
                             ) : (
                               <span className="text-slate-400 font-normal">-</span>
@@ -442,7 +442,7 @@ export default function BulkStudentImport({ onClose }: { onClose: () => void }) 
                           <td className="px-5 py-4 text-[13.5px] font-semibold text-[#181d26]">{s.name} {s.surname || ""}</td>
                           <td className="px-5 py-4 text-[13px]">
                              <span className={`px-2.5 py-1 rounded-[6px] font-semibold text-[11px] uppercase tracking-wider ${s.sex === "MALE" ? "bg-blue-50 text-blue-600" : "bg-pink-50 text-pink-600"}`}>
-                                {s.sex === "MALE" ? "ذكر" : "أنثى"}
+                                {s.sex === "MALE" ? "Ø°ÙƒØ±" : "Ø£Ù†Ø«Ù‰"}
                              </span>
                           </td>
                           <td className="px-5 py-4 text-[13px] font-semibold text-slate-700">
@@ -453,7 +453,7 @@ export default function BulkStudentImport({ onClose }: { onClose: () => void }) 
                               `#${s.classId}`
                             ) : (
                               <span className="text-amber-700 bg-amber-50 px-2 py-0.5 rounded text-[11px] font-medium border border-amber-200">
-                                Non classé
+                                Non classÃ©
                               </span>
                             )}
                           </td>
@@ -506,3 +506,4 @@ export default function BulkStudentImport({ onClose }: { onClose: () => void }) 
     </div>
   );
 }
+

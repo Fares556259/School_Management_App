@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useTransition, useMemo } from "react";
 import {
@@ -13,7 +13,7 @@ import { toast } from "react-toastify";
 import AssignStudentsModal from "./AssignStudentsModal";
 import StudentDetailsModal from "./StudentDetailsModal";
 import ConfirmModal from "./ConfirmModal";
-import { assignStudentsToClass, removeStudentFromClass } from "@/lib/crudActions";
+import { assignStudentsToClass, removeStudentFromClass } from "@actions/lib-crud";
 import { useLanguage } from "@/lib/translations/LanguageContext";
 import { getUserAvatar } from "@/lib/avatar";
 
@@ -144,7 +144,7 @@ export default function ClassStudentsTable({
     );
   };
 
-  // Bulk remove — unenrolls selected students from this class only.
+  // Bulk remove â€” unenrolls selected students from this class only.
   // Each student remains fully in the system and appears in the Students list.
   const handleBulkRemove = () => {
     if (selectedIds.length === 0) return;
@@ -182,7 +182,7 @@ export default function ClassStudentsTable({
     });
   };
 
-  // Individual remove — unenrolls one student from this class only.
+  // Individual remove â€” unenrolls one student from this class only.
   // Student remains in the system and appears in the Students list.
   const handleSingleRemove = (studentId: string, studentName: string) => {
     setError("");
@@ -262,7 +262,7 @@ export default function ClassStudentsTable({
             <div className="flex flex-col leading-none">
               <span className="text-[12px] font-medium text-[#41454d] uppercase tracking-wide mb-1.5">{t.classStudents.gradeLevel}</span>
               <span className="text-[18px] font-normal text-[#181d26]">
-                {activeClass.level?.level !== undefined ? (activeClass.level.level === 0 ? "Préscolaire" : `${t.classStudents.classLevel} ${activeClass.level.level}`) : "-"}
+                {activeClass.level?.level !== undefined ? (activeClass.level.level === 0 ? "PrÃ©scolaire" : `${t.classStudents.classLevel} ${activeClass.level.level}`) : "-"}
               </span>
             </div>
           </div>
@@ -335,7 +335,7 @@ export default function ClassStudentsTable({
                 )}
               </div>
               <p className="text-[12px] text-slate-400 w-full sm:w-auto text-center sm:text-left">
-                Students will remain in the system — only removed from this class.
+                Students will remain in the system â€” only removed from this class.
               </p>
             </motion.div>
           )}
@@ -635,3 +635,4 @@ export default function ClassStudentsTable({
     </div>
   );
 }
+

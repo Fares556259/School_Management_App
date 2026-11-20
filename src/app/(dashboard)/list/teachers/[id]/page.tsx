@@ -1,7 +1,7 @@
 import { getRole } from "@/lib/role";
 import prisma from "@/lib/prisma";
 import { notFound } from "next/navigation";
-import { createClient } from "@/utils/supabase/server";
+import { createClient } from "@/lib/supabase/server";
 import { getCachedTenantData } from "@/lib/cache";
 import { getSchoolId } from "@/lib/school";
 import { ScheduleItem } from "./TeacherSchedule";

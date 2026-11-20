@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -6,7 +6,7 @@ import { z } from "zod";
 import { useTransition, useState, useEffect } from "react";
 import InputField from "../InputField";
 import Image from "next/image";
-import { createNotice, updateNotice } from "@/lib/crudActions";
+import { createNotice, updateNotice } from "@actions/lib-crud";
 import { useLanguage } from "@/lib/translations/LanguageContext";
 import { Upload, X, FileText, Image as ImageIcon, Trash2, FileCode, FileSpreadsheet, Archive } from "lucide-react";
 import { compressImageFiles } from "@/lib/imageCompression";
@@ -116,7 +116,7 @@ export default function AnnouncementForm({
         ? await compressImageFiles(rawFiles, { maxWidth: 1600, maxHeight: 1600, quality: 0.8 })
         : rawFiles;
 
-      const supabase = (await import('@/utils/supabase/client')).createClient();
+      const supabase = (await import('@lib/supabase/client')).createClient();
       const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
       const anonKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || "";
       const { data: { session } } = await supabase.auth.getSession();
@@ -416,3 +416,4 @@ export default function AnnouncementForm({
     </form>
   );
 }
+

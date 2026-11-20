@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useTransition, useEffect } from "react";
-import { receiveMultipleStudentPayments } from "./actions";
+import { receiveMultipleStudentPayments } from "@actions/students";
 import { getSchoolYearMonths, isMonthBefore, MONTHS } from "@/lib/dateUtils";
 import { Banknote } from "lucide-react";
 import { useLanguage } from "@/lib/translations/LanguageContext";

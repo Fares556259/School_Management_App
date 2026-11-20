@@ -1,5 +1,5 @@
-import prisma from "./prisma";
-import { createClient } from "@/utils/supabase/server";
+﻿import prisma from "./prisma";
+import { createClient } from "@lib/supabase/server";
 
 /**
  * Creates a record in the AuditLog table.
@@ -58,3 +58,4 @@ export async function createAuditLog({
     console.error(`[AUDIT_ERROR] Failed to record ${action}:`, error);
   }
 }
+

@@ -1,4 +1,4 @@
-import { supabaseAdmin } from "@/utils/supabase/admin";
+﻿import { supabaseAdmin } from "@lib/supabase/admin";
 import { NextResponse } from "next/server";
 
 export async function GET(request: Request) {
@@ -40,3 +40,4 @@ export async function GET(request: Request) {
     }, { status: 500 });
   }
 }
+

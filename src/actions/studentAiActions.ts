@@ -1,6 +1,6 @@
-"use server";
+﻿"use server";
 
-import { callGeminiDirect } from "@/app/(dashboard)/admin/actions/aiActions";
+import { callGeminiDirect } from "@actions/aiActions";
 import { Workbook } from "exceljs";
 
 export async function parseStudentsFromText(text: string) {
@@ -16,15 +16,15 @@ export async function parseStudentsFromText(text: string) {
     Each student object MUST follow this structure:
     {
       "username": "string (lowercase, no spaces, e.g. jdoe or std_269274689104)",
-      "name": "string (First name / الاسم)",
-      "surname": "string (Last name / اللقب)",
-      "nationalId": "string (10-12 digit educational ID / المعرف التربوي if available, else empty)",
+      "name": "string (First name / Ø§Ù„Ø§Ø³Ù…)",
+      "surname": "string (Last name / Ø§Ù„Ù„Ù‚Ø¨)",
+      "nationalId": "string (10-12 digit educational ID / Ø§Ù„Ù…Ø¹Ø±Ù Ø§Ù„ØªØ±Ø¨ÙˆÙŠ if available, else empty)",
       "email": "string (optional)",
       "phone": "string (optional)",
       "address": "string (default to 'Tunis' if missing)",
       "bloodType": "string (default to 'O+' if missing)",
       "birthday": "string (YYYY-MM-DD, estimate if year is missing)",
-      "sex": "MALE | FEMALE (convert ذكر to MALE and أنثى to FEMALE)",
+      "sex": "MALE | FEMALE (convert Ø°ÙƒØ± to MALE and Ø£Ù†Ø«Ù‰ to FEMALE)",
       "parentId": "string (leave empty)",
       "parentName": "string (First name of parent)",
       "parentSurname": "string (Last name of parent)",
@@ -34,8 +34,8 @@ export async function parseStudentsFromText(text: string) {
     }
 
     Notes:
-    - If a 10-12 digit ID is present (المعرف التربوي), extract it as "nationalId".
-    - If the student is unassigned to a section (غير موزع على قسم), set "classId": null.
+    - If a 10-12 digit ID is present (Ø§Ù„Ù…Ø¹Ø±Ù Ø§Ù„ØªØ±Ø¨ÙˆÙŠ), extract it as "nationalId".
+    - If the student is unassigned to a section (ØºÙŠØ± Ù…ÙˆØ²Ø¹ Ø¹Ù„Ù‰ Ù‚Ø³Ù…), set "classId": null.
     - If a field is totally missing, use a reasonable educated guess or sensible default.
     
     TEXT TO PARSE:
@@ -70,25 +70,25 @@ export async function parseStudentsFromImage(imageUrl: string) {
     Each student object MUST follow this structure:
     {
       "username": "string (lowercase, no spaces, e.g. jdoe or std_269274689104)",
-      "name": "string (First name / الاسم)",
-      "surname": "string (Last name / اللقب)",
-      "nationalId": "string (10-12 digit educational ID / المعرف التربوي if visible, else empty)",
+      "name": "string (First name / Ø§Ù„Ø§Ø³Ù…)",
+      "surname": "string (Last name / Ø§Ù„Ù„Ù‚Ø¨)",
+      "nationalId": "string (10-12 digit educational ID / Ø§Ù„Ù…Ø¹Ø±Ù Ø§Ù„ØªØ±Ø¨ÙˆÙŠ if visible, else empty)",
       "email": "string (optional)",
       "phone": "string (optional)",
       "address": "string (default to 'Tunis' if missing)",
       "bloodType": "string (default to 'O+' if missing)",
       "birthday": "string (YYYY-MM-DD, estimate if year is missing)",
-      "sex": "MALE | FEMALE (convert ذكر to MALE and أنثى to FEMALE)",
+      "sex": "MALE | FEMALE (convert Ø°ÙƒØ± to MALE and Ø£Ù†Ø«Ù‰ to FEMALE)",
       "parentName": "string (First name of parent)",
       "parentSurname": "string (Last name of parent)",
       "parentPhone": "string (Mobile number)",
       "levelId": number (1 to 6 if level is known, default 1),
-      "classId": number or null (null if unassigned / غير موزع على قسم)
+      "classId": number or null (null if unassigned / ØºÙŠØ± Ù…ÙˆØ²Ø¹ Ø¹Ù„Ù‰ Ù‚Ø³Ù…)
     }
 
     IMPORTANT: 
     - Return ONLY the JSON array. No markdown, no explanation.
-    - If a 10-12 digit ID is present (المعرف التربوي), extract it into "nationalId".
+    - If a 10-12 digit ID is present (Ø§Ù„Ù…Ø¹Ø±Ù Ø§Ù„ØªØ±Ø¨ÙˆÙŠ), extract it into "nationalId".
     - If no specific section like 1A or 1B is given, set "classId": null.
   `;
 
@@ -137,20 +137,20 @@ export async function parseStudentsFromExcel(formData: FormData) {
 
       const rowText = values.map((v) => String(v || "").trim()).join(" ");
       if (
-        rowText.includes("المعرف") ||
-        rowText.includes("الاسم") ||
-        rowText.includes("الإسم") ||
-        rowText.includes("المستوى")
+        rowText.includes("Ø§Ù„Ù…Ø¹Ø±Ù") ||
+        rowText.includes("Ø§Ù„Ø§Ø³Ù…") ||
+        rowText.includes("Ø§Ù„Ø¥Ø³Ù…") ||
+        rowText.includes("Ø§Ù„Ù…Ø³ØªÙˆÙ‰")
       ) {
         headerRowIdx = rowNumber;
         values.forEach((val, colIdx) => {
           const str = String(val || "").trim();
-          if (str.includes("المعرف") || str.toLowerCase().includes("national")) colMap["nationalId"] = colIdx;
-          else if (str.includes("اللقb") || str.includes("اللقب") || str.toLowerCase().includes("nom") && !str.toLowerCase().includes("prénom")) colMap["surname"] = colIdx;
-          else if (str.includes("الاسم") || str.includes("الإسم") || str.toLowerCase().includes("prénom") || str.toLowerCase().includes("prenom")) colMap["name"] = colIdx;
-          else if (str.includes("الجنس") || str.toLowerCase().includes("sexe") || str.toLowerCase().includes("genre")) colMap["sex"] = colIdx;
-          else if (str.includes("المستوى") || str.toLowerCase().includes("niveau")) colMap["level"] = colIdx;
-          else if (str.includes("تاريخ التسجيل") || str.toLowerCase().includes("date")) colMap["registrationDate"] = colIdx;
+          if (str.includes("Ø§Ù„Ù…Ø¹Ø±Ù") || str.toLowerCase().includes("national")) colMap["nationalId"] = colIdx;
+          else if (str.includes("Ø§Ù„Ù„Ù‚b") || str.includes("Ø§Ù„Ù„Ù‚Ø¨") || str.toLowerCase().includes("nom") && !str.toLowerCase().includes("prÃ©nom")) colMap["surname"] = colIdx;
+          else if (str.includes("Ø§Ù„Ø§Ø³Ù…") || str.includes("Ø§Ù„Ø¥Ø³Ù…") || str.toLowerCase().includes("prÃ©nom") || str.toLowerCase().includes("prenom")) colMap["name"] = colIdx;
+          else if (str.includes("Ø§Ù„Ø¬Ù†Ø³") || str.toLowerCase().includes("sexe") || str.toLowerCase().includes("genre")) colMap["sex"] = colIdx;
+          else if (str.includes("Ø§Ù„Ù…Ø³ØªÙˆÙ‰") || str.toLowerCase().includes("niveau")) colMap["level"] = colIdx;
+          else if (str.includes("ØªØ§Ø±ÙŠØ® Ø§Ù„ØªØ³Ø¬ÙŠÙ„") || str.toLowerCase().includes("date")) colMap["registrationDate"] = colIdx;
         });
       }
     });
@@ -158,7 +158,7 @@ export async function parseStudentsFromExcel(formData: FormData) {
     if (headerRowIdx === -1) {
       return {
         error:
-          "En-têtes du ministère introuvables dans le fichier Excel (المعرف التربوي, الاسم, المستوى الدراسي).",
+          "En-tÃªtes du ministÃ¨re introuvables dans le fichier Excel (Ø§Ù„Ù…Ø¹Ø±Ù Ø§Ù„ØªØ±Ø¨ÙˆÙŠ, Ø§Ù„Ø§Ø³Ù…, Ø§Ù„Ù…Ø³ØªÙˆÙ‰ Ø§Ù„Ø¯Ø±Ø§Ø³ÙŠ).",
       };
     }
 
@@ -182,25 +182,25 @@ export async function parseStudentsFromExcel(formData: FormData) {
       const nationalId = nationalIdMatch ? nationalIdMatch[0] : rawNationalId;
 
       // Map level text from the ministry format:
-      // "السنة الأولى من التعليم الأساسي" -> 1
-      // "السنة الثانية من التعليم الأساسي" -> 2
-      // "السنة الثالثة من التعليم الأساسي" -> 3
-      // "السنة الرابعة من التعليم الأساسي" -> 4
-      // "السنة الخامسة من التعليم الأساسي" -> 5
-      // "السنة السادسة من التعليم الأساسي" -> 6
-      // "المرحلة التحضيرية" -> 0
+      // "Ø§Ù„Ø³Ù†Ø© Ø§Ù„Ø£ÙˆÙ„Ù‰ Ù…Ù† Ø§Ù„ØªØ¹Ù„ÙŠÙ… Ø§Ù„Ø£Ø³Ø§Ø³ÙŠ" -> 1
+      // "Ø§Ù„Ø³Ù†Ø© Ø§Ù„Ø«Ø§Ù†ÙŠØ© Ù…Ù† Ø§Ù„ØªØ¹Ù„ÙŠÙ… Ø§Ù„Ø£Ø³Ø§Ø³ÙŠ" -> 2
+      // "Ø§Ù„Ø³Ù†Ø© Ø§Ù„Ø«Ø§Ù„Ø«Ø© Ù…Ù† Ø§Ù„ØªØ¹Ù„ÙŠÙ… Ø§Ù„Ø£Ø³Ø§Ø³ÙŠ" -> 3
+      // "Ø§Ù„Ø³Ù†Ø© Ø§Ù„Ø±Ø§Ø¨Ø¹Ø© Ù…Ù† Ø§Ù„ØªØ¹Ù„ÙŠÙ… Ø§Ù„Ø£Ø³Ø§Ø³ÙŠ" -> 4
+      // "Ø§Ù„Ø³Ù†Ø© Ø§Ù„Ø®Ø§Ù…Ø³Ø© Ù…Ù† Ø§Ù„ØªØ¹Ù„ÙŠÙ… Ø§Ù„Ø£Ø³Ø§Ø³ÙŠ" -> 5
+      // "Ø§Ù„Ø³Ù†Ø© Ø§Ù„Ø³Ø§Ø¯Ø³Ø© Ù…Ù† Ø§Ù„ØªØ¹Ù„ÙŠÙ… Ø§Ù„Ø£Ø³Ø§Ø³ÙŠ" -> 6
+      // "Ø§Ù„Ù…Ø±Ø­Ù„Ø© Ø§Ù„ØªØ­Ø¶ÙŠØ±ÙŠØ©" -> 0
       let levelId = 1;
-      if (rawLevel.includes("الأولى") || rawLevel.includes("1")) levelId = 1;
-      else if (rawLevel.includes("الثانية") || rawLevel.includes("2")) levelId = 2;
-      else if (rawLevel.includes("الثالثة") || rawLevel.includes("3")) levelId = 3;
-      else if (rawLevel.includes("الرابعة") || rawLevel.includes("4")) levelId = 4;
-      else if (rawLevel.includes("الخامسة") || rawLevel.includes("5")) levelId = 5;
-      else if (rawLevel.includes("السادسة") || rawLevel.includes("6")) levelId = 6;
-      else if (rawLevel.includes("التحضيرية") || rawLevel.includes("0")) levelId = 0;
+      if (rawLevel.includes("Ø§Ù„Ø£ÙˆÙ„Ù‰") || rawLevel.includes("1")) levelId = 1;
+      else if (rawLevel.includes("Ø§Ù„Ø«Ø§Ù†ÙŠØ©") || rawLevel.includes("2")) levelId = 2;
+      else if (rawLevel.includes("Ø§Ù„Ø«Ø§Ù„Ø«Ø©") || rawLevel.includes("3")) levelId = 3;
+      else if (rawLevel.includes("Ø§Ù„Ø±Ø§Ø¨Ø¹Ø©") || rawLevel.includes("4")) levelId = 4;
+      else if (rawLevel.includes("Ø§Ù„Ø®Ø§Ù…Ø³Ø©") || rawLevel.includes("5")) levelId = 5;
+      else if (rawLevel.includes("Ø§Ù„Ø³Ø§Ø¯Ø³Ø©") || rawLevel.includes("6")) levelId = 6;
+      else if (rawLevel.includes("Ø§Ù„ØªØ­Ø¶ÙŠØ±ÙŠØ©") || rawLevel.includes("0")) levelId = 0;
 
       // Map gender
       const sex =
-        rawSex.includes("أنثى") ||
+        rawSex.includes("Ø£Ù†Ø«Ù‰") ||
         rawSex.toLowerCase().includes("fem") ||
         rawSex.toLowerCase().includes("girl")
           ? "FEMALE"
@@ -212,7 +212,7 @@ export async function parseStudentsFromExcel(formData: FormData) {
         surname: rawSurname,
         sex,
         levelId,
-        classId: null, // non classé
+        classId: null, // non classÃ©
       });
     });
 
@@ -228,3 +228,4 @@ export async function parseStudentsFromExcel(formData: FormData) {
     };
   }
 }
+

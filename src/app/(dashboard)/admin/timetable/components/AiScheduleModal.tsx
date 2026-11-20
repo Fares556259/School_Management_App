@@ -1,9 +1,9 @@
-"use client";
+﻿"use client";
 
 import { useState, useTransition, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { isAIQuotaReached } from "../../actions/aiActions";
-import { bulkUpdateTimetableSlots } from "@/lib/crudActions";
+import { isAIQuotaReached } from "@actions/aiActions";
+import { bulkUpdateTimetableSlots } from "@actions/lib-crud";
 import { X, Sparkles, Loader2, AlertCircle, Check, Calendar, ArrowRight, User, BookOpen, MapPin, Lock } from "lucide-react";
 
 interface Props {
@@ -74,7 +74,7 @@ export default function AiScheduleModal({
     if (!prompt.trim()) return;
 
     if (!modalStartDate || !modalEndDate) {
-      setError("Veuillez sélectionner la date de début et la date de fin de la période d'examens.");
+      setError("Veuillez sÃ©lectionner la date de dÃ©but et la date de fin de la pÃ©riode d'examens.");
       return;
     }
 
@@ -123,7 +123,7 @@ export default function AiScheduleModal({
             <div>
               <h2 className="text-lg font-black text-slate-800 tracking-tight uppercase">{title}</h2>
               <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest leading-none mt-1">
-                Dates · Prompt · Generate · Review · Apply
+                Dates Â· Prompt Â· Generate Â· Review Â· Apply
               </p>
             </div>
           </div>
@@ -140,10 +140,10 @@ export default function AiScheduleModal({
                </div>
                <h3 className="text-lg font-black text-slate-800 uppercase tracking-tighter mb-2">Limite AI Atteinte</h3>
                <p className="text-sm font-bold text-slate-500 leading-relaxed mb-6 max-w-xs">
-                  Vous avez utilisé vos {quota} analyses quotidiennes. Passez à **Premium** pour débloquer la génération magique illimitée.
+                  Vous avez utilisÃ© vos {quota} analyses quotidiennes. Passez Ã  **Premium** pour dÃ©bloquer la gÃ©nÃ©ration magique illimitÃ©e.
                </p>
                <button className="px-6 py-3 bg-indigo-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 font-black">
-                  Débloquer Premium
+                  DÃ©bloquer Premium
                </button>
             </div>
           )}
@@ -161,7 +161,7 @@ export default function AiScheduleModal({
                    <AlertCircle size={18} className="text-indigo-600 mt-0.5" />
                    <div className="text-xs text-indigo-700 font-medium leading-relaxed">
                      Planification IA pour <strong>{classContext.name} (Niveau {classContext.level})</strong>. 
-                     Précisez vos dates d&apos;examens et instructions avant la génération.
+                     PrÃ©cisez vos dates d&apos;examens et instructions avant la gÃ©nÃ©ration.
                    </div>
                 </div>
 
@@ -170,18 +170,18 @@ export default function AiScheduleModal({
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 text-xs font-black text-slate-800 uppercase tracking-wider">
                       <Calendar size={16} className="text-indigo-600" />
-                      <span>Dates de la Période d&apos;Examens *</span>
+                      <span>Dates de la PÃ©riode d&apos;Examens *</span>
                     </div>
                     {(!startDate || !endDate) && (
                       <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
-                        ⚠️ À confirmer
+                        âš ï¸ Ã€ confirmer
                       </span>
                     )}
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Date de Début *</label>
+                      <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Date de DÃ©but *</label>
                       <input 
                         type="date" 
                         value={modalStartDate}
@@ -213,7 +213,7 @@ export default function AiScheduleModal({
 
                 {error && (
                   <p className="text-xs font-bold text-rose-500 bg-rose-50 p-3 rounded-xl border border-rose-100">
-                    ⚠️ {error}
+                    âš ï¸ {error}
                   </p>
                 )}
 
@@ -243,7 +243,7 @@ export default function AiScheduleModal({
                 </div>
                 <div className="text-center">
                   <h3 className="font-black text-slate-800 uppercase tracking-tight">AI is optimizing your schedule...</h3>
-                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-2">Balancing subjects · Verifying teacher availability · Building grid</p>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-2">Balancing subjects Â· Verifying teacher availability Â· Building grid</p>
                 </div>
               </motion.div>
             )}
@@ -296,7 +296,7 @@ export default function AiScheduleModal({
 
                 {error && (
                   <p className="text-xs font-bold text-rose-500 bg-rose-50 p-3 rounded-xl border border-rose-100">
-                    ⚠️ {error}
+                    âš ï¸ {error}
                   </p>
                 )}
 
@@ -341,3 +341,4 @@ export default function AiScheduleModal({
     </div>
   );
 }
+

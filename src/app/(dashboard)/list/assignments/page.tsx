@@ -1,9 +1,9 @@
-import { getRole } from "@/lib/role";
+﻿import { getRole } from "@/lib/role";
 import { getCachedTenantData } from "@/lib/cache";
 import FormModal from "@/components/FormModal";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
-import { createClient } from "@/utils/supabase/server";
+import { createClient } from "@lib/supabase/server";
 import { Filter, ArrowUpDown, Plus, Edit2, Trash2, Eye } from "lucide-react";
 import prisma, { safeDbQuery } from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
@@ -230,3 +230,4 @@ const AssignmentListPage = async ({
 };
 
 export default AssignmentListPage;
+

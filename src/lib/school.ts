@@ -1,6 +1,6 @@
-import { cache } from "react";
-import { getAuthenticatedUser } from "@/utils/supabase/server";
-import { supabaseAdmin } from "@/utils/supabase/admin";
+﻿import { cache } from "react";
+import { getAuthenticatedUser } from "@lib/supabase/server";
+import { supabaseAdmin } from "@lib/supabase/admin";
 import prisma from "./prisma";
 
 /**
@@ -65,3 +65,4 @@ export function getSchoolIdFromHeader(
 ): string {
   return headers.get("x-school-id") || "default_school";
 }
+

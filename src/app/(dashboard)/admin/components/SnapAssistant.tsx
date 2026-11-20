@@ -1,16 +1,16 @@
-"use client";
+﻿"use client";
 
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageCircle, X, Send, Sparkles, Minus, Maximize2, Camera } from 'lucide-react';
 import Image from 'next/image';
 import ReactMarkdown from 'react-markdown';
-import { getChatResponse, upsertConversation, isAIQuotaReached, getAIContext } from '../actions/aiActions';
-import { executeAICommand } from '../actions/crudActions';
+import { getChatResponse, upsertConversation, isAIQuotaReached, getAIContext } from "@actions/aiActions";
+import { executeAICommand } from "@actions/crudActions";
 import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/lib/translations/LanguageContext';
 import { Lock, CheckCircle, AlertTriangle, Trash2, Settings, Receipt, HandCoins, LineChart, Megaphone, Check } from 'lucide-react';
-import { AICommand } from '../actions/crudActions';
+import { AICommand } from "@actions/crudActions";
 import remarkGfm from 'remark-gfm';
 
 interface Message {
@@ -99,15 +99,15 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({
           }
           
           newMsgs[msgIndex] = currentMsg;
-          return [...newMsgs, { role: 'assistant', content: `✅ **${t.zbiba.success}**: ${res.message}` }];
+          return [...newMsgs, { role: 'assistant', content: `âœ… **${t.zbiba.success}**: ${res.message}` }];
         });
         router.refresh();
       } else {
-        setMessages(prev => [...prev, { role: 'assistant', content: `❌ **${t.zbiba.error}**: ${res.error}` }]);
+        setMessages(prev => [...prev, { role: 'assistant', content: `âŒ **${t.zbiba.error}**: ${res.error}` }]);
       }
     } catch (err: any) {
       console.error("Action confirmation error:", err);
-      setMessages(prev => [...prev, { role: 'assistant', content: `❌ **Error**: Execution failed. ${err.message || ""}` }]);
+      setMessages(prev => [...prev, { role: 'assistant', content: `âŒ **Error**: Execution failed. ${err.message || ""}` }]);
     } finally {
       setIsExecuting(false);
       setPendingCommandId(null);
@@ -127,7 +127,7 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({
       }
 
       newMsgs[msgIndex] = currentMsg;
-      return [...newMsgs, { role: 'assistant', content: locale === "fr" ? "L'action a été annulée." : "Action has been cancelled." }];
+      return [...newMsgs, { role: 'assistant', content: locale === "fr" ? "L'action a Ã©tÃ© annulÃ©e." : "Action has been cancelled." }];
     });
   };
 
@@ -152,7 +152,7 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({
   }, [isOpen, activeContext.studentCensus, month, year]);
 
   useEffect(() => {
-    // 🛠️ HARD STABILIZATION: Force unlock and prevent takeover
+    // ðŸ› ï¸ HARD STABILIZATION: Force unlock and prevent takeover
     setIsLocked(false);
   }, []);
   
@@ -242,7 +242,7 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({
         const blob = await fetchRes.blob();
         
         // Supabase Storage Upload
-        const supabase = (await import('@/utils/supabase/client')).createClient();
+        const supabase = (await import('@lib/supabase/client')).createClient();
         const fileExt = 'jpg';
         const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
         const filePath = `assistant/${fileName}`;
@@ -280,7 +280,7 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({
         console.error("Supabase upload error:", error);
         setMessages(prev => [...prev, { 
           role: 'assistant', 
-          content: `❌ **Error**: ${error.message || "Upload failed. Please try again."}` 
+          content: `âŒ **Error**: ${error.message || "Upload failed. Please try again."}` 
         }]);
       }
     }
@@ -331,21 +331,21 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({
           const quota = result.error.split("|")[1] || "10";
           setMessages(prev => [...prev, { 
             role: 'assistant', 
-            content: `✨ **Limite Quotidienne Atteinte** (${quota}/${quota})\n\nZbiba a besoin de plus d'énergie pour continuer ses analyses stratégiques aujourd'hui. \n\n🚀 **Passez à SnapSchool Premium** pour débloquer :\n- ⚡️ Analyses illimitées 24/7\n- 📊 Rapports financiers avancés\n- 🛡️ Support Prioritaire\n\n[Cliquez sur "Passer à Premium" dans la barre latérale pour continuer !]` 
+            content: `âœ¨ **Limite Quotidienne Atteinte** (${quota}/${quota})\n\nZbiba a besoin de plus d'Ã©nergie pour continuer ses analyses stratÃ©giques aujourd'hui. \n\nðŸš€ **Passez Ã  SnapSchool Premium** pour dÃ©bloquer :\n- âš¡ï¸ Analyses illimitÃ©es 24/7\n- ðŸ“Š Rapports financiers avancÃ©s\n- ðŸ›¡ï¸ Support Prioritaire\n\n[Cliquez sur "Passer Ã  Premium" dans la barre latÃ©rale pour continuer !]` 
           }]);
         } else {
           setMessages(prev => [...prev, { role: 'assistant', content: result.error || "I'm sorry, I'm having trouble connecting right now." }]);
         }
       }
     } catch (err) {
-      setMessages(prev => [...prev, { role: 'assistant', content: "❌ **Error**: Connection failed." }]);
+      setMessages(prev => [...prev, { role: 'assistant', content: "âŒ **Error**: Connection failed." }]);
     }
 
     setIsLoading(false);
     setSelectedImage(null); // Clear only AFTER everything is done
   };
 
-  // 🐘 V4 Stabilization: Safely disable full-page mode during diagnostics to ensure it doesn't hijack layout
+  // ðŸ˜ V4 Stabilization: Safely disable full-page mode during diagnostics to ensure it doesn't hijack layout
   if (false && fullPage) {
     return (
       <div className="w-full h-full bg-white rounded-[32px] shadow-sm border border-slate-100 overflow-hidden flex flex-col relative">
@@ -354,14 +354,14 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({
              <div className="w-20 h-20 rounded-full bg-indigo-600 flex items-center justify-center text-white mb-6 shadow-2xl shadow-indigo-200 ring-8 ring-indigo-50">
                 <Lock size={32} />
              </div>
-             <h3 className="text-2xl font-black text-slate-800 uppercase tracking-tighter mb-4">Intelligence Limitée</h3>
+             <h3 className="text-2xl font-black text-slate-800 uppercase tracking-tighter mb-4">Intelligence LimitÃ©e</h3>
              <p className="text-base font-bold text-slate-500 leading-relaxed mb-8 max-w-sm">
-                Vous avez utilisé vos **{quota} messages** quotidiens. <br/>
-                Débloquez la puissance illimitée de Zbiba avec le plan **Premium**.
+                Vous avez utilisÃ© vos **{quota} messages** quotidiens. <br/>
+                DÃ©bloquez la puissance illimitÃ©e de Zbiba avec le plan **Premium**.
              </p>
              <button className="px-10 py-5 bg-indigo-600 text-white text-xs font-black uppercase tracking-widest rounded-3xl hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-100 font-black flex items-center gap-3 active:scale-95">
                 <Sparkles size={20} />
-                Passer à Premium
+                Passer Ã  Premium
              </button>
           </div>
         )}
@@ -378,7 +378,7 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({
             </div>
             <div>
               <h3 className="text-slate-900 font-black tracking-tight text-2xl leading-none">zbiba</h3>
-              <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-1">Intelligence Opérationnelle</p>
+              <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-1">Intelligence OpÃ©rationnelle</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -515,7 +515,7 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({
             </div>
           </div>
           <p className="text-[10px] text-slate-300 font-black uppercase tracking-[0.2em] mt-6 text-center">
-            {t.zbiba.poweredBy} • {t.zbiba.contextAware}
+            {t.zbiba.poweredBy} â€¢ {t.zbiba.contextAware}
           </p>
         </div>
       </div>
@@ -541,7 +541,7 @@ const SnapAssistant: React.FC<SnapAssistantProps> = ({
                 </div>
                 <h3 className="text-base font-black text-slate-800 uppercase tracking-tighter mb-2">Limite Atteinte</h3>
                 <p className="text-[11px] font-bold text-slate-500 leading-relaxed mb-6 max-w-[220px]">
-                    Vous avez utilisé vos **{quota} messages**. <br/> Passez à **Premium** pour continuer.
+                    Vous avez utilisÃ© vos **{quota} messages**. <br/> Passez Ã  **Premium** pour continuer.
                 </p>
                 <button className="px-6 py-3 bg-indigo-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 font-black active:scale-95">
                     Mode Premium
@@ -798,7 +798,7 @@ const ActionCard: React.FC<ActionCardProps> = ({
 
     switch(mappedType) {
       case "MARK_PAID": return { icon: HandCoins, color: "emerald", label: locale === "fr" ? "Confirmer Paiement" : "Confirm Payment" };
-      case "ADD_EXPENSE": return { icon: Receipt, color: "rose", label: locale === "fr" ? "Enregistrer Dépense" : "Record Expense" };
+      case "ADD_EXPENSE": return { icon: Receipt, color: "rose", label: locale === "fr" ? "Enregistrer DÃ©pense" : "Record Expense" };
       case "ADD_INCOME": return { icon: HandCoins, color: "emerald", label: locale === "fr" ? "Enregistrer Revenu" : "Record Income" };
       case "POST_NOTICE": return { icon: Megaphone, color: "amber", label: locale === "fr" ? "Publier l'Annonce" : "Post Announcement" };
       case "RECORD_GRADES": return { icon: LineChart, color: "indigo", label: locale === "fr" ? "Enregistrer les Notes" : "Record Grades" };
@@ -968,3 +968,4 @@ if (typeof document !== 'undefined') {
 }
 
 export default SnapAssistant;
+

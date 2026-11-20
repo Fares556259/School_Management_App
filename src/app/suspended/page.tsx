@@ -1,6 +1,6 @@
-import { ShieldAlert } from "lucide-react";
+﻿import { ShieldAlert } from "lucide-react";
 import Link from "next/link";
-import { createClient } from "@/utils/supabase/server";
+import { createClient } from "@lib/supabase/server";
 import { redirect } from "next/navigation";
 
 export default async function SuspendedPage() {
@@ -42,3 +42,4 @@ export default async function SuspendedPage() {
     </div>
   );
 }
+

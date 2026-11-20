@@ -1,10 +1,10 @@
-import prisma from "@/lib/prisma";
+﻿import prisma from "@/lib/prisma";
 import { getCachedTenantData } from "@/lib/cache";
-import { supabaseAdmin } from "@/utils/supabase/admin";
+import { supabaseAdmin } from "@lib/supabase/admin";
 
 import { getRole } from "@/lib/role";
 import { redirect } from "next/navigation";
-import { createClient } from "@/utils/supabase/server";
+import { createClient } from "@lib/supabase/server";
 import { Prisma } from "@prisma/client";
 import TableSearch from "@/components/TableSearch";
 import Pagination from "@/components/Pagination";
@@ -97,9 +97,9 @@ const AuditPage = async ({
   const performerMap: Record<string, any> = {};
 
   performerMap["system"] = {
-    name: "Système",
+    name: "SystÃ¨me",
     email: "Automatique",
-    role: "Système",
+    role: "SystÃ¨me",
     avatar: null,
   };
 
@@ -268,3 +268,4 @@ const AuditPage = async ({
 };
 
 export default AuditPage;
+

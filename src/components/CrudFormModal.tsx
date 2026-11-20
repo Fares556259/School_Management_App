@@ -1,7 +1,7 @@
-"use client";
+﻿"use client";
 
 import { useState, useTransition, useEffect, useCallback, useRef } from "react";
-import { createClient } from "@/utils/supabase/client";
+import { createClient } from "@lib/supabase/client";
 import Image from "next/image";
 import SearchableSelect from "./SearchableSelect";
 import MultiSelect from "./MultiSelect";
@@ -17,7 +17,7 @@ import {
   createExpense, updateExpense, deleteExpense,
   createIncome, updateIncome, deleteIncome,
   enrollFamily, checkParentPhoneExists, checkTeacherPhoneExists, checkStaffPhoneExists, type PhoneCheckResult,
-} from "@/lib/crudActions";
+} from "@actions/lib-crud";
 import { Pencil, Trash2, Loader2, UploadCloud, CheckCircle2, Eye, FileText } from "lucide-react";
 import { useLanguage } from "@/lib/translations/LanguageContext";
 import { ProofViewerModal } from "./ProofViewerModal";
@@ -101,7 +101,7 @@ const entityFields: Record<EntityType, FieldDef[]> = {
       label: "Subject Name", 
       type: "text", 
       required: true,
-      placeholder: "Arabic | Français | English  e.g. الرياضيات | Mathématiques | Mathematics"
+      placeholder: "Arabic | FranÃ§ais | English  e.g. Ø§Ù„Ø±ÙŠØ§Ø¶ÙŠØ§Øª | MathÃ©matiques | Mathematics"
     },
     { 
       name: "domain", 
@@ -109,13 +109,13 @@ const entityFields: Record<EntityType, FieldDef[]> = {
       type: "select", 
       required: false,
       options: [
-        { value: "Languages",         label: "🔤 Languages" },
-        { value: "Sciences",          label: "🔬 Sciences" },
-        { value: "Religion & Values", label: "☪️ Religion & Values" },
-        { value: "Humanities",        label: "🌍 Humanities" },
-        { value: "Arts & Technology", label: "🎨 Arts & Technology" },
-        { value: "Sport",             label: "⚽ Sport" },
-        { value: "General",           label: "📚 General" },
+        { value: "Languages",         label: "ðŸ”¤ Languages" },
+        { value: "Sciences",          label: "ðŸ”¬ Sciences" },
+        { value: "Religion & Values", label: "â˜ªï¸ Religion & Values" },
+        { value: "Humanities",        label: "ðŸŒ Humanities" },
+        { value: "Arts & Technology", label: "ðŸŽ¨ Arts & Technology" },
+        { value: "Sport",             label: "âš½ Sport" },
+        { value: "General",           label: "ðŸ“š General" },
       ]
     },
   ],
@@ -338,7 +338,7 @@ export default function CrudFormModal({
 
     // Guard against duplicate phone numbers
     if ((entity === "parent" || entity === "teacher" || entity === "staff") && (phoneExists.exists || checkingPhone)) {
-      setError(phoneExists.message || "Ce numéro de téléphone existe déjà.");
+      setError(phoneExists.message || "Ce numÃ©ro de tÃ©lÃ©phone existe dÃ©jÃ .");
       return;
     }
 
@@ -370,7 +370,7 @@ export default function CrudFormModal({
 
               const missingInfo = studentList.some((s) => !s.surname || !String(s.surname).trim());
               if (missingInfo) {
-                setError("Veuillez renseigner le nom et le prénom de l'élève.");
+                setError("Veuillez renseigner le nom et le prÃ©nom de l'Ã©lÃ¨ve.");
                 return reject("Missing student details");
               }
 
@@ -508,14 +508,14 @@ export default function CrudFormModal({
                 onClick={() => setOpen(false)}
                 className="w-8 h-8 flex items-center justify-center rounded-[8px] hover:bg-[#f8fafc] hover:text-[#181d26] text-[#41454d] transition-colors"
               >
-                ✕
+                âœ•
               </button>
             </div>
 
             <div className="p-6">
               {mode === "delete" ? (
                 <div className="flex flex-col items-center gap-4 py-4">
-                  <div className="text-4xl">⚠️</div>
+                  <div className="text-4xl">âš ï¸</div>
                   <p className="text-center text-[#41454d] text-[14px] font-normal leading-relaxed">
                     {t.crud.deleteConfirm} {t.crud.entities[entity] || entity}?
                     <br />
@@ -576,9 +576,9 @@ export default function CrudFormModal({
                               defaultValue={data?.[f.name]?.map((item: any) => item.id.toString()) || []}
                               placeholder={
                                 locale === "fr"
-                                  ? `Sélectionner ${t.crud.fields[f.label as keyof typeof t.crud.fields] || f.label}...`
+                                  ? `SÃ©lectionner ${t.crud.fields[f.label as keyof typeof t.crud.fields] || f.label}...`
                                   : locale === "ar"
-                                  ? `اختر ${t.crud.fields[f.label as keyof typeof t.crud.fields] || f.label}...`
+                                  ? `Ø§Ø®ØªØ± ${t.crud.fields[f.label as keyof typeof t.crud.fields] || f.label}...`
                                   : `Select ${t.crud.fields[f.label as keyof typeof t.crud.fields] || f.label}...`
                               }
                             />
@@ -905,22 +905,22 @@ export default function CrudFormModal({
                               <div className="mt-1.5 min-h-[20px]">
                                 {checkingPhone && (
                                   <p className="flex items-center gap-1.5 text-[12px] text-slate-400 font-medium">
-                                    <Loader2 size={11} className="animate-spin" /> {locale === "ar" ? "جاري التحقق..." : locale === "en" ? "Checking..." : "Vérification..."}
+                                    <Loader2 size={11} className="animate-spin" /> {locale === "ar" ? "Ø¬Ø§Ø±ÙŠ Ø§Ù„ØªØ­Ù‚Ù‚..." : locale === "en" ? "Checking..." : "VÃ©rification..."}
                                   </p>
                                 )}
                                 {!checkingPhone && phoneExists.exists && (
                                   <p className="flex items-center gap-1.5 text-[12px] text-rose-600 font-semibold">
-                                    ⚠️ {phoneExists.isCurrentSchool
+                                    âš ï¸ {phoneExists.isCurrentSchool
                                       ? (locale === "ar"
-                                          ? `هذا الرقم مسجل بالفعل في هذه المدرسة (${phoneExists.parentName}).`
+                                          ? `Ù‡Ø°Ø§ Ø§Ù„Ø±Ù‚Ù… Ù…Ø³Ø¬Ù„ Ø¨Ø§Ù„ÙØ¹Ù„ ÙÙŠ Ù‡Ø°Ù‡ Ø§Ù„Ù…Ø¯Ø±Ø³Ø© (${phoneExists.parentName}).`
                                           : locale === "en"
                                           ? `This number is already registered in this school (${phoneExists.parentName}).`
-                                          : `Ce numéro est déjà enregistré dans cette école (${phoneExists.parentName}).`)
+                                          : `Ce numÃ©ro est dÃ©jÃ  enregistrÃ© dans cette Ã©cole (${phoneExists.parentName}).`)
                                       : (locale === "ar"
-                                          ? "رقم الهاتف هذا موجود بالفعل في النظام."
+                                          ? "Ø±Ù‚Ù… Ø§Ù„Ù‡Ø§ØªÙ Ù‡Ø°Ø§ Ù…ÙˆØ¬ÙˆØ¯ Ø¨Ø§Ù„ÙØ¹Ù„ ÙÙŠ Ø§Ù„Ù†Ø¸Ø§Ù…."
                                           : locale === "en"
                                           ? "This phone number already exists in the system."
-                                          : "Ce numéro de téléphone existe déjà dans le système.")
+                                          : "Ce numÃ©ro de tÃ©lÃ©phone existe dÃ©jÃ  dans le systÃ¨me.")
                                     }
                                   </p>
                                 )}
@@ -939,7 +939,7 @@ export default function CrudFormModal({
                       <div className="flex items-center justify-between">
                         <div>
                           <h3 className="text-[16px] font-medium text-[#181d26]">{t.parents?.form?.children || "Enfants"}</h3>
-                          <p className="text-[13px] font-normal text-[#41454d]">Ajouter un ou plusieurs enfants associés (facultatif)</p>
+                          <p className="text-[13px] font-normal text-[#41454d]">Ajouter un ou plusieurs enfants associÃ©s (facultatif)</p>
                         </div>
                         <button
                           type="button"
@@ -952,7 +952,7 @@ export default function CrudFormModal({
 
                       {students.length === 0 ? (
                         <div className="p-4 rounded-[8px] border border-dashed border-[#dddddd] bg-[#fcfcfc] text-center text-[13px] text-[#71717a]">
-                          Aucun enfant ajouté pour le moment. Vous pouvez enregistrer le parent seul ou cliquer sur <button type="button" onClick={addStudent} className="text-[#1b61c9] font-medium underline inline">Ajouter un enfant</button>.
+                          Aucun enfant ajoutÃ© pour le moment. Vous pouvez enregistrer le parent seul ou cliquer sur <button type="button" onClick={addStudent} className="text-[#1b61c9] font-medium underline inline">Ajouter un enfant</button>.
                         </div>
                       ) : (
                         <div className="flex flex-col gap-6">
@@ -964,15 +964,15 @@ export default function CrudFormModal({
                                 className="absolute -top-3 -right-3 w-7 h-7 bg-white border border-[#dddddd] text-rose-500 rounded-[8px] flex items-center justify-center shadow-sm hover:bg-rose-50 transition-colors"
                                 title="Supprimer cet enfant"
                               >
-                                ✕
+                                âœ•
                               </button>
                               
                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                                 <div>
-                                  <label className="block text-[13px] font-medium text-[#181d26] mb-1.5">{t.parents?.form?.firstName || "Prénom"} *</label>
+                                  <label className="block text-[13px] font-medium text-[#181d26] mb-1.5">{t.parents?.form?.firstName || "PrÃ©nom"} *</label>
                                   <input
                                     name={`student-${index}-name`}
-                                    placeholder={t.parents?.form?.childName || "Prénom de l'élève"}
+                                    placeholder={t.parents?.form?.childName || "PrÃ©nom de l'Ã©lÃ¨ve"}
                                     className="w-full border border-[#dddddd] rounded-[6px] px-3 py-2 text-[14px] font-normal text-[#181d26] bg-white h-[40px] focus:outline-none focus:border-[#458fff] focus:ring-1 focus:ring-[#458fff] transition-colors placeholder-[#9297a0]"
                                   />
                                 </div>
@@ -980,7 +980,7 @@ export default function CrudFormModal({
                                   <label className="block text-[13px] font-medium text-[#181d26] mb-1.5">{t.parents?.form?.lastName || "Nom"} *</label>
                                   <input
                                     name={`student-${index}-surname`}
-                                    placeholder={t.parents?.form?.childSurname || "Nom de l'élève"}
+                                    placeholder={t.parents?.form?.childSurname || "Nom de l'Ã©lÃ¨ve"}
                                     className="w-full border border-[#dddddd] rounded-[6px] px-3 py-2 text-[14px] font-normal text-[#181d26] bg-white h-[40px] focus:outline-none focus:border-[#458fff] focus:ring-1 focus:ring-[#458fff] transition-colors placeholder-[#9297a0]"
                                   />
                                 </div>
@@ -990,7 +990,7 @@ export default function CrudFormModal({
                                     name={`student-${index}-sex`}
                                     className="w-full border border-[#dddddd] rounded-[6px] px-3 py-2 text-[14px] font-normal text-[#181d26] bg-white h-[40px] focus:outline-none focus:border-[#458fff] focus:ring-1 focus:ring-[#458fff] transition-colors"
                                   >
-                                    <option value="MALE">{t.parents?.form?.male || "Garçon (Homme)"}</option>
+                                    <option value="MALE">{t.parents?.form?.male || "GarÃ§on (Homme)"}</option>
                                     <option value="FEMALE">{t.parents?.form?.female || "Fille (Femme)"}</option>
                                   </select>
                                 </div>
@@ -1008,7 +1008,7 @@ export default function CrudFormModal({
                                     name={`student-${index}-classId`}
                                     className="w-full border border-[#dddddd] rounded-[6px] px-3 py-2 text-[14px] font-normal text-[#181d26] bg-white h-[40px] focus:outline-none focus:border-[#458fff] focus:ring-1 focus:ring-[#458fff] transition-colors"
                                   >
-                                    <option value="">Non classé</option>
+                                    <option value="">Non classÃ©</option>
                                     {relatedData?.classId?.map(o => (
                                       <option key={o.value} value={o.value}>{o.label}</option>
                                     ))}
@@ -1051,3 +1051,4 @@ export default function CrudFormModal({
     </>
   );
 }
+

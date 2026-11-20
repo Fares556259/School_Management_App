@@ -1,8 +1,8 @@
-"use client";
+﻿"use client";
 import { getSchoolYearMonths, isMonthBefore, getMonthKey, MONTHS } from "@/lib/dateUtils";
 import { Payment } from "@prisma/client";
 import { Check, X, AlertCircle } from "lucide-react";
-import { getReceiptContext } from "@/lib/receiptActions";
+import { getReceiptContext } from "@actions/lib-receipt";
 
 /**
  * A sleek, horizontal stepper UI showing the payment timeline for the academic year.
@@ -59,7 +59,7 @@ export default function PaymentTimeline({
     doc.setFontSize(16);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(24, 29, 38);
-    doc.text("REÇU DE PAIEMENT", 105, 33, { align: "center" });
+    doc.text("REÃ‡U DE PAIEMENT", 105, 33, { align: "center" });
     
     doc.setFontSize(11);
     doc.setFont("helvetica", "normal");
@@ -70,7 +70,7 @@ export default function PaymentTimeline({
     
     // Draw fields
     doc.setFont("helvetica", "bold");
-    doc.text("N° de reçu : ", 20, 50);
+    doc.text("NÂ° de reÃ§u : ", 20, 50);
     doc.setFont("helvetica", "normal");
     doc.text(receiptNo, 50, 50);
     doc.setDrawColor(180, 180, 180);
@@ -89,9 +89,9 @@ export default function PaymentTimeline({
     
     // Format month for French display (e.g. "Sep 2026" -> "Septembre 2026")
     const [mName, yStr] = monthKey.split(" ");
-    const frenchMonths: Record<string, string> = { "Jan": "Janvier", "Feb": "Février", "Mar": "Mars", "Apr": "Avril", "May": "Mai", "Jun": "Juin", "Jul": "Juillet", "Aug": "Août", "Sep": "Septembre", "Oct": "Octobre", "Nov": "Novembre", "Dec": "Décembre" };
+    const frenchMonths: Record<string, string> = { "Jan": "Janvier", "Feb": "FÃ©vrier", "Mar": "Mars", "Apr": "Avril", "May": "Mai", "Jun": "Juin", "Jul": "Juillet", "Aug": "AoÃ»t", "Sep": "Septembre", "Oct": "Octobre", "Nov": "Novembre", "Dec": "DÃ©cembre" };
     const frenchMonth = frenchMonths[mName] || mName;
-    const paymentFor = `Frais de scolarité - ${frenchMonth} ${yStr}`;
+    const paymentFor = `Frais de scolaritÃ© - ${frenchMonth} ${yStr}`;
 
     const addField = (label: string, value: string, yPos: number, xOffset = 60, lineEnd = 190) => {
       doc.setFont("helvetica", "bold");
@@ -102,18 +102,18 @@ export default function PaymentTimeline({
       doc.line(xOffset - 2, yPos + 2, lineEnd, yPos + 2);
     };
 
-    addField("Reçu de (Parent) : ", parentName, 75);
-    addField("Nom de l'élève : ", studentName, 95);
-    addField("Montant payé : ", amountStr, 115);
+    addField("ReÃ§u de (Parent) : ", parentName, 75);
+    addField("Nom de l'Ã©lÃ¨ve : ", studentName, 95);
+    addField("Montant payÃ© : ", amountStr, 115);
     addField("Motif du paiement : ", paymentFor, 135);
-    addField("Reçu par : ", adminName || "Administration", 155);
+    addField("ReÃ§u par : ", adminName || "Administration", 155);
 
     // Signatures at the bottom
     doc.setFont("helvetica", "bold");
     doc.text("Signature du parent :", 20, 205);
     doc.line(65, 206, 100, 206);
 
-    doc.text("Cachet de l'école :", 120, 205);
+    doc.text("Cachet de l'Ã©cole :", 120, 205);
     doc.line(155, 206, 190, 206);
 
     // Save PDF
@@ -226,3 +226,4 @@ export default function PaymentTimeline({
     </div>
   );
 }
+

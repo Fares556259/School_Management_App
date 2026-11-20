@@ -1,4 +1,4 @@
-import { createClient } from "@/utils/supabase/server";
+﻿import { createClient } from "@lib/supabase/server";
 import { NextResponse } from "next/server";
 
 export async function POST(request: Request) {
@@ -6,3 +6,4 @@ export async function POST(request: Request) {
   await supabase.auth.signOut();
   return NextResponse.redirect(new URL("/sign-in", request.url), { status: 302 });
 }
+

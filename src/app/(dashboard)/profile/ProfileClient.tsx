@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
@@ -97,7 +97,7 @@ const ProfileClient = () => {
         quality: 0.8,
       });
 
-      const supabase = (await import('@/utils/supabase/client')).createClient();
+      const supabase = (await import('@lib/supabase/client')).createClient();
       const fileName = `profile-${serverData?.id || 'admin'}-${Date.now()}`;
       const filePath = `profiles/${fileName}`;
 
@@ -285,3 +285,4 @@ const ProfileClient = () => {
 };
 
 export default ProfileClient;
+

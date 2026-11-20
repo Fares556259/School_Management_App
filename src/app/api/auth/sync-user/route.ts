@@ -1,5 +1,5 @@
-import { createClient } from "@/utils/supabase/server";
-import { supabaseAdmin } from "@/utils/supabase/admin";
+import { createClient } from "@lib/supabase/server";
+import { supabaseAdmin } from "@lib/supabase/admin";
 
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
@@ -40,7 +40,7 @@ export async function POST(req: Request) {
 
     // AUTO-PROVISION if active
     if (authStatus === "active") {
-      const { provisionSchool } = await import("@/app/(superadmin)/superadmin/actions");
+      const { provisionSchool } = await import("@actions/superadmin");
       const schoolId = user.user_metadata?.schoolId as string || "default_school";
       await provisionSchool(userId, schoolId, schoolName);
     } else {
@@ -92,3 +92,4 @@ export async function POST(req: Request) {
     return new NextResponse(error.message || "Internal Server Error", { status: 500 });
   }
 }
+

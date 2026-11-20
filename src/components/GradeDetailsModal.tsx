@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Award, BookOpen, Users, Calendar, Pencil, FileText, CheckCircle2, AlertCircle, Eye, Download, Image as ImageIcon, Loader2 } from "lucide-react";
-import { getGradeSheet } from "@/app/(dashboard)/admin/grades/actions";
+import { getGradeSheet } from "@actions/grades";
 import { ProofViewerModal, ProofViewerButton } from "@/components/ProofViewerModal";
 import { useLanguage } from "@/lib/translations/LanguageContext";
 

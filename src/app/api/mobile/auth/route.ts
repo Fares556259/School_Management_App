@@ -1,8 +1,8 @@
-export const dynamic = "force-dynamic";
+﻿export const dynamic = "force-dynamic";
 import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-import { supabaseAdmin } from "@/utils/supabase/admin";
+import { supabaseAdmin } from "@lib/supabase/admin";
 import { 
   generateToken, 
   checkRateLimit, 
@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
       }
       
       if (admin.status !== "active") {
-        return NextResponse.json({ success: false, error: "Compte non activé" }, { status: 403 });
+        return NextResponse.json({ success: false, error: "Compte non activÃ©" }, { status: 403 });
       }
       
       // Generate mobile JWT token for admin
@@ -126,7 +126,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // ─── ACTION: SEND OTP ──────────────────────────────────────────────────
+    // â”€â”€â”€ ACTION: SEND OTP â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     if (action === "send_otp" || action === "forgot_password") {
       const code = generateAndStoreOTP(phone);
       return NextResponse.json({
@@ -138,7 +138,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // ─── ACTION: VERIFY OTP ────────────────────────────────────────────────
+    // â”€â”€â”€ ACTION: VERIFY OTP â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     if (action === "verify_otp") {
       if (!otpCode) {
         return NextResponse.json({ success: false, error: "Verification code is required" }, { status: 400 });
@@ -150,7 +150,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, verified: true });
     }
 
-    // ─── ACTION: ACCOUNT SETUP ──────────────────────────────────────────────
+    // â”€â”€â”€ ACTION: ACCOUNT SETUP â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     if (action === "setup") {
       if (user.password) {
         return NextResponse.json(
@@ -186,7 +186,7 @@ export async function POST(request: NextRequest) {
       }
     } 
 
-    // ─── ACTION: RESET PASSWORD ─────────────────────────────────────────────
+    // â”€â”€â”€ ACTION: RESET PASSWORD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     else if (action === "reset_password") {
       if (!password || password.length < 6) {
         return NextResponse.json(
@@ -215,7 +215,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // ─── ACTION: SIGN IN ───────────────────────────────────────────────────
+    // â”€â”€â”€ ACTION: SIGN IN â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     else if (action === "signin") {
       if (!user.password) {
         return NextResponse.json(
@@ -246,7 +246,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // ─── SUCCESS: ISSUE SIGNED JWT TOKEN & RETURN SESSION ──────────────────
+    // â”€â”€â”€ SUCCESS: ISSUE SIGNED JWT TOKEN & RETURN SESSION â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     const token = generateToken({
       userId: user.id,
       userType,
@@ -272,3 +272,4 @@ export async function POST(request: NextRequest) {
     });
   }
 }
+

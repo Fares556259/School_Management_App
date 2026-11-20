@@ -1,6 +1,6 @@
-"use client";
+﻿"use client";
 
-import { resetParentPassword, resetTeacherPassword } from "@/lib/crudActions";
+import { resetParentPassword, resetTeacherPassword } from "@actions/lib-crud";
 import { useState } from "react";
 
 const ResetPasswordButton = ({ parentId, teacherId }: { parentId?: string; teacherId?: string }) => {
@@ -128,3 +128,4 @@ const ResetPasswordButton = ({ parentId, teacherId }: { parentId?: string; teach
 };
 
 export default ResetPasswordButton;
+

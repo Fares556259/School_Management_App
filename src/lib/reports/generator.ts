@@ -1,4 +1,4 @@
-import { callGeminiDirect } from "@/app/(dashboard)/admin/actions/aiActions";
+﻿import { callGeminiDirect } from "@actions/aiActions";
 
 export async function generateSmartInsights(aggregatedData: any, locale: string = "en") {
   try {
@@ -46,3 +46,4 @@ export async function generateSmartInsights(aggregatedData: any, locale: string 
     ];
   }
 }
+

@@ -1,6 +1,6 @@
-"use server";
+﻿"use server";
 
-import { callGeminiDirect } from "@/app/(dashboard)/admin/actions/aiActions";
+import { callGeminiDirect } from "@actions/aiActions";
 
 export async function parseTeachersFromText(text: string) {
   if (!text || text.length < 10) {
@@ -94,3 +94,4 @@ export async function parseTeachersFromImage(imageUrl: string) {
     return { error: "Failed to parse image. Please ensure the document is clear and readable." };
   }
 }
+

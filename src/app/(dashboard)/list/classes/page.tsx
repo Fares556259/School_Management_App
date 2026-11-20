@@ -1,9 +1,9 @@
-import { getRole } from "@/lib/role";
+﻿import { getRole } from "@/lib/role";
 import CrudFormModal from "@/components/CrudFormModal";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
-import { createClient } from "@/utils/supabase/server";
+import { createClient } from "@lib/supabase/server";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import { Class, Teacher, Level, Prisma } from "@prisma/client";
@@ -102,7 +102,7 @@ const ClassListPage = async ({
       </td>
       <td className="hidden md:table-cell py-4 px-6">{item.capacity}</td>
       <td className="hidden md:table-cell py-4 px-6">
-        {item.level?.level === 0 ? (lang === 'ar' ? 'تحضيري' : 'Préscolaire (تحضيري)') : item.level?.level}
+        {item.level?.level === 0 ? (lang === 'ar' ? 'ØªØ­Ø¶ÙŠØ±ÙŠ' : 'PrÃ©scolaire (ØªØ­Ø¶ÙŠØ±ÙŠ)') : item.level?.level}
       </td>
       <td className="hidden md:table-cell py-4 px-6">
         <div className="flex flex-wrap gap-1">
@@ -283,13 +283,13 @@ const ClassListPage = async ({
   const safeCount = typeof count === "number" ? count : safeData.length;
 
   const availableClassNames: { value: string; label: string }[] = [];
-  const ARABIC_LETTERS = ["أ", "ب", "ج", "د", "هـ", "و", "ز", "ح", "ط", "ي", "ك", "ل", "م", "ن", "س", "ع", "ف", "ص", "ق", "ر", "ش", "ت", "ث", "خ", "ذ", "ض", "ظ", "غ"];
+  const ARABIC_LETTERS = ["Ø£", "Ø¨", "Ø¬", "Ø¯", "Ù‡Ù€", "Ùˆ", "Ø²", "Ø­", "Ø·", "ÙŠ", "Ùƒ", "Ù„", "Ù…", "Ù†", "Ø³", "Ø¹", "Ù", "Øµ", "Ù‚", "Ø±", "Ø´", "Øª", "Ø«", "Ø®", "Ø°", "Ø¶", "Ø¸", "Øº"];
   safeLevels.forEach((l) => {
     const existingNames = Array.isArray(l.classes) ? l.classes.map((c: any) => c.name) : [];
     const count = (l.level === 0 && l.variations === 0 && existingNames.length === 0) ? 1 : (l.variations || 0);
     for (let i = 0; i < count; i++) {
       const name = l.level === 0
-        ? `تحضيري ${ARABIC_LETTERS[i] || String.fromCharCode(65 + i)}`
+        ? `ØªØ­Ø¶ÙŠØ±ÙŠ ${ARABIC_LETTERS[i] || String.fromCharCode(65 + i)}`
         : `${l.level}${String.fromCharCode(65 + i)}`;
       if (!existingNames.includes(name)) {
         availableClassNames.push({ value: name, label: name });
@@ -351,3 +351,4 @@ const ClassListPage = async ({
 };
 
 export default ClassListPage;
+

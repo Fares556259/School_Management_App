@@ -1,7 +1,7 @@
-"use server";
+﻿"use server";
 
 import prisma from "@/lib/prisma";
-import { getAuthenticatedUser } from "@/utils/supabase/server";
+import { getAuthenticatedUser } from "@lib/supabase/server";
 import { getSchoolId } from "@/lib/school";
 import { generateLinkCode, unlinkAccount } from "@/lib/telegram/linking";
 import { revalidatePath } from "next/cache";
@@ -9,7 +9,7 @@ import { revalidatePath } from "next/cache";
 export async function getTelegramLinkStatus() {
   try {
     const user = await getAuthenticatedUser();
-    if (!user) return { success: false, error: "Non authentifié" };
+    if (!user) return { success: false, error: "Non authentifiÃ©" };
 
     const account = await prisma.telegramAccount.findUnique({
       where: { adminId: user.id },
@@ -44,7 +44,7 @@ export async function getTelegramLinkStatus() {
 export async function requestTelegramLinkCode() {
   try {
     const user = await getAuthenticatedUser();
-    if (!user) return { success: false, error: "Non authentifié" };
+    if (!user) return { success: false, error: "Non authentifiÃ©" };
 
     const schoolId = await getSchoolId();
     const result = await generateLinkCode(user.id, schoolId);
@@ -67,7 +67,7 @@ export async function requestTelegramLinkCode() {
 export async function disconnectTelegramAccount() {
   try {
     const user = await getAuthenticatedUser();
-    if (!user) return { success: false, error: "Non authentifié" };
+    if (!user) return { success: false, error: "Non authentifiÃ©" };
 
     await unlinkAccount(user.id);
 
@@ -80,3 +80,4 @@ export async function disconnectTelegramAccount() {
     return { success: false, error: err.message };
   }
 }
+

@@ -1,8 +1,8 @@
 "use client";
 import { useState } from "react";
-import { receiveStudentPayment } from "@/app/(dashboard)/list/students/actions";
-import { payTeacherSalary } from "@/app/(dashboard)/list/teachers/actions";
-import { payStaffSalary } from "@/app/(dashboard)/list/staff/actions";
+import { receiveStudentPayment } from "@actions/students";
+import { payTeacherSalary } from "@actions/teachers";
+import { payStaffSalary } from "@actions/staff";
 import { toast } from "react-toastify";
 import { useLanguage } from "@/lib/translations/LanguageContext";
 

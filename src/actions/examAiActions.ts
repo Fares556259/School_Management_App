@@ -1,6 +1,6 @@
-"use server";
+﻿"use server";
 
-import { callGeminiDirect } from "@/app/(dashboard)/admin/actions/aiActions";
+import { callGeminiDirect } from "@actions/aiActions";
 
 export async function generateExamsFromPrompt(
   prompt: string, 
@@ -65,3 +65,4 @@ export async function generateExamsFromPrompt(
     return { error: "Failed to generate exam slots. Please try different instructions." };
   }
 }
+

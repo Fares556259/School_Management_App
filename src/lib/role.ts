@@ -1,5 +1,5 @@
-import { cache } from "react";
-import { getAuthenticatedUser } from "@/utils/supabase/server";
+﻿import { cache } from "react";
+import { getAuthenticatedUser } from "@lib/supabase/server";
 import prisma from "./prisma";
 
 export const getRole = cache(async () => {
@@ -25,3 +25,4 @@ export const getRole = cache(async () => {
 
   return undefined;
 });
+

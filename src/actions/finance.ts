@@ -1,8 +1,8 @@
-"use server";
+﻿"use server";
 
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/utils/supabase/server";
+import { createClient } from "@lib/supabase/server";
 
 export const addFinanceEntry = async (formData: FormData) => {
   const title = formData.get("title") as string;
@@ -33,7 +33,7 @@ export const addFinanceEntry = async (formData: FormData) => {
           performedBy: userId || "unknown",
           entityType: "Finance",
           entityId: income.id.toString(),
-          description: `Manually added income: "${title}" — $${amount} [${category}]`,
+          description: `Manually added income: "${title}" â€” $${amount} [${category}]`,
           newValues: income as any,
         },
       });
@@ -46,7 +46,7 @@ export const addFinanceEntry = async (formData: FormData) => {
           performedBy: userId || "unknown",
           entityType: "Finance",
           entityId: expense.id.toString(),
-          description: `Manually added expense: "${title}" — $${amount} [${category}]`,
+          description: `Manually added expense: "${title}" â€” $${amount} [${category}]`,
           newValues: expense as any,
         },
       });
@@ -64,4 +64,5 @@ export const addFinanceEntry = async (formData: FormData) => {
     return { success: false, error: "Failed to add entry." };
   }
 };
+
 

@@ -1,6 +1,6 @@
-"use server";
+﻿"use server";
 
-import { callGeminiDirect } from "@/app/(dashboard)/admin/actions/aiActions";
+import { callGeminiDirect } from "@actions/aiActions";
 
 export async function generateTimetableFromPrompt(
   prompt: string, 
@@ -62,3 +62,4 @@ export async function generateTimetableFromPrompt(
     return { error: "Failed to generate timetable slots. Please try different instructions." };
   }
 }
+

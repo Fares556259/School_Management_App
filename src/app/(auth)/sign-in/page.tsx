@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -15,7 +15,7 @@ import {
   MessageSquare,
   ArrowLeft,
 } from "lucide-react";
-import { createClient } from "@/utils/supabase/client";
+import { createClient } from "@lib/supabase/client";
 
 export default function SignInPage() {
   const router = useRouter();
@@ -60,7 +60,7 @@ export default function SignInPage() {
         window.location.href = "/waiting-approval";
       }
     } catch (err: any) {
-      setError(err.message || "Une erreur est survenue. Veuillez vérifier vos identifiants.");
+      setError(err.message || "Une erreur est survenue. Veuillez vÃ©rifier vos identifiants.");
       setLoading(false);
     }
   };
@@ -77,7 +77,7 @@ export default function SignInPage() {
       if (error) throw error;
       setMode("forgot_sent");
     } catch (err: any) {
-      setError(err.message || "Impossible d'envoyer l'email de réinitialisation. Vérifiez votre adresse.");
+      setError(err.message || "Impossible d'envoyer l'email de rÃ©initialisation. VÃ©rifiez votre adresse.");
     } finally {
       setLoading(false);
     }
@@ -100,7 +100,7 @@ export default function SignInPage() {
           href="/"
           className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-900 transition-colors"
         >
-          <ArrowLeft className="w-3.5 h-3.5" /> Retour à l&apos;accueil
+          <ArrowLeft className="w-3.5 h-3.5" /> Retour Ã  l&apos;accueil
         </Link>
       </header>
 
@@ -121,15 +121,15 @@ export default function SignInPage() {
               {mode === "signin"
                 ? "Espace de gestion"
                 : mode === "forgot"
-                ? "Mot de passe oublié"
-                : "Vérifiez vos emails"}
+                ? "Mot de passe oubliÃ©"
+                : "VÃ©rifiez vos emails"}
             </h1>
             <p className="text-xs text-slate-500 mt-1">
               {mode === "signin"
-                ? "Connectez-vous pour accéder à votre établissement"
+                ? "Connectez-vous pour accÃ©der Ã  votre Ã©tablissement"
                 : mode === "forgot"
-                ? "Entrez votre email pour recevoir le lien de réinitialisation"
-                : "Un lien de réinitialisation vous a été envoyé"}
+                ? "Entrez votre email pour recevoir le lien de rÃ©initialisation"
+                : "Un lien de rÃ©initialisation vous a Ã©tÃ© envoyÃ©"}
             </p>
           </div>
 
@@ -166,7 +166,7 @@ export default function SignInPage() {
                     onClick={() => { setMode("forgot"); setError(""); }}
                     className="text-xs font-semibold text-blue-600 hover:text-blue-700 transition-colors cursor-pointer"
                   >
-                    Mot de passe oublié ?
+                    Mot de passe oubliÃ© ?
                   </button>
                 </div>
                 <div className="relative">
@@ -174,7 +174,7 @@ export default function SignInPage() {
                   <input
                     required
                     type="password"
-                    placeholder="••••••••"
+                    placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
                     className={`${inputClass} pl-10`}
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
@@ -197,9 +197,9 @@ export default function SignInPage() {
               </button>
 
               <div className="pt-4 text-center text-xs text-slate-500 border-t border-slate-100">
-                Votre école n&apos;utilise pas encore SnapSchool ?{" "}
+                Votre Ã©cole n&apos;utilise pas encore SnapSchool ?{" "}
                 <Link href="/sign-up" className="text-blue-600 font-semibold hover:underline">
-                  Créer un compte
+                  CrÃ©er un compte
                 </Link>
               </div>
 
@@ -258,7 +258,7 @@ export default function SignInPage() {
                 onClick={() => { setMode("signin"); setError(""); }}
                 className="block w-full text-center text-xs text-slate-500 hover:text-slate-700 font-medium transition-colors pt-2 cursor-pointer"
               >
-                ← Retour à la connexion
+                â† Retour Ã  la connexion
               </button>
             </form>
           )}
@@ -270,9 +270,9 @@ export default function SignInPage() {
                 <CheckCircle2 className="w-6 h-6" />
               </div>
               <div>
-                <h3 className="text-base font-bold text-slate-900 mb-1">Email envoyé !</h3>
+                <h3 className="text-base font-bold text-slate-900 mb-1">Email envoyÃ© !</h3>
                 <p className="text-xs text-slate-500">
-                  Un lien de réinitialisation a été envoyé à <span className="font-semibold text-slate-800">{forgotEmail}</span>.
+                  Un lien de rÃ©initialisation a Ã©tÃ© envoyÃ© Ã  <span className="font-semibold text-slate-800">{forgotEmail}</span>.
                 </p>
               </div>
               <button
@@ -280,7 +280,7 @@ export default function SignInPage() {
                 onClick={() => { setMode("signin"); setError(""); }}
                 className="w-full py-2.5 bg-slate-100 text-slate-700 font-semibold text-xs rounded-xl hover:bg-slate-200 transition-all cursor-pointer"
               >
-                Retour à la connexion
+                Retour Ã  la connexion
               </button>
             </div>
           )}
@@ -291,17 +291,18 @@ export default function SignInPage() {
           <span className="flex items-center gap-1.5">
             <ShieldCheck className="w-3.5 h-3.5 text-blue-600" /> Chiffrement SSL 256-bit
           </span>
-          <span className="text-slate-300">•</span>
-          <span>Système Éducatif Tunisien</span>
-          <span className="text-slate-300">•</span>
-          <span>Accès Sécurisé Multi-Rôles</span>
+          <span className="text-slate-300">â€¢</span>
+          <span>SystÃ¨me Ã‰ducatif Tunisien</span>
+          <span className="text-slate-300">â€¢</span>
+          <span>AccÃ¨s SÃ©curisÃ© Multi-RÃ´les</span>
         </div>
       </main>
 
       {/* Minimal Footer */}
       <footer className="relative z-10 py-4 text-center text-[11px] text-slate-400">
-        © {new Date().getFullYear()} SnapSchool. Tous droits réservés.
+        Â© {new Date().getFullYear()} SnapSchool. Tous droits rÃ©servÃ©s.
       </footer>
     </div>
   );
 }
+

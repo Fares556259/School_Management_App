@@ -1,8 +1,8 @@
-"use client";
+﻿"use client";
 
 import { useState, useTransition } from "react";
 import { parseTeachersFromText, parseTeachersFromImage } from "../../admin/actions/teacherAiActions";
-import { bulkCreateTeachers } from "@/lib/crudActions";
+import { bulkCreateTeachers } from "@actions/lib-crud";
 import { X, Check, Loader2, AlertCircle, Sparkles, FileText, UserPlus, Image as ImageIcon, Type, UploadCloud } from "lucide-react";
 import Image from "next/image";
 import { compressImage } from "@/lib/imageCompression";
@@ -159,7 +159,7 @@ export default function BulkTeacherImport({ onClose }: { onClose: () => void }) 
                                 quality: 0.8,
                               });
 
-                              const supabase = (await import('@/utils/supabase/client')).createClient();
+                              const supabase = (await import('@lib/supabase/client')).createClient();
                               const ext = optimizedFile.name.split('.').pop()?.toLowerCase() || 'jpeg';
                               const fileName = `bulk-teacher-import-${Date.now()}.${ext}`;
                               const filePath = `imports/${fileName}`;
@@ -301,3 +301,4 @@ export default function BulkTeacherImport({ onClose }: { onClose: () => void }) 
     </div>
   );
 }
+

@@ -20,7 +20,7 @@ import {
   X,
   Plus
 } from "lucide-react";
-import { receiveStudentPayment, receiveMultipleStudentPayments } from "@/app/(dashboard)/list/students/actions";
+import { receiveStudentPayment, receiveMultipleStudentPayments } from "@actions/students";
 import { MONTHS } from "@/lib/dateUtils";
 import { useLanguage } from "@/lib/translations/LanguageContext";
 import { toast } from "react-toastify";

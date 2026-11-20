@@ -1,8 +1,8 @@
-"use server";
+﻿"use server";
 
 import prisma from "@/lib/prisma";
-import { createClient } from "@/utils/supabase/server";
-import { supabaseAdmin } from "@/utils/supabase/admin";
+import { createClient } from "@lib/supabase/server";
+import { supabaseAdmin } from "@lib/supabase/admin";
 import { getRole } from "@/lib/role";
 import { revalidatePath } from "next/cache";
 import { provisionSchool } from "./actions";
@@ -43,7 +43,7 @@ export async function syncClerkUsers() {
       const role = meta.role as string;
       const status = meta.status as string;
 
-      // Skip superadmins — they are never treated as school admins
+      // Skip superadmins â€” they are never treated as school admins
       if (role === "superadmin") continue;
 
       const dbAdminStatus = status === "active" ? "active" : "pending";
@@ -51,7 +51,7 @@ export async function syncClerkUsers() {
 
       const firstName = (meta.firstName as string) || "";
       const lastName  = (meta.lastName  as string) || "";
-      // Never use the email as the school name — use a readable default
+      // Never use the email as the school name â€” use a readable default
       const schoolName =
         (meta.schoolName as string) ||
         (firstName ? `${firstName}'s School` : "Unnamed School");
@@ -59,11 +59,11 @@ export async function syncClerkUsers() {
       // 1. Try to find by Supabase ID
       let existingAdmin = await prisma.admin.findUnique({ where: { id: user.id } });
 
-      // 2. If not found by ID, check by email (handles Clerk→Supabase ID change)
+      // 2. If not found by ID, check by email (handles Clerkâ†’Supabase ID change)
       if (!existingAdmin) {
         const emailMatch = await prisma.admin.findFirst({ where: { email } });
         if (emailMatch) {
-          // Re-key: delete old record (wrong ID) — the create below will use the correct ID
+          // Re-key: delete old record (wrong ID) â€” the create below will use the correct ID
           await prisma.admin.delete({ where: { id: emailMatch.id } });
         }
       }
@@ -71,7 +71,7 @@ export async function syncClerkUsers() {
       // 3. Re-check after potential delete
       existingAdmin = await prisma.admin.findUnique({ where: { id: user.id } });
 
-      // CASE A: Record exists — check if status needs updating
+      // CASE A: Record exists â€” check if status needs updating
       if (existingAdmin) {
         if (status === "active" && existingAdmin.status === "pending") {
           const schoolId    = (meta.schoolId   as string) || existingAdmin.schoolId;
@@ -84,7 +84,7 @@ export async function syncClerkUsers() {
         continue;
       }
 
-      // CASE B: Completely new — create Admin record
+      // CASE B: Completely new â€” create Admin record
       await prisma.admin.create({
         data: {
           id:               user.id,
@@ -159,3 +159,4 @@ export async function syncClerkUsers() {
     return { success: false, error: error.message };
   }
 }
+

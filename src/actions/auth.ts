@@ -1,6 +1,6 @@
-"use server";
+﻿"use server";
 
-import { createClient } from "@/utils/supabase/server";
+import { createClient } from "@lib/supabase/server";
 import prisma from "@/lib/prisma";
 import { redirect } from "next/navigation";
 
@@ -31,7 +31,7 @@ export async function signInAction(formData: FormData) {
   } else if (role === "admin" && status === "active") {
     redirect("/admin");
   } else {
-    // Pending admin or unknown — send to waiting page
+    // Pending admin or unknown â€” send to waiting page
     redirect("/waiting-approval");
   }
 }
@@ -69,7 +69,7 @@ export async function signUpAction(formData: FormData) {
 
   const user = data.user;
   if (!user) {
-    return { error: "Échec de la création du compte." };
+    return { error: "Ã‰chec de la crÃ©ation du compte." };
   }
 
   // Create the Admin in Prisma
@@ -110,3 +110,4 @@ export async function signOutAction() {
   await supabase.auth.signOut();
   redirect("/sign-in");
 }
+

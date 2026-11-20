@@ -1,9 +1,9 @@
-"use server";
+﻿"use server";
 
 import prisma from "@/lib/prisma";
 import { getRole } from "@/lib/role";
-import { createClient } from "@/utils/supabase/server";
-import { supabaseAdmin } from "@/utils/supabase/admin";
+import { createClient } from "@lib/supabase/server";
+import { supabaseAdmin } from "@lib/supabase/admin";
 import slugify from "slugify";
 
 export async function provisionSchool(setupRequestId: string) {
@@ -136,3 +136,4 @@ export async function provisionSchool(setupRequestId: string) {
     return { success: false, error: error.message || "An unexpected error occurred during provisioning." };
   }
 }
+

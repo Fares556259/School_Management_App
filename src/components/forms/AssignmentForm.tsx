@@ -1,11 +1,11 @@
-"use client";
+﻿"use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useTransition, useState, useEffect } from "react";
 import InputField from "../InputField";
-import { createAssignment, updateAssignment } from "@/lib/crudActions";
+import { createAssignment, updateAssignment } from "@actions/lib-crud";
 import { useLanguage } from "@/lib/translations/LanguageContext";
 import { compressImageFiles } from "@/lib/imageCompression";
 import { toast } from "react-toastify";
@@ -112,7 +112,7 @@ const AssignmentForm = ({
         quality: 0.8,
       });
 
-      const supabase = (await import('@/utils/supabase/client')).createClient();
+      const supabase = (await import('@lib/supabase/client')).createClient();
       const newUrls: string[] = [];
 
       for (let i = 0; i < files.length; i++) {
@@ -280,9 +280,9 @@ const AssignmentForm = ({
           >
             <div className="w-8 h-8 bg-white border border-[#dddddd] rounded-full flex items-center justify-center transition-colors">
               {isUploading ? (
-                  <span className="text-[14px] animate-spin">⏳</span>
+                  <span className="text-[14px] animate-spin">â³</span>
               ) : (
-                <span className="text-[14px]">📁</span>
+                <span className="text-[14px]">ðŸ“</span>
               )}
             </div>
             <span className="text-[12px] text-[#41454d]">
@@ -295,7 +295,7 @@ const AssignmentForm = ({
               {imgs.map((url, index) => (
                 <div key={index} className="flex items-center justify-between p-2.5 bg-[#f8fafc] rounded-[6px] border border-[#dddddd]">
                   <div className="flex items-center gap-2 overflow-hidden">
-                    <span className="text-[14px]">📄</span>
+                    <span className="text-[14px]">ðŸ“„</span>
                     <span className="text-[12px] text-[#41454d] truncate max-w-[200px]">{url.split('/').pop()}</span>
                   </div>
                   <button 
@@ -323,3 +323,4 @@ const AssignmentForm = ({
 };
 
 export default AssignmentForm;
+

@@ -1,6 +1,6 @@
-"use client";
+﻿"use client";
 
-import { createClient } from "@/utils/supabase/client";
+import { createClient } from "@lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
 import Image from "next/image";
@@ -43,7 +43,7 @@ import {
   Bot,
 } from "lucide-react";
 
-/* ─────────── ANIMATION HELPERS ─────────── */
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ ANIMATION HELPERS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" as const } },
@@ -88,7 +88,7 @@ function Section({
   );
 }
 
-/* ─────────── ANIMATED COUNTER ─────────── */
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ ANIMATED COUNTER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 function CountUp({ target, suffix = "", prefix = "" }: { target: number; suffix?: string; prefix?: string }) {
   const [count, setCount] = useState(0);
   const ref = useRef(null);
@@ -117,7 +117,7 @@ function CountUp({ target, suffix = "", prefix = "" }: { target: number; suffix?
   return <span ref={ref}>{prefix}{count}{suffix}</span>;
 }
 
-/* ─────────── NAVBAR ─────────── */
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ NAVBAR â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 const Navbar = ({
   isSignedIn,
   handleLoginClick,
@@ -137,8 +137,8 @@ const Navbar = ({
   }, []);
 
   const links = [
-    { label: "Aperçu de l'app", href: "#apercu" },
-    { label: "Système Tunisien", href: "#tunisie" },
+    { label: "AperÃ§u de l'app", href: "#apercu" },
+    { label: "SystÃ¨me Tunisien", href: "#tunisie" },
     { label: "Paiements Flexibles", href: "#finances-flexibles" },
     { label: "Hnia IA Telegram", href: "#hnia-ia" },
     { label: "Modules", href: "#modules" },
@@ -273,7 +273,7 @@ const Navbar = ({
   );
 };
 
-/* ─────────── MAIN PAGE ─────────── */
+/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ MAIN PAGE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 export default function Homepage() {
   const [isSignedIn, setIsSignedIn] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
@@ -306,35 +306,35 @@ export default function Homepage() {
     else router.push("/sign-in");
   };
 
-  /* ── Screenshots Showcase Data ── */
+  /* â”€â”€ Screenshots Showcase Data â”€â”€ */
   const tabScreens = {
     command: {
       title: "Centre de Commandement",
       badge: "Vue Direction en Direct",
-      desc: "Supervision complète : effectifs en direct (élèves, enseignants, classes), chiffre d'affaires en TND et indicateurs de rentabilité.",
+      desc: "Supervision complÃ¨te : effectifs en direct (Ã©lÃ¨ves, enseignants, classes), chiffre d'affaires en TND et indicateurs de rentabilitÃ©.",
       src: "/landing/dashboard-command-center.png",
       alt: "Tableau de bord de gestion scolaire SnapSchool Academy",
     },
     finance: {
-      title: "Recouvrement & Rémunérations",
-      badge: "Zéro Impayé Oublié",
-      desc: "Suivi en Dinars des scolarités en souffrance avec bouton d'encaissement direct et gestion des salaires des enseignants.",
+      title: "Recouvrement & RÃ©munÃ©rations",
+      badge: "ZÃ©ro ImpayÃ© OubliÃ©",
+      desc: "Suivi en Dinars des scolaritÃ©s en souffrance avec bouton d'encaissement direct et gestion des salaires des enseignants.",
       src: "/landing/finance-recovery.png",
       alt: "Module de recouvrement des frais scolaires et salaires en dinars tunisiens",
     },
     timetable: {
-      title: "Emploi du Temps Académique",
+      title: "Emploi du Temps AcadÃ©mique",
       badge: "Grille Officielle Bilingue",
-      desc: "Emploi du temps par classe avec matières bilingues en Arabe et Français, affectation des salles et des enseignants sans conflit.",
+      desc: "Emploi du temps par classe avec matiÃ¨res bilingues en Arabe et FranÃ§ais, affectation des salles et des enseignants sans conflit.",
       src: "/landing/timetable-grid.png",
       alt: "Emploi du temps bilingue tunisien SnapSchool",
     },
     analytics: {
-      title: "Trésorerie & Analyse 12 Mois",
-      badge: "Clarté Financière",
-      desc: "Comparatif en temps réel des recettes et des dépenses sur l'année scolaire 2026/2027 avec ventilation détaillée par catégorie.",
+      title: "TrÃ©sorerie & Analyse 12 Mois",
+      badge: "ClartÃ© FinanciÃ¨re",
+      desc: "Comparatif en temps rÃ©el des recettes et des dÃ©penses sur l'annÃ©e scolaire 2026/2027 avec ventilation dÃ©taillÃ©e par catÃ©gorie.",
       src: "/landing/analytics-cashflow.png",
-      alt: "Analyse de trésorerie sur 12 mois SnapSchool",
+      alt: "Analyse de trÃ©sorerie sur 12 mois SnapSchool",
     },
   };
 
@@ -342,66 +342,66 @@ export default function Homepage() {
     { id: "command" as const, label: "Centre de Commandement", icon: LayoutDashboard },
     { id: "finance" as const, label: "Recouvrement & Salaires", icon: CreditCard },
     { id: "timetable" as const, label: "Emploi du Temps Bilingue", icon: Calendar },
-    { id: "analytics" as const, label: "Trésorerie 12 Mois", icon: TrendingUp },
+    { id: "analytics" as const, label: "TrÃ©sorerie 12 Mois", icon: TrendingUp },
   ];
 
-  /* ── Essential Modules ── */
+  /* â”€â”€ Essential Modules â”€â”€ */
   const features = [
     {
       icon: FileText,
       title: "Notes et bulletins officiels",
-      description: "Saisie rapide par les enseignants, calcul automatique des moyennes trimestrielles avec coefficients officiels et édition de bulletins prêts à imprimer.",
+      description: "Saisie rapide par les enseignants, calcul automatique des moyennes trimestrielles avec coefficients officiels et Ã©dition de bulletins prÃªts Ã  imprimer.",
       color: "bg-purple-50 text-purple-600",
     },
     {
       icon: ClipboardList,
       title: "Gestion des absences & appel",
-      description: "Appel numérique en 45 secondes par classe. Les familles reçoivent une alerte immédiate sur leur smartphone en cas d'absence ou de retard.",
+      description: "Appel numÃ©rique en 45 secondes par classe. Les familles reÃ§oivent une alerte immÃ©diate sur leur smartphone en cas d'absence ou de retard.",
       color: "bg-red-50 text-red-600",
     },
     {
       icon: CreditCard,
       title: "Paiements & finances en DT",
-      description: "Suivi des écolages par tranche, alertes automatiques des impayés, reçus numérotés et gestion des salaires et avances des professeurs.",
+      description: "Suivi des Ã©colages par tranche, alertes automatiques des impayÃ©s, reÃ§us numÃ©rotÃ©s et gestion des salaires et avances des professeurs.",
       color: "bg-emerald-50 text-emerald-600",
     },
     {
       icon: Calendar,
       title: "Emploi du temps anti-conflit",
-      description: "Création intuitive des grilles horaires. Détection automatique des collisions de salles ou d'enseignants, avec créneaux flexibles de 1h ou 2h.",
+      description: "CrÃ©ation intuitive des grilles horaires. DÃ©tection automatique des collisions de salles ou d'enseignants, avec crÃ©neaux flexibles de 1h ou 2h.",
       color: "bg-amber-50 text-amber-600",
     },
     {
       icon: Smartphone,
       title: "Application mobile parents",
-      description: "Application intuitive pour iOS et Android : suivi des notes en direct, notifications des absences, devoirs et annonces officielles de l'école.",
+      description: "Application intuitive pour iOS et Android : suivi des notes en direct, notifications des absences, devoirs et annonces officielles de l'Ã©cole.",
       color: "bg-blue-50 text-blue-600",
     },
     {
       icon: ShieldCheck,
-      title: "Sécurité & Audit horodaté",
-      description: "Chaque action administrative est tracée. Chiffrement complet des données scolaires et sauvegardes cloud quotidiennes automatiques.",
+      title: "SÃ©curitÃ© & Audit horodatÃ©",
+      description: "Chaque action administrative est tracÃ©e. Chiffrement complet des donnÃ©es scolaires et sauvegardes cloud quotidiennes automatiques.",
       color: "bg-gray-100 text-gray-700",
     },
   ];
 
-  /* ── Essential FAQs ── */
+  /* â”€â”€ Essential FAQs â”€â”€ */
   const faqs = [
     {
-      q: "Combien de temps faut-il pour démarrer avec SnapSchool ?",
-      a: "Votre espace est opérationnel en 48 heures. Nous prenons en charge gratuitement l'importation complète de vos données scolaires actuelles depuis vos fichiers Excel (élèves, professeurs, classes).",
+      q: "Combien de temps faut-il pour dÃ©marrer avec SnapSchool ?",
+      a: "Votre espace est opÃ©rationnel en 48 heures. Nous prenons en charge gratuitement l'importation complÃ¨te de vos donnÃ©es scolaires actuelles depuis vos fichiers Excel (Ã©lÃ¨ves, professeurs, classes).",
     },
     {
-      q: "SnapSchool est-il adapté aux normes éducatives tunisiennes ?",
-      a: "Oui, à 100%. La plateforme intègre le découpage en 3 trimestres, la distinction devoirs de contrôle (DC) et devoirs de synthèse (DS), la pondération par coefficient officiel et les bulletins conformes au modèle ministériel.",
+      q: "SnapSchool est-il adaptÃ© aux normes Ã©ducatives tunisiennes ?",
+      a: "Oui, Ã  100%. La plateforme intÃ¨gre le dÃ©coupage en 3 trimestres, la distinction devoirs de contrÃ´le (DC) et devoirs de synthÃ¨se (DS), la pondÃ©ration par coefficient officiel et les bulletins conformes au modÃ¨le ministÃ©riel.",
     },
     {
       q: "Comment fonctionne la gestion flexible des paiements ?",
-      a: "SnapSchool s'adapte à la réalité : paiement partiel d'un parent (ex: 40 DT sur 123 DT), versement libre multi-mois (1 000 DT ventilés automatiquement sans calculatrice), et gestion des acomptes/avances des professeurs avec déduction d'heures d'absence.",
+      a: "SnapSchool s'adapte Ã  la rÃ©alitÃ© : paiement partiel d'un parent (ex: 40 DT sur 123 DT), versement libre multi-mois (1 000 DT ventilÃ©s automatiquement sans calculatrice), et gestion des acomptes/avances des professeurs avec dÃ©duction d'heures d'absence.",
     },
     {
       q: "Quel accompagnement et support proposez-vous ?",
-      a: "Chaque établissement bénéficie d'une assistance directe via WhatsApp disponible 7j/7, ainsi que d'une formation guidée pour la direction et l'équipe pédagogique lors de la mise en place.",
+      a: "Chaque Ã©tablissement bÃ©nÃ©ficie d'une assistance directe via WhatsApp disponible 7j/7, ainsi que d'une formation guidÃ©e pour la direction et l'Ã©quipe pÃ©dagogique lors de la mise en place.",
     },
   ];
 
@@ -409,7 +409,7 @@ export default function Homepage() {
     <div className="min-h-screen bg-white text-gray-900 font-sans">
       <Navbar isSignedIn={!!isSignedIn} handleLoginClick={handleLoginClick} router={router} />
 
-      {/* ═══════════ HERO ═══════════ */}
+      {/* â•â•â•â•â•â•â•â•â•â•â• HERO â•â•â•â•â•â•â•â•â•â•â• */}
       <section className="pt-24 pb-16 sm:pt-32 sm:pb-24 bg-gradient-to-b from-blue-50/70 via-blue-50/30 to-white relative overflow-hidden">
         <div className="absolute top-20 left-10 w-72 h-72 bg-blue-100 rounded-full blur-3xl opacity-30 animate-pulse pointer-events-none" />
         <div className="absolute bottom-10 right-10 w-56 h-56 bg-purple-100 rounded-full blur-3xl opacity-20 pointer-events-none" />
@@ -423,14 +423,14 @@ export default function Homepage() {
           >
             <motion.div variants={fadeUp} className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-100 text-blue-700 text-xs font-semibold mb-6">
               <Zap className="w-3.5 h-3.5" />
-              Plateforme de gestion scolaire pour écoles privées en Tunisie
+              Plateforme de gestion scolaire pour Ã©coles privÃ©es en Tunisie
             </motion.div>
 
             <motion.h1 variants={fadeUp} className="text-3xl sm:text-5xl lg:text-[3.4rem] font-bold leading-tight tracking-tight text-gray-900 mb-6">
-              Gérez votre école privée <br className="hidden sm:block" />
+              GÃ©rez votre Ã©cole privÃ©e <br className="hidden sm:block" />
               avec{" "}
               <span className="text-blue-600 relative">
-                simplicité et efficacité
+                simplicitÃ© et efficacitÃ©
                 <svg className="absolute -bottom-1 left-0 w-full" height="6" viewBox="0 0 200 6" fill="none">
                   <path d="M0 3C50 0.5 150 0.5 200 3" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round" />
                 </svg>
@@ -438,7 +438,7 @@ export default function Homepage() {
             </motion.h1>
 
             <motion.p variants={fadeUp} className="text-lg sm:text-xl text-gray-500 leading-relaxed max-w-2xl mx-auto mb-9">
-              Bulletins officiels aux normes tunisiennes, recouvrement des écolages en Dinars (DT), emplois du temps sans conflits et portail parents direct.
+              Bulletins officiels aux normes tunisiennes, recouvrement des Ã©colages en Dinars (DT), emplois du temps sans conflits et portail parents direct.
             </motion.p>
 
             <motion.div variants={fadeUp} className="flex flex-col sm:flex-row items-center justify-center gap-3">
@@ -456,12 +456,12 @@ export default function Homepage() {
                 className="w-full sm:w-auto px-7 py-3.5 bg-white hover:bg-gray-50 text-gray-700 font-semibold text-[15px] rounded-xl border border-gray-200 transition-all hover:border-gray-300 flex items-center justify-center gap-2"
               >
                 <MessageSquare className="w-4 h-4 text-green-600" />
-                Demander une démo WhatsApp
+                Demander une dÃ©mo WhatsApp
               </a>
             </motion.div>
           </motion.div>
 
-          {/* ── REAL APP SCREENSHOTS SHOWCASE (Eliminates AI Slop) ── */}
+          {/* â”€â”€ REAL APP SCREENSHOTS SHOWCASE (Eliminates AI Slop) â”€â”€ */}
           <Section id="apercu">
             <div className="max-w-5xl mx-auto">
               {/* Interactive Tabs */}
@@ -553,7 +553,7 @@ export default function Homepage() {
                       href="/sign-in"
                       className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors whitespace-nowrap self-start sm:self-center"
                     >
-                      Tester l&apos;interface réelle <ArrowRight className="w-3.5 h-3.5" />
+                      Tester l&apos;interface rÃ©elle <ArrowRight className="w-3.5 h-3.5" />
                     </Link>
                   </div>
                 </div>
@@ -563,7 +563,7 @@ export default function Homepage() {
         </div>
       </section>
 
-      {/* ═══════════ TRUST BAR (animated counters) ═══════════ */}
+      {/* â•â•â•â•â•â•â•â•â•â•â• TRUST BAR (animated counters) â•â•â•â•â•â•â•â•â•â•â• */}
       <section className="py-14 border-y border-gray-100 bg-slate-50/60">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
@@ -574,10 +574,10 @@ export default function Homepage() {
             viewport={{ once: true }}
           >
             {[
-              { value: <><CountUp target={99} suffix=".9%" /></>, label: "Disponibilité garantie", icon: Zap },
+              { value: <><CountUp target={99} suffix=".9%" /></>, label: "DisponibilitÃ© garantie", icon: Zap },
               { value: <><CountUp target={10} suffix="x" /></>, label: "Saisie plus rapide", icon: Clock },
               { value: <>{'<'} 1s</>, label: "Alertes aux parents", icon: Bell },
-              { value: <><CountUp target={100} suffix="%" /></>, label: "Adapté écoles privées", icon: CheckCircle2 },
+              { value: <><CountUp target={100} suffix="%" /></>, label: "AdaptÃ© Ã©coles privÃ©es", icon: CheckCircle2 },
             ].map((s, i) => (
               <motion.div key={i} variants={fadeUp} className="text-center group">
                 <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center mx-auto mb-3 group-hover:bg-blue-100 transition-colors">
@@ -591,29 +591,29 @@ export default function Homepage() {
         </div>
       </section>
 
-      {/* ═══════════ SYSTÈME TUNISIEN (Core Focus) ═══════════ */}
+      {/* â•â•â•â•â•â•â•â•â•â•â• SYSTÃˆME TUNISIEN (Core Focus) â•â•â•â•â•â•â•â•â•â•â• */}
       <section id="tunisie" className="py-20 bg-gradient-to-b from-blue-50/40 to-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row items-center gap-12 lg:gap-16">
             <Section className="flex-1">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-xs font-semibold mb-4">
-                <Globe className="w-3.5 h-3.5" /> Adapté à la Tunisie
+                <Globe className="w-3.5 h-3.5" /> AdaptÃ© Ã  la Tunisie
               </div>
               <h2 className="text-2xl sm:text-4xl font-bold text-gray-900 mb-4 tracking-tight">
-                Conçu pour le système éducatif tunisien
+                ConÃ§u pour le systÃ¨me Ã©ducatif tunisien
               </h2>
               <p className="text-gray-500 text-base leading-relaxed mb-6">
-                Fini les feuilles de calcul complexes : SnapSchool intègre nativement toutes les spécificités des établissements privés en Tunisie (Primaire, Collège et Lycée).
+                Fini les feuilles de calcul complexes : SnapSchool intÃ¨gre nativement toutes les spÃ©cificitÃ©s des Ã©tablissements privÃ©s en Tunisie (Primaire, CollÃ¨ge et LycÃ©e).
               </p>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 {[
-                  { title: "Trimestres", desc: "Découpage en 3 trimestres avec moyennes séparées et moyenne annuelle.", icon: Calendar },
-                  { title: "DC et DS", desc: "Pondération exacte : Devoirs de contrôle (DC) et Devoirs de synthèse (DS).", icon: FileText },
-                  { title: "Coefficients", desc: "Coefficients officiels par niveau pour un calcul automatisé des moyennes.", icon: BarChart3 },
-                  { title: "Bulletins officiels", desc: "Édition en 1 clic de bulletins PDF aux normes du Ministère de l'Éducation.", icon: Award },
-                  { title: "Bilingue FR / AR", desc: "Interface et documents disponibles en français et en arabe avec support RTL.", icon: Globe },
-                  { title: "Vacances officielles", desc: "Calendrier scolaire synchronisé avec les vacances et jours fériés tunisiens.", icon: Clock },
+                  { title: "Trimestres", desc: "DÃ©coupage en 3 trimestres avec moyennes sÃ©parÃ©es et moyenne annuelle.", icon: Calendar },
+                  { title: "DC et DS", desc: "PondÃ©ration exacte : Devoirs de contrÃ´le (DC) et Devoirs de synthÃ¨se (DS).", icon: FileText },
+                  { title: "Coefficients", desc: "Coefficients officiels par niveau pour un calcul automatisÃ© des moyennes.", icon: BarChart3 },
+                  { title: "Bulletins officiels", desc: "Ã‰dition en 1 clic de bulletins PDF aux normes du MinistÃ¨re de l'Ã‰ducation.", icon: Award },
+                  { title: "Bilingue FR / AR", desc: "Interface et documents disponibles en franÃ§ais et en arabe avec support RTL.", icon: Globe },
+                  { title: "Vacances officielles", desc: "Calendrier scolaire synchronisÃ© avec les vacances et jours fÃ©riÃ©s tunisiens.", icon: Clock },
                 ].map((item, i) => (
                   <div key={i} className="flex gap-3 items-start p-3 rounded-xl bg-white border border-gray-100 shadow-xs">
                     <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
@@ -639,12 +639,12 @@ export default function Homepage() {
                     </span>
                   </div>
                   <span className="text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-md border border-emerald-200">
-                    Prêt pour impression
+                    PrÃªt pour impression
                   </span>
                 </div>
                 <div className="p-5 space-y-3 text-xs">
                   <div className="flex justify-between text-[11px] text-gray-400 font-semibold border-b border-gray-100 pb-2">
-                    <span>Matière</span>
+                    <span>MatiÃ¨re</span>
                     <div className="flex gap-5">
                       <span className="w-6 text-center">DC</span>
                       <span className="w-6 text-center">DS</span>
@@ -653,8 +653,8 @@ export default function Homepage() {
                     </div>
                   </div>
                   {[
-                    { matiere: "Mathématiques", dc: "14.5", ds: "16.0", coef: "4", moy: "15.5" },
-                    { matiere: "Français", dc: "13.0", ds: "15.0", coef: "3", moy: "14.3" },
+                    { matiere: "MathÃ©matiques", dc: "14.5", ds: "16.0", coef: "4", moy: "15.5" },
+                    { matiere: "FranÃ§ais", dc: "13.0", ds: "15.0", coef: "3", moy: "14.3" },
                     { matiere: "Arabe", dc: "16.0", ds: "17.0", coef: "3", moy: "16.7" },
                     { matiere: "Sciences Physiques", dc: "14.0", ds: "15.5", coef: "2", moy: "15.0" },
                     { matiere: "Anglais", dc: "15.0", ds: "16.0", coef: "2", moy: "15.7" },
@@ -670,20 +670,20 @@ export default function Homepage() {
                     </div>
                   ))}
                   <div className="flex justify-between items-center pt-3 border-t border-gray-200">
-                    <span className="text-xs font-bold text-gray-900">Moyenne Générale</span>
+                    <span className="text-xs font-bold text-gray-900">Moyenne GÃ©nÃ©rale</span>
                     <span className="text-base font-extrabold text-blue-600">15.44 / 20</span>
                   </div>
                   <div className="grid grid-cols-3 gap-2 pt-2">
                     <div className="bg-blue-50 rounded-lg p-2 text-center">
                       <div className="text-[10px] text-gray-500">Rang</div>
-                      <div className="text-xs font-bold text-gray-900">2ème / 28</div>
+                      <div className="text-xs font-bold text-gray-900">2Ã¨me / 28</div>
                     </div>
                     <div className="bg-emerald-50 rounded-lg p-2 text-center">
                       <div className="text-[10px] text-gray-500">Mention</div>
-                      <div className="text-xs font-bold text-emerald-600">Très Bien</div>
+                      <div className="text-xs font-bold text-emerald-600">TrÃ¨s Bien</div>
                     </div>
                     <div className="bg-purple-50 rounded-lg p-2 text-center">
-                      <div className="text-[10px] text-gray-500">Décision</div>
+                      <div className="text-[10px] text-gray-500">DÃ©cision</div>
                       <div className="text-xs font-bold text-purple-600">Admis</div>
                     </div>
                   </div>
@@ -694,7 +694,7 @@ export default function Homepage() {
         </div>
       </section>
 
-      {/* ═══════════ PAIEMENTS & SALAIRES ULTRA-FLEXIBLES (Flagship Feature) ═══════════ */}
+      {/* â•â•â•â•â•â•â•â•â•â•â• PAIEMENTS & SALAIRES ULTRA-FLEXIBLES (Flagship Feature) â•â•â•â•â•â•â•â•â•â•â• */}
       <section id="finances-flexibles" className="py-20 bg-[#F5F6F8] border-y border-slate-200/80 relative overflow-hidden">
         {/* Subtle decorative tint */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-full bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,rgba(59,130,246,0.06),transparent)] pointer-events-none" />
@@ -706,10 +706,10 @@ export default function Homepage() {
                 <Wallet className="w-3.5 h-3.5" /> Fini les calculs manuels et les cahiers
               </div>
               <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight mb-4">
-                Paiements & Salaires : Une flexibilité totale pour votre école
+                Paiements & Salaires : Une flexibilitÃ© totale pour votre Ã©cole
               </h2>
               <p className="text-slate-600 text-sm sm:text-base leading-relaxed">
-                Dans la réalité d&apos;une école privée en Tunisie, les parents paient en tranches imprévues et les professeurs demandent des avances ou ont des heures à déduire. SnapSchool s&apos;adapte à chaque cas sans risque d&apos;erreur.
+                Dans la rÃ©alitÃ© d&apos;une Ã©cole privÃ©e en Tunisie, les parents paient en tranches imprÃ©vues et les professeurs demandent des avances ou ont des heures Ã  dÃ©duire. SnapSchool s&apos;adapte Ã  chaque cas sans risque d&apos;erreur.
               </p>
 
               {/* Mode Switcher */}
@@ -723,7 +723,7 @@ export default function Homepage() {
                       : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
                   }`}
                 >
-                  <Users className="w-4 h-4" /> 1. Écolages & Tranches
+                  <Users className="w-4 h-4" /> 1. Ã‰colages & Tranches
                 </button>
                 <button
                   type="button"
@@ -734,7 +734,7 @@ export default function Homepage() {
                       : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
                   }`}
                 >
-                  <Receipt className="w-4 h-4" /> 2. File de Recouvrement & Impayés
+                  <Receipt className="w-4 h-4" /> 2. File de Recouvrement & ImpayÃ©s
                 </button>
                 <button
                   type="button"
@@ -745,13 +745,13 @@ export default function Homepage() {
                       : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
                   }`}
                 >
-                  <UserCheck className="w-4 h-4" /> 3. Salaires, Avances & Dépenses
+                  <UserCheck className="w-4 h-4" /> 3. Salaires, Avances & DÃ©penses
                 </button>
               </div>
             </div>
           </Section>
 
-          {/* Tab 1: Côté Élèves */}
+          {/* Tab 1: CÃ´tÃ© Ã‰lÃ¨ves */}
           {activeFinanceTab === "students" && (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
               {/* Left Column: Key Superpowers */}
@@ -764,7 +764,7 @@ export default function Homepage() {
                     <h3 className="text-base font-bold text-slate-900">Versement Libre & Ventilation Multi-Mois</h3>
                   </div>
                   <p className="text-xs text-slate-600 leading-relaxed">
-                    Un parent arrive avec <strong className="text-slate-900 font-semibold">1 000 DT</strong> ? Tapez le montant : SnapSchool cascade automatiquement la somme sur chaque mois impayé (ex: 8 mois soldés à 123 DT, 9ème mois partiel à 16 DT avec 107 DT restant dû). Zéro calculatrice !
+                    Un parent arrive avec <strong className="text-slate-900 font-semibold">1 000 DT</strong> ? Tapez le montant : SnapSchool cascade automatiquement la somme sur chaque mois impayÃ© (ex: 8 mois soldÃ©s Ã  123 DT, 9Ã¨me mois partiel Ã  16 DT avec 107 DT restant dÃ»). ZÃ©ro calculatrice !
                   </p>
                 </div>
 
@@ -776,7 +776,7 @@ export default function Homepage() {
                     <h3 className="text-base font-bold text-slate-900">Paiement Partiel & Acomptes</h3>
                   </div>
                   <p className="text-xs text-slate-600 leading-relaxed">
-                    Le parent ne peut verser que 40 DT aujourd&apos;hui ? Enregistrez le paiement partiel : le mois est marqué <span className="inline-block px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200 font-semibold">[PARTIEL]</span> et le reliquat exact (83 DT) est suivi jusqu&apos;à son solde complet.
+                    Le parent ne peut verser que 40 DT aujourd&apos;hui ? Enregistrez le paiement partiel : le mois est marquÃ© <span className="inline-block px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200 font-semibold">[PARTIEL]</span> et le reliquat exact (83 DT) est suivi jusqu&apos;Ã  son solde complet.
                   </p>
                 </div>
 
@@ -785,10 +785,10 @@ export default function Homepage() {
                     <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-xs">
                       3
                     </div>
-                    <h3 className="text-base font-bold text-slate-900">Suivi Annuel des 10 Mois en 1 Coup d&apos;Œil</h3>
+                    <h3 className="text-base font-bold text-slate-900">Suivi Annuel des 10 Mois en 1 Coup d&apos;Å’il</h3>
                   </div>
                   <p className="text-xs text-slate-600 leading-relaxed">
-                    Chaque élève dispose d&apos;une barre chronologique claire (Sept à Juin) avec le total versé, le reste annuel et un bouton pour imprimer un reçu officiel horodaté.
+                    Chaque Ã©lÃ¨ve dispose d&apos;une barre chronologique claire (Sept Ã  Juin) avec le total versÃ©, le reste annuel et un bouton pour imprimer un reÃ§u officiel horodatÃ©.
                   </p>
                 </div>
               </div>
@@ -804,7 +804,7 @@ export default function Homepage() {
                         <span className="w-2.5 h-2.5 rounded-full bg-slate-300" />
                       </div>
                       <span className="font-semibold text-slate-700 flex items-center gap-2 ml-1">
-                        <Receipt className="w-3.5 h-3.5 text-blue-600" /> Modal réelle de versement libre (1 000 DT ventilés automatiquement)
+                        <Receipt className="w-3.5 h-3.5 text-blue-600" /> Modal rÃ©elle de versement libre (1 000 DT ventilÃ©s automatiquement)
                       </span>
                     </div>
                     <span className="text-[10px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded font-bold border border-emerald-200">
@@ -813,7 +813,7 @@ export default function Homepage() {
                   </div>
                   <Image
                     src="/landing/student-multi-month-split.png"
-                    alt="Ventilation automatique multi-mois des frais de scolarité"
+                    alt="Ventilation automatique multi-mois des frais de scolaritÃ©"
                     width={1000}
                     height={600}
                     className="w-full h-auto object-cover select-none"
@@ -825,17 +825,17 @@ export default function Homepage() {
                     <p className="text-[11px] font-bold text-slate-700 mb-1.5 px-2">Acompte / Paiement Partiel</p>
                     <Image
                       src="/landing/student-partial-payment.png"
-                      alt="Paiement partiel écolage"
+                      alt="Paiement partiel Ã©colage"
                       width={600}
                       height={350}
                       className="w-full h-auto rounded-lg object-cover select-none border border-slate-100"
                     />
                   </div>
                   <div className="rounded-xl overflow-hidden border border-slate-200/90 bg-white shadow-xs p-2">
-                    <p className="text-[11px] font-bold text-slate-700 mb-1.5 px-2">Suivi Annuel de l&apos;Élève (10 Mois)</p>
+                    <p className="text-[11px] font-bold text-slate-700 mb-1.5 px-2">Suivi Annuel de l&apos;Ã‰lÃ¨ve (10 Mois)</p>
                     <Image
                       src="/landing/student-tuition-profile.png"
-                      alt="Suivi annuel scolarité élève"
+                      alt="Suivi annuel scolaritÃ© Ã©lÃ¨ve"
                       width={600}
                       height={350}
                       className="w-full h-auto rounded-lg object-cover select-none border border-slate-100"
@@ -846,7 +846,7 @@ export default function Homepage() {
             </div>
           )}
 
-          {/* Tab 2: File de Recouvrement & Impayés */}
+          {/* Tab 2: File de Recouvrement & ImpayÃ©s */}
           {activeFinanceTab === "recovery" && (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
               {/* Left Column: Key Superpowers */}
@@ -859,7 +859,7 @@ export default function Homepage() {
                     <h3 className="text-base font-bold text-slate-900">File Active de Recouvrement</h3>
                   </div>
                   <p className="text-xs text-slate-600 leading-relaxed">
-                    Visualisez en un instant l&apos;ensemble des scolarités en souffrance. Chaque dossier affiche l&apos;élève, le mois concerné, le montant déjà réglé et le <strong className="text-rose-600 font-semibold">reste dû exact en rouge</strong>.
+                    Visualisez en un instant l&apos;ensemble des scolaritÃ©s en souffrance. Chaque dossier affiche l&apos;Ã©lÃ¨ve, le mois concernÃ©, le montant dÃ©jÃ  rÃ©glÃ© et le <strong className="text-rose-600 font-semibold">reste dÃ» exact en rouge</strong>.
                   </p>
                 </div>
 
@@ -871,7 +871,7 @@ export default function Homepage() {
                     <h3 className="text-base font-bold text-slate-900">Encaissement & Relance en 1 Clic</h3>
                   </div>
                   <p className="text-xs text-slate-600 leading-relaxed">
-                    Un parent se présente ? Cliquez sur <span className="text-emerald-700 font-semibold bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">[RECOUVRER]</span> pour solder le dossier et générer le reçu. Possibilité d&apos;exporter la liste ou d&apos;envoyer des rappels par notification mobile.
+                    Un parent se prÃ©sente ? Cliquez sur <span className="text-emerald-700 font-semibold bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">[RECOUVRER]</span> pour solder le dossier et gÃ©nÃ©rer le reÃ§u. PossibilitÃ© d&apos;exporter la liste ou d&apos;envoyer des rappels par notification mobile.
                   </p>
                 </div>
 
@@ -880,10 +880,10 @@ export default function Homepage() {
                     <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs">
                       3
                     </div>
-                    <h3 className="text-base font-bold text-slate-900">Grand Livre des Recettes de l&apos;École</h3>
+                    <h3 className="text-base font-bold text-slate-900">Grand Livre des Recettes de l&apos;Ã‰cole</h3>
                   </div>
                   <p className="text-xs text-slate-600 leading-relaxed">
-                    Toutes les entrées sont classées et traçables par catégorie : Frais de scolarité, Paiements partiels, Recouvrement, Transport / Bus, avec preuve de paiement jointe.
+                    Toutes les entrÃ©es sont classÃ©es et traÃ§ables par catÃ©gorie : Frais de scolaritÃ©, Paiements partiels, Recouvrement, Transport / Bus, avec preuve de paiement jointe.
                   </p>
                 </div>
               </div>
@@ -899,16 +899,16 @@ export default function Homepage() {
                         <span className="w-2.5 h-2.5 rounded-full bg-slate-300" />
                       </div>
                       <span className="font-semibold text-slate-700 flex items-center gap-2 ml-1">
-                        <Receipt className="w-3.5 h-3.5 text-amber-600" /> File de Recouvrement réelle des frais de scolarité
+                        <Receipt className="w-3.5 h-3.5 text-amber-600" /> File de Recouvrement rÃ©elle des frais de scolaritÃ©
                       </span>
                     </div>
                     <span className="text-[10px] bg-rose-50 text-rose-700 px-2 py-0.5 rounded font-bold border border-rose-200">
-                      Reste dû suivi au dinar près
+                      Reste dÃ» suivi au dinar prÃ¨s
                     </span>
                   </div>
                   <Image
                     src="/landing/recovery-queue.png"
-                    alt="File de recouvrement des frais de scolarité partiels SnapSchool"
+                    alt="File de recouvrement des frais de scolaritÃ© partiels SnapSchool"
                     width={1000}
                     height={600}
                     className="w-full h-auto object-cover select-none"
@@ -916,7 +916,7 @@ export default function Homepage() {
                 </div>
 
                 <div className="rounded-xl overflow-hidden border border-slate-200/90 bg-white shadow-xs p-2">
-                  <p className="text-[11px] font-bold text-slate-700 mb-1.5 px-2">Grand Livre des Recettes de l&apos;École (Par Catégorie & Date)</p>
+                  <p className="text-[11px] font-bold text-slate-700 mb-1.5 px-2">Grand Livre des Recettes de l&apos;Ã‰cole (Par CatÃ©gorie & Date)</p>
                   <Image
                     src="/landing/incomes-ledger.png"
                     alt="Journal des recettes SnapSchool"
@@ -929,7 +929,7 @@ export default function Homepage() {
             </div>
           )}
 
-          {/* Tab 3: Côté Enseignants & Dépenses */}
+          {/* Tab 3: CÃ´tÃ© Enseignants & DÃ©penses */}
           {activeFinanceTab === "teachers" && (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
               {/* Left Column: Key Superpowers */}
@@ -939,10 +939,10 @@ export default function Homepage() {
                     <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-xs">
                       1
                     </div>
-                    <h3 className="text-base font-bold text-slate-900">Avances sur Salaire Instantanées</h3>
+                    <h3 className="text-base font-bold text-slate-900">Avances sur Salaire InstantanÃ©es</h3>
                   </div>
                   <p className="text-xs text-slate-600 leading-relaxed">
-                    Un enseignant demande un acompte en milieu de mois ? Versez l&apos;avance en 1 clic (ex: 100 DT). Le système met immédiatement à jour le solde restant sans risque d&apos;oubli lors de la paie finale.
+                    Un enseignant demande un acompte en milieu de mois ? Versez l&apos;avance en 1 clic (ex: 100 DT). Le systÃ¨me met immÃ©diatement Ã  jour le solde restant sans risque d&apos;oubli lors de la paie finale.
                   </p>
                 </div>
 
@@ -954,7 +954,7 @@ export default function Homepage() {
                     <h3 className="text-base font-bold text-slate-900">Compteur d&apos;Absences & Retenues au Taux Horaire</h3>
                   </div>
                   <p className="text-xs text-slate-600 leading-relaxed">
-                    2 heures manquées ? SnapSchool calcule automatiquement la déduction au tarif horaire de l&apos;enseignant (ex: 2h × 15 DT/h = -30 DT). Vous pouvez appliquer la retenue ou la mettre en réserve si le cours est rattrapé.
+                    2 heures manquÃ©es ? SnapSchool calcule automatiquement la dÃ©duction au tarif horaire de l&apos;enseignant (ex: 2h Ã— 15 DT/h = -30 DT). Vous pouvez appliquer la retenue ou la mettre en rÃ©serve si le cours est rattrapÃ©.
                   </p>
                 </div>
 
@@ -966,7 +966,7 @@ export default function Homepage() {
                     <h3 className="text-base font-bold text-slate-900">Formule Nette Transparente</h3>
                   </div>
                   <p className="text-xs text-slate-600 leading-relaxed mb-2">
-                    Décomposition claire pour chaque membre du personnel enseignant :
+                    DÃ©composition claire pour chaque membre du personnel enseignant :
                   </p>
                   <code className="inline-block text-blue-700 bg-blue-50 px-2.5 py-1 rounded-lg font-mono text-[11px] border border-blue-200/70 font-semibold">
                     Base (360 DT) - Retenue (-30 DT) - Avance (-100 DT) = 230 DT Net
@@ -985,11 +985,11 @@ export default function Homepage() {
                         <span className="w-2.5 h-2.5 rounded-full bg-slate-300" />
                       </div>
                       <span className="font-semibold text-slate-700 flex items-center gap-2 ml-1">
-                        <Calculator className="w-3.5 h-3.5 text-rose-600" /> Compteur d&apos;heures d&apos;absence & décision sur la paie
+                        <Calculator className="w-3.5 h-3.5 text-rose-600" /> Compteur d&apos;heures d&apos;absence & dÃ©cision sur la paie
                       </span>
                     </div>
                     <span className="text-[10px] bg-rose-50 text-rose-700 px-2 py-0.5 rounded font-bold border border-rose-200">
-                      Déduction en direct
+                      DÃ©duction en direct
                     </span>
                   </div>
                   <Image
@@ -1003,7 +1003,7 @@ export default function Homepage() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="rounded-xl overflow-hidden border border-slate-200/90 bg-white shadow-xs p-2">
-                    <p className="text-[11px] font-bold text-slate-700 mb-1.5 px-2">Suivi Annuel de Rémunération Enseignant</p>
+                    <p className="text-[11px] font-bold text-slate-700 mb-1.5 px-2">Suivi Annuel de RÃ©munÃ©ration Enseignant</p>
                     <Image
                       src="/landing/teacher-salary-tracker.png"
                       alt="Suivi salaire enseignant et avances"
@@ -1029,19 +1029,19 @@ export default function Homepage() {
         </div>
       </section>
 
-      {/* ═══════════ MODULES ESSENTIELS (6 cards) ═══════════ */}
+      {/* â•â•â•â•â•â•â•â•â•â•â• MODULES ESSENTIELS (6 cards) â•â•â•â•â•â•â•â•â•â•â• */}
       <section id="modules" className="py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <Section>
             <div className="max-w-2xl mx-auto text-center mb-14">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 text-blue-600 text-xs font-semibold mb-3">
-                <Layers className="w-3.5 h-3.5" /> Modules intégrés
+                <Layers className="w-3.5 h-3.5" /> Modules intÃ©grÃ©s
               </div>
               <h2 className="text-2xl sm:text-4xl font-bold text-gray-900 mb-3 tracking-tight">
-                Tout ce dont votre établissement a besoin
+                Tout ce dont votre Ã©tablissement a besoin
               </h2>
               <p className="text-gray-500 text-base">
-                Une solution unifiée pour la direction, les enseignants et les familles.
+                Une solution unifiÃ©e pour la direction, les enseignants et les familles.
               </p>
             </div>
           </Section>
@@ -1071,7 +1071,7 @@ export default function Homepage() {
         </div>
       </section>
 
-      {/* ═══════════ APPLICATIONS MOBILES (PARENTS & PROFS) ═══════════ */}
+      {/* â•â•â•â•â•â•â•â•â•â•â• APPLICATIONS MOBILES (PARENTS & PROFS) â•â•â•â•â•â•â•â•â•â•â• */}
       <section id="parents" className="py-20 bg-slate-50 border-y border-slate-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <Section>
@@ -1080,10 +1080,10 @@ export default function Homepage() {
                 <Smartphone className="w-3.5 h-3.5" /> Applications Mobiles iOS & Android
               </div>
               <h2 className="text-2xl sm:text-4xl font-bold text-gray-900 mb-3 tracking-tight">
-                L&apos;établissement connecté en direct dans la poche
+                L&apos;Ã©tablissement connectÃ© en direct dans la poche
               </h2>
               <p className="text-gray-600 text-sm sm:text-base leading-relaxed">
-                Des interfaces mobiles conçues pour le terrain : les parents suivent présences et paiements en direct, tandis que les enseignants font l&apos;appel et déposent leurs cours en 30 secondes.
+                Des interfaces mobiles conÃ§ues pour le terrain : les parents suivent prÃ©sences et paiements en direct, tandis que les enseignants font l&apos;appel et dÃ©posent leurs cours en 30 secondes.
               </p>
 
               {/* Mobile Tab Switcher */}
@@ -1096,7 +1096,7 @@ export default function Homepage() {
                       : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
                   }`}
                 >
-                  <Smartphone className="w-4 h-4" /> 1. Parents & Élèves (Badges & Reçus)
+                  <Smartphone className="w-4 h-4" /> 1. Parents & Ã‰lÃ¨ves (Badges & ReÃ§us)
                 </button>
                 <button
                   onClick={() => setActiveMobileTab("teachers")}
@@ -1122,7 +1122,7 @@ export default function Homepage() {
             </div>
           </Section>
 
-          {/* TAB 1: Parents & Élèves */}
+          {/* TAB 1: Parents & Ã‰lÃ¨ves */}
           {activeMobileTab === "parents" && (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
               <div className="lg:col-span-5 space-y-6">
@@ -1132,7 +1132,7 @@ export default function Homepage() {
                     Transparence totale pour les familles
                   </h3>
                   <p className="text-sm text-gray-500 leading-relaxed">
-                    Les parents ne sont plus dans le doute. Chaque information clé arrive instantanément sur leur smartphone.
+                    Les parents ne sont plus dans le doute. Chaque information clÃ© arrive instantanÃ©ment sur leur smartphone.
                   </p>
                 </div>
 
@@ -1142,9 +1142,9 @@ export default function Homepage() {
                       <CheckCircle2 className="w-5 h-5" />
                     </div>
                     <div>
-                      <h4 className="font-semibold text-gray-900 text-sm">Badge « PRÉSENT » en direct</h4>
+                      <h4 className="font-semibold text-gray-900 text-sm">Badge Â« PRÃ‰SENT Â» en direct</h4>
                       <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">
-                        L&apos;appel validé en cours s&apos;affiche en temps réel sur l&apos;emploi du temps de l&apos;élève avec le badge vert officiel pour rassurer les parents.
+                        L&apos;appel validÃ© en cours s&apos;affiche en temps rÃ©el sur l&apos;emploi du temps de l&apos;Ã©lÃ¨ve avec le badge vert officiel pour rassurer les parents.
                       </p>
                     </div>
                   </div>
@@ -1154,9 +1154,9 @@ export default function Homepage() {
                       <Receipt className="w-5 h-5" />
                     </div>
                     <div>
-                      <h4 className="font-semibold text-gray-900 text-sm">Quittances & Reçus PDF téléchargeables</h4>
+                      <h4 className="font-semibold text-gray-900 text-sm">Quittances & ReÃ§us PDF tÃ©lÃ©chargeables</h4>
                       <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">
-                        Chaque tranche réglée (ex: 444 TND) est archivée avec détail du mode de versement et bouton de téléchargement direct de la quittance officielle.
+                        Chaque tranche rÃ©glÃ©e (ex: 444 TND) est archivÃ©e avec dÃ©tail du mode de versement et bouton de tÃ©lÃ©chargement direct de la quittance officielle.
                       </p>
                     </div>
                   </div>
@@ -1168,7 +1168,7 @@ export default function Homepage() {
                     <div>
                       <h4 className="font-semibold text-gray-900 text-sm">Emploi du temps quotidien & Salles</h4>
                       <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">
-                        Horaires, matières, enseignants et numéros de salles consultables en un coup d&apos;œil pour préparer les journées d&apos;étude.
+                        Horaires, matiÃ¨res, enseignants et numÃ©ros de salles consultables en un coup d&apos;Å“il pour prÃ©parer les journÃ©es d&apos;Ã©tude.
                       </p>
                     </div>
                   </div>
@@ -1180,7 +1180,7 @@ export default function Homepage() {
                     <div>
                       <h4 className="font-semibold text-gray-900 text-sm">Notes & Bulletins trimestriels</h4>
                       <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">
-                        Accès aux notes d&apos;évaluation au fur et à mesure et téléchargement du bulletin officiel validé par la direction.
+                        AccÃ¨s aux notes d&apos;Ã©valuation au fur et Ã  mesure et tÃ©lÃ©chargement du bulletin officiel validÃ© par la direction.
                       </p>
                     </div>
                   </div>
@@ -1192,14 +1192,14 @@ export default function Homepage() {
                 {/* Phone 1: Schedule */}
                 <div className="text-center">
                   <span className="inline-block text-[11px] font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200 mb-3">
-                    Badge de présence en direct
+                    Badge de prÃ©sence en direct
                   </span>
                   <div className="w-[220px] sm:w-[245px] rounded-[38px] p-2 bg-gradient-to-b from-slate-800 via-slate-900 to-black shadow-2xl ring-1 ring-slate-700/60 relative">
                     <div className="absolute top-3.5 left-1/2 -translate-x-1/2 w-16 h-3 bg-black rounded-full z-20" />
                     <div className="rounded-[30px] overflow-hidden bg-black border border-slate-800">
                       <Image
                         src="/landing/mobile-student-schedule.jpg"
-                        alt="Emploi du temps avec badge de présence vert sur l'app mobile SnapSchool"
+                        alt="Emploi du temps avec badge de prÃ©sence vert sur l'app mobile SnapSchool"
                         width={472}
                         height={1024}
                         className="w-full h-auto object-cover object-top"
@@ -1211,14 +1211,14 @@ export default function Homepage() {
                 {/* Phone 2: Payment Receipt */}
                 <div className="text-center">
                   <span className="inline-block text-[11px] font-bold text-blue-700 bg-blue-50 px-3 py-1 rounded-full border border-blue-200 mb-3">
-                    Reçu payé 444 TND (Téléchargement PDF)
+                    ReÃ§u payÃ© 444 TND (TÃ©lÃ©chargement PDF)
                   </span>
                   <div className="w-[220px] sm:w-[245px] rounded-[38px] p-2 bg-gradient-to-b from-slate-800 via-slate-900 to-black shadow-2xl ring-1 ring-slate-700/60 relative">
                     <div className="absolute top-3.5 left-1/2 -translate-x-1/2 w-16 h-3 bg-black rounded-full z-20" />
                     <div className="rounded-[30px] overflow-hidden bg-black border border-slate-800">
                       <Image
                         src="/landing/mobile-parent-payments.jpg"
-                        alt="Reçu de scolarité payée sur l'application mobile SnapSchool"
+                        alt="ReÃ§u de scolaritÃ© payÃ©e sur l'application mobile SnapSchool"
                         width={472}
                         height={1024}
                         className="w-full h-auto object-cover object-top"
@@ -1240,7 +1240,7 @@ export default function Homepage() {
                     Toutes les actions du cours en 1 clic
                   </h3>
                   <p className="text-sm text-gray-500 leading-relaxed">
-                    Une interface mobile conçue pour aller vite en salle de classe : l&apos;enseignant n&apos;a besoin d&apos;aucun ordinateur pour ses tâches quotidiennes.
+                    Une interface mobile conÃ§ue pour aller vite en salle de classe : l&apos;enseignant n&apos;a besoin d&apos;aucun ordinateur pour ses tÃ¢ches quotidiennes.
                   </p>
                 </div>
 
@@ -1251,7 +1251,7 @@ export default function Homepage() {
                     </div>
                     <h4 className="font-semibold text-gray-900 text-sm">Faire l&apos;appel</h4>
                     <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-                      Présence cochée en 30 secondes chrono par séance. Remonte directement à la vie scolaire.
+                      PrÃ©sence cochÃ©e en 30 secondes chrono par sÃ©ance. Remonte directement Ã  la vie scolaire.
                     </p>
                   </div>
 
@@ -1259,9 +1259,9 @@ export default function Homepage() {
                     <div className="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center font-bold text-sm mb-2">
                       <FileText className="w-4 h-4" />
                     </div>
-                    <h4 className="font-semibold text-gray-900 text-sm">Déposer un cours</h4>
+                    <h4 className="font-semibold text-gray-900 text-sm">DÃ©poser un cours</h4>
                     <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-                      Partage de polycopiés et résumés PDF instantanément depuis le téléphone pour la classe.
+                      Partage de polycopiÃ©s et rÃ©sumÃ©s PDF instantanÃ©ment depuis le tÃ©lÃ©phone pour la classe.
                     </p>
                   </div>
 
@@ -1271,7 +1271,7 @@ export default function Homepage() {
                     </div>
                     <h4 className="font-semibold text-gray-900 text-sm">Ajouter un devoir</h4>
                     <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-                      Assignation d&apos;exercices avec date limite visible immédiatement sur l&apos;app des élèves.
+                      Assignation d&apos;exercices avec date limite visible immÃ©diatement sur l&apos;app des Ã©lÃ¨ves.
                     </p>
                   </div>
 
@@ -1281,7 +1281,7 @@ export default function Homepage() {
                     </div>
                     <h4 className="font-semibold text-gray-900 text-sm">Saisir les notes</h4>
                     <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-                      Saisie fluide des notes de contrôle continu directement synchronisées avec les bulletins.
+                      Saisie fluide des notes de contrÃ´le continu directement synchronisÃ©es avec les bulletins.
                     </p>
                   </div>
                 </div>
@@ -1289,7 +1289,7 @@ export default function Homepage() {
                 <div className="p-4 rounded-xl bg-blue-50/70 border border-blue-200/70 flex items-center gap-3 text-xs text-blue-900">
                   <Zap className="w-4 h-4 text-blue-600 shrink-0" />
                   <span>
-                    <strong>Protection de la vie privée :</strong> Le professeur communique via SnapSchool sans jamais avoir à donner son numéro de téléphone personnel.
+                    <strong>Protection de la vie privÃ©e :</strong> Le professeur communique via SnapSchool sans jamais avoir Ã  donner son numÃ©ro de tÃ©lÃ©phone personnel.
                   </span>
                 </div>
               </div>
@@ -1297,14 +1297,14 @@ export default function Homepage() {
               {/* Single Phone Display: Teacher Home */}
               <div className="lg:col-span-6 flex flex-col items-center justify-center">
                 <span className="inline-block text-[11px] font-bold text-blue-700 bg-blue-50 px-3 py-1 rounded-full border border-blue-200 mb-3">
-                  Écran d&apos;accueil Enseignant avec 4 actions rapides
+                  Ã‰cran d&apos;accueil Enseignant avec 4 actions rapides
                 </span>
                 <div className="w-[230px] sm:w-[260px] rounded-[38px] p-2 bg-gradient-to-b from-slate-800 via-slate-900 to-black shadow-2xl ring-1 ring-slate-700/60 relative">
                   <div className="absolute top-3.5 left-1/2 -translate-x-1/2 w-16 h-3 bg-black rounded-full z-20" />
                   <div className="rounded-[30px] overflow-hidden bg-black border border-slate-800">
                     <Image
                       src="/landing/mobile-teacher-home.jpg"
-                      alt="Accueil mobile de l'application enseignant SnapSchool avec boutons Faire l'appel et Déposer un cours"
+                      alt="Accueil mobile de l'application enseignant SnapSchool avec boutons Faire l'appel et DÃ©poser un cours"
                       width={472}
                       height={1024}
                       className="w-full h-auto object-cover object-top"
@@ -1322,10 +1322,10 @@ export default function Homepage() {
                 <div>
                   <span className="text-xs font-bold uppercase tracking-wider text-blue-600">Vie Scolaire & Campus</span>
                   <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mt-1 mb-3">
-                    Circulaires officielles et supports pédagogiques
+                    Circulaires officielles et supports pÃ©dagogiques
                   </h3>
                   <p className="text-sm text-gray-500 leading-relaxed">
-                    Fini les photocopies perdues et les annonces noyées dans les groupes WhatsApp. Toute l&apos;information officielle est archivée au même endroit.
+                    Fini les photocopies perdues et les annonces noyÃ©es dans les groupes WhatsApp. Toute l&apos;information officielle est archivÃ©e au mÃªme endroit.
                   </p>
                 </div>
 
@@ -1335,9 +1335,9 @@ export default function Homepage() {
                       <Bell className="w-5 h-5" />
                     </div>
                     <div>
-                      <h4 className="font-semibold text-gray-900 text-sm">Circulaires officielles & Événements</h4>
+                      <h4 className="font-semibold text-gray-900 text-sm">Circulaires officielles & Ã‰vÃ©nements</h4>
                       <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">
-                        Annonces administratives certifiées avec photos du campus et avis importants consultables en permanence par les familles.
+                        Annonces administratives certifiÃ©es avec photos du campus et avis importants consultables en permanence par les familles.
                       </p>
                     </div>
                   </div>
@@ -1347,9 +1347,9 @@ export default function Homepage() {
                       <FileText className="w-5 h-5" />
                     </div>
                     <div>
-                      <h4 className="font-semibold text-gray-900 text-sm">Bibliothèque de cours par matière</h4>
+                      <h4 className="font-semibold text-gray-900 text-sm">BibliothÃ¨que de cours par matiÃ¨re</h4>
                       <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">
-                        Séries d&apos;exercices, fiches de révision et cours complets téléchargeables sans publicité ni expiration de liens.
+                        SÃ©ries d&apos;exercices, fiches de rÃ©vision et cours complets tÃ©lÃ©chargeables sans publicitÃ© ni expiration de liens.
                       </p>
                     </div>
                   </div>
@@ -1359,9 +1359,9 @@ export default function Homepage() {
                       <ShieldCheck className="w-5 h-5" />
                     </div>
                     <div>
-                      <h4 className="font-semibold text-gray-900 text-sm">Environnement sécurisé et cadré</h4>
+                      <h4 className="font-semibold text-gray-900 text-sm">Environnement sÃ©curisÃ© et cadrÃ©</h4>
                       <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">
-                        Chaque utilisateur accède uniquement aux cours et avis de sa classe, avec une traçabilité complète pour l&apos;administration.
+                        Chaque utilisateur accÃ¨de uniquement aux cours et avis de sa classe, avec une traÃ§abilitÃ© complÃ¨te pour l&apos;administration.
                       </p>
                     </div>
                   </div>
@@ -1392,14 +1392,14 @@ export default function Homepage() {
                 {/* Phone 2: Courses */}
                 <div className="text-center">
                   <span className="inline-block text-[11px] font-bold text-blue-700 bg-blue-50 px-3 py-1 rounded-full border border-blue-200 mb-3">
-                    Documents & Cours par matière
+                    Documents & Cours par matiÃ¨re
                   </span>
                   <div className="w-[220px] sm:w-[245px] rounded-[38px] p-2 bg-gradient-to-b from-slate-800 via-slate-900 to-black shadow-2xl ring-1 ring-slate-700/60 relative">
                     <div className="absolute top-3.5 left-1/2 -translate-x-1/2 w-16 h-3 bg-black rounded-full z-20" />
                     <div className="rounded-[30px] overflow-hidden bg-black border border-slate-800">
                       <Image
                         src="/landing/mobile-courses.jpg"
-                        alt="Supports pédagogiques et documents de cours sur l'app mobile SnapSchool"
+                        alt="Supports pÃ©dagogiques et documents de cours sur l'app mobile SnapSchool"
                         width={472}
                         height={1024}
                         className="w-full h-auto object-cover object-top"
@@ -1413,7 +1413,7 @@ export default function Homepage() {
         </div>
       </section>
 
-      {/* ═══════════ ASSISTANT IA TELEGRAM : HNIA ═══════════ */}
+      {/* â•â•â•â•â•â•â•â•â•â•â• ASSISTANT IA TELEGRAM : HNIA â•â•â•â•â•â•â•â•â•â•â• */}
       <section id="hnia-ia" className="py-24 bg-gradient-to-b from-white via-blue-50/40 to-white relative overflow-hidden border-b border-slate-200/70">
         <div className="absolute top-1/4 -left-20 w-96 h-96 bg-blue-200/20 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute bottom-10 -right-20 w-96 h-96 bg-indigo-200/25 rounded-full blur-3xl pointer-events-none" />
@@ -1423,13 +1423,13 @@ export default function Homepage() {
             <div className="max-w-3xl mx-auto text-center mb-14">
               <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-100 text-blue-800 text-xs font-semibold mb-4 border border-blue-200/60 shadow-xs">
                 <Sparkles className="w-3.5 h-3.5 text-blue-600" />
-                <span>Exclusivité SnapSchool • Intelligence Artificielle & Telegram Bot</span>
+                <span>ExclusivitÃ© SnapSchool â€¢ Intelligence Artificielle & Telegram Bot</span>
               </div>
               <h2 className="text-3xl sm:text-5xl font-extrabold text-gray-900 tracking-tight mb-4">
-                Rencontrez <span className="text-blue-600">Hnia</span>, l&apos;assistante IA de votre école
+                Rencontrez <span className="text-blue-600">Hnia</span>, l&apos;assistante IA de votre Ã©cole
               </h2>
               <p className="text-gray-600 text-base sm:text-lg leading-relaxed max-w-2xl mx-auto">
-                Pourquoi allumer un PC pour chaque petite tâche ? Depuis votre smartphone sur Telegram, dictez un encaissement, scannez un reçu par photo ou demandez la situation d&apos;une classe en dialecte tunisien ou en français.
+                Pourquoi allumer un PC pour chaque petite tÃ¢che ? Depuis votre smartphone sur Telegram, dictez un encaissement, scannez un reÃ§u par photo ou demandez la situation d&apos;une classe en dialecte tunisien ou en franÃ§ais.
               </p>
             </div>
           </Section>
@@ -1461,17 +1461,17 @@ export default function Homepage() {
                     Hnia (@HniaSnapSchoolBot)
                   </h3>
                   <p className="text-xs sm:text-sm text-blue-100 mt-1.5 leading-relaxed">
-                    Connectée en direct à la base de données SnapSchool de votre établissement. Elle reconnaît vos élèves, professeurs et finances en temps réel.
+                    ConnectÃ©e en direct Ã  la base de donnÃ©es SnapSchool de votre Ã©tablissement. Elle reconnaÃ®t vos Ã©lÃ¨ves, professeurs et finances en temps rÃ©el.
                   </p>
                   <div className="mt-3 flex flex-wrap items-center justify-center sm:justify-start gap-2">
                     <span className="text-[11px] font-medium bg-white/15 px-2.5 py-1 rounded-lg">
-                      🇹🇳 Dialecte Tunisien
+                      ðŸ‡¹ðŸ‡³ Dialecte Tunisien
                     </span>
                     <span className="text-[11px] font-medium bg-white/15 px-2.5 py-1 rounded-lg">
-                      🇫🇷 Français
+                      ðŸ‡«ðŸ‡· FranÃ§ais
                     </span>
                     <span className="text-[11px] font-medium bg-white/15 px-2.5 py-1 rounded-lg">
-                      🎙️ Vocaux & Photos
+                      ðŸŽ™ï¸ Vocaux & Photos
                     </span>
                   </div>
                 </div>
@@ -1483,9 +1483,9 @@ export default function Homepage() {
                   <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-sm mb-2.5">
                     <Mic className="w-4 h-4" />
                   </div>
-                  <h4 className="font-bold text-gray-900 text-sm">Dictée Vocale & Derja</h4>
+                  <h4 className="font-bold text-gray-900 text-sm">DictÃ©e Vocale & Derja</h4>
                   <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-                    « أم أحمد خلصت 500 دينار » — Hnia comprend qui est l&apos;élève, calcule le reliquat et enregistre le paiement avec reçu PDF.
+                    Â« Ø£Ù… Ø£Ø­Ù…Ø¯ Ø®Ù„ØµØª 500 Ø¯ÙŠÙ†Ø§Ø± Â» â€” Hnia comprend qui est l&apos;Ã©lÃ¨ve, calcule le reliquat et enregistre le paiement avec reÃ§u PDF.
                   </p>
                 </div>
 
@@ -1495,7 +1495,7 @@ export default function Homepage() {
                   </div>
                   <h4 className="font-bold text-gray-900 text-sm">Scan de Factures par Photo</h4>
                   <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-                    Envoyez la photo d&apos;un ticket de caisse ou facture : l&apos;IA extrait montant, date et fournisseur et l&apos;enregistre dans vos dépenses.
+                    Envoyez la photo d&apos;un ticket de caisse ou facture : l&apos;IA extrait montant, date et fournisseur et l&apos;enregistre dans vos dÃ©penses.
                   </p>
                 </div>
 
@@ -1503,9 +1503,9 @@ export default function Homepage() {
                   <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-sm mb-2.5">
                     <CheckCircle2 className="w-4 h-4" />
                   </div>
-                  <h4 className="font-bold text-gray-900 text-sm">Validation Sécurisée en 1 Clic</h4>
+                  <h4 className="font-bold text-gray-900 text-sm">Validation SÃ©curisÃ©e en 1 Clic</h4>
                   <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-                    Chaque action critique (salaire, avance, dépense) génère une carte interactive avec boutons <code>[✅ Confirmer]</code> et <code>[❌ Annuler]</code>.
+                    Chaque action critique (salaire, avance, dÃ©pense) gÃ©nÃ¨re une carte interactive avec boutons <code>[âœ… Confirmer]</code> et <code>[âŒ Annuler]</code>.
                   </p>
                 </div>
 
@@ -1513,9 +1513,9 @@ export default function Homepage() {
                   <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-sm mb-2.5">
                     <Sparkles className="w-4 h-4" />
                   </div>
-                  <h4 className="font-bold text-gray-900 text-sm">Mémoire Contextuelle</h4>
+                  <h4 className="font-bold text-gray-900 text-sm">MÃ©moire Contextuelle</h4>
                   <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-                    Posez des questions courtes (« Et le reste ? », « Envoie un rappel aux autres ») : Hnia garde le fil de la discussion sans répétition.
+                    Posez des questions courtes (Â« Et le reste ? Â», Â« Envoie un rappel aux autres Â») : Hnia garde le fil de la discussion sans rÃ©pÃ©tition.
                   </p>
                 </div>
               </div>
@@ -1539,10 +1539,10 @@ export default function Homepage() {
                     </div>
                     <div>
                       <div className="flex items-center gap-1.5">
-                        <span className="text-sm font-bold text-white">Hnia • SnapSchool</span>
+                        <span className="text-sm font-bold text-white">Hnia â€¢ SnapSchool</span>
                         <span className="text-[10px] font-bold bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded">bot</span>
                       </div>
-                      <span className="text-[11px] text-blue-400 font-medium">en ligne • assistant IA</span>
+                      <span className="text-[11px] text-blue-400 font-medium">en ligne â€¢ assistant IA</span>
                     </div>
                   </div>
                   <div className="text-xs text-slate-400 font-mono">
@@ -1556,7 +1556,7 @@ export default function Homepage() {
                   <div className="flex justify-end">
                     <div className="bg-[#2b5278] text-white rounded-2xl rounded-tr-xs px-3.5 py-2 max-w-[85%] shadow-xs">
                       <p className="font-sans text-sm text-right" dir="rtl">
-                        أم أحمد خلصت 500 دينار نقدا
+                        Ø£Ù… Ø£Ø­Ù…Ø¯ Ø®Ù„ØµØª 500 Ø¯ÙŠÙ†Ø§Ø± Ù†Ù‚Ø¯Ø§
                       </p>
                       <div className="flex items-center justify-end gap-1 text-[10px] text-blue-200 mt-1">
                         <span>10:42</span>
@@ -1570,22 +1570,22 @@ export default function Homepage() {
                     <div className="bg-[#182533] text-slate-200 rounded-2xl rounded-tl-xs p-3.5 max-w-[92%] border border-slate-700/60 shadow-md space-y-2">
                       <div className="flex items-center gap-1.5 text-emerald-400 font-bold text-xs pb-1 border-b border-slate-700">
                         <CheckCircle2 className="w-3.5 h-3.5" />
-                        <span>Paiement Encaissé avec Succès</span>
+                        <span>Paiement EncaissÃ© avec SuccÃ¨s</span>
                       </div>
                       <div className="space-y-1 text-[12px]">
-                        <p>👤 <strong>Élève :</strong> Ahmed Ben Salah (7ème B)</p>
-                        <p>💵 <strong>Montant :</strong> <code className="bg-slate-800 text-emerald-400 px-1.5 py-0.5 rounded font-mono font-bold">500.000 DT</code></p>
-                        <p>📉 <strong>Reliquat restant :</strong> <code className="bg-slate-800 text-amber-300 px-1.5 py-0.5 rounded font-mono">150.000 DT</code></p>
-                        <p className="text-[11px] text-slate-400 pt-0.5">📄 Quittance n° REC-2026-089 générée</p>
+                        <p>ðŸ‘¤ <strong>Ã‰lÃ¨ve :</strong> Ahmed Ben Salah (7Ã¨me B)</p>
+                        <p>ðŸ’µ <strong>Montant :</strong> <code className="bg-slate-800 text-emerald-400 px-1.5 py-0.5 rounded font-mono font-bold">500.000 DT</code></p>
+                        <p>ðŸ“‰ <strong>Reliquat restant :</strong> <code className="bg-slate-800 text-amber-300 px-1.5 py-0.5 rounded font-mono">150.000 DT</code></p>
+                        <p className="text-[11px] text-slate-400 pt-0.5">ðŸ“„ Quittance nÂ° REC-2026-089 gÃ©nÃ©rÃ©e</p>
                       </div>
 
                       {/* Inline Buttons */}
                       <div className="pt-1 grid grid-cols-2 gap-1.5 text-[11px]">
                         <div className="bg-[#2b5278] text-white font-semibold py-1.5 px-2 rounded-lg text-center cursor-default">
-                          📄 Reçu PDF
+                          ðŸ“„ ReÃ§u PDF
                         </div>
                         <div className="bg-[#2b5278] text-white font-semibold py-1.5 px-2 rounded-lg text-center cursor-default">
-                          💬 Reçu WhatsApp
+                          ðŸ’¬ ReÃ§u WhatsApp
                         </div>
                       </div>
 
@@ -1597,7 +1597,7 @@ export default function Homepage() {
                   <div className="flex justify-end">
                     <div className="bg-[#2b5278] text-white rounded-2xl rounded-tr-xs px-3.5 py-2 max-w-[85%] shadow-xs">
                       <p className="font-sans text-sm text-right" dir="rtl">
-                        والباقي في القسم متاعو قداش؟
+                        ÙˆØ§Ù„Ø¨Ø§Ù‚ÙŠ ÙÙŠ Ø§Ù„Ù‚Ø³Ù… Ù…ØªØ§Ø¹Ùˆ Ù‚Ø¯Ø§Ø´ØŸ
                       </p>
                       <div className="flex items-center justify-end gap-1 text-[10px] text-blue-200 mt-1">
                         <span>10:43</span>
@@ -1611,18 +1611,18 @@ export default function Homepage() {
                     <div className="bg-[#182533] text-slate-200 rounded-2xl rounded-tl-xs p-3.5 max-w-[92%] border border-slate-700/60 shadow-md space-y-2">
                       <div className="flex items-center gap-1.5 text-blue-400 font-bold text-xs pb-1 border-b border-slate-700">
                         <BarChart3 className="w-3.5 h-3.5" />
-                        <span>Situation Financière • 7ème Année B</span>
+                        <span>Situation FinanciÃ¨re â€¢ 7Ã¨me AnnÃ©e B</span>
                       </div>
                       <div className="space-y-1 text-[12px]">
-                        <p>✅ <strong>Encaissé :</strong> 14 200 DT (86%)</p>
-                        <p>⚠️ <strong>Impayés restants :</strong> 2 300 DT (4 élèves)</p>
+                        <p>âœ… <strong>EncaissÃ© :</strong> 14 200 DT (86%)</p>
+                        <p>âš ï¸ <strong>ImpayÃ©s restants :</strong> 2 300 DT (4 Ã©lÃ¨ves)</p>
                       </div>
                       <blockquote className="border-l-2 border-amber-400 pl-2 text-[11px] text-amber-200 bg-amber-950/30 py-1 rounded-r">
-                        💡 <strong>Hnia :</strong> Voulez-vous préparer un rappel de paiement par SMS/WhatsApp pour ces 4 parents ?
+                        ðŸ’¡ <strong>Hnia :</strong> Voulez-vous prÃ©parer un rappel de paiement par SMS/WhatsApp pour ces 4 parents ?
                       </blockquote>
                       <div className="pt-1">
                         <div className="w-full bg-[#2b5278] text-white font-semibold py-1.5 px-3 rounded-lg text-center text-[11px] cursor-default">
-                          🔔 Envoyer Rappels aux 4 Parents
+                          ðŸ”” Envoyer Rappels aux 4 Parents
                         </div>
                       </div>
                       <div className="text-right text-[10px] text-slate-400">10:43</div>
@@ -1637,16 +1637,16 @@ export default function Homepage() {
                   </div>
                   <div className="grid grid-cols-2 gap-1.5 text-xs font-semibold">
                     <div className="bg-[#202b36] text-slate-200 py-2 rounded-xl text-center border border-slate-700/50 flex items-center justify-center gap-1.5">
-                      <span>🏫</span> Mon École
+                      <span>ðŸ«</span> Mon Ã‰cole
                     </div>
                     <div className="bg-[#202b36] text-slate-200 py-2 rounded-xl text-center border border-slate-700/50 flex items-center justify-center gap-1.5">
-                      <span>💰</span> Finances
+                      <span>ðŸ’°</span> Finances
                     </div>
                     <div className="bg-[#202b36] text-slate-200 py-2 rounded-xl text-center border border-slate-700/50 flex items-center justify-center gap-1.5">
-                      <span>👨‍🏫</span> Enseignants
+                      <span>ðŸ‘¨â€ðŸ«</span> Enseignants
                     </div>
                     <div className="bg-[#202b36] text-slate-200 py-2 rounded-xl text-center border border-slate-700/50 flex items-center justify-center gap-1.5">
-                      <span>📊</span> Rapports
+                      <span>ðŸ“Š</span> Rapports
                     </div>
                   </div>
                 </div>
@@ -1656,7 +1656,7 @@ export default function Homepage() {
         </div>
       </section>
 
-      {/* ═══════════ TARIFS (en DT) ═══════════ */}
+      {/* â•â•â•â•â•â•â•â•â•â•â• TARIFS (en DT) â•â•â•â•â•â•â•â•â•â•â• */}
       <section id="tarifs" className="py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <Section>
@@ -1665,7 +1665,7 @@ export default function Homepage() {
                 Tarifs simples et transparents
               </h2>
               <p className="text-gray-500 text-base">
-                Formules adaptées à la taille de votre école en Dinars Tunisiens (DT). Sans engagement.
+                Formules adaptÃ©es Ã  la taille de votre Ã©cole en Dinars Tunisiens (DT). Sans engagement.
               </p>
             </div>
           </Section>
@@ -1681,20 +1681,20 @@ export default function Homepage() {
               {
                 name: "Essentiel", price: "120 DT", period: "/ mois",
                 desc: "Pour les centres scolaires et petites structures.",
-                features: ["Jusqu'à 150 élèves", "3 comptes administrateur", "Notes et examens", "Application mobile parents", "Support WhatsApp"],
+                features: ["Jusqu'Ã  150 Ã©lÃ¨ves", "3 comptes administrateur", "Notes et examens", "Application mobile parents", "Support WhatsApp"],
                 featured: false, btnText: "Essayer gratuitement",
               },
               {
-                name: "Pro Académie", price: "290 DT", period: "/ mois",
-                desc: "Pour les écoles primaires, collèges et lycées privés.",
-                features: ["Jusqu'à 600 élèves", "Enseignants illimités", "Assistant IA Hnia sur Telegram 24/7", "Emploi du temps automatique", "Statistiques & Finances en DT", "Support WhatsApp prioritaire 7j/7", "Import Excel gratuit"],
+                name: "Pro AcadÃ©mie", price: "290 DT", period: "/ mois",
+                desc: "Pour les Ã©coles primaires, collÃ¨ges et lycÃ©es privÃ©s.",
+                features: ["Jusqu'Ã  600 Ã©lÃ¨ves", "Enseignants illimitÃ©s", "Assistant IA Hnia sur Telegram 24/7", "Emploi du temps automatique", "Statistiques & Finances en DT", "Support WhatsApp prioritaire 7j/7", "Import Excel gratuit"],
                 featured: true, btnText: "Essai gratuit 14 jours",
               },
               {
                 name: "Sur mesure", price: "Sur devis", period: "",
-                desc: "Pour les groupes scolaires et réseaux multi-sites.",
-                features: ["Élèves et campus illimités", "Assistant IA Hnia sur mesure", "Serveur dédié & sauvegardes", "Intégration sur mesure", "Formation sur place", "Interlocuteur dédié"],
-                featured: false, btnText: "Contacter l'équipe",
+                desc: "Pour les groupes scolaires et rÃ©seaux multi-sites.",
+                features: ["Ã‰lÃ¨ves et campus illimitÃ©s", "Assistant IA Hnia sur mesure", "Serveur dÃ©diÃ© & sauvegardes", "IntÃ©gration sur mesure", "Formation sur place", "Interlocuteur dÃ©diÃ©"],
+                featured: false, btnText: "Contacter l'Ã©quipe",
               },
             ].map((plan, i) => (
               <motion.div
@@ -1709,7 +1709,7 @@ export default function Homepage() {
               >
                 {plan.featured && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full bg-blue-600 text-white text-[10px] font-bold uppercase tracking-wider">
-                    Recommandé
+                    RecommandÃ©
                   </div>
                 )}
                 <div>
@@ -1747,16 +1747,16 @@ export default function Homepage() {
         </div>
       </section>
 
-      {/* ═══════════ FAQ ═══════════ */}
+      {/* â•â•â•â•â•â•â•â•â•â•â• FAQ â•â•â•â•â•â•â•â•â•â•â• */}
       <section id="faq" className="py-20 bg-slate-50">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
           <Section>
             <div className="text-center mb-12">
               <h2 className="text-2xl sm:text-4xl font-bold text-gray-900 mb-3 tracking-tight">
-                Questions fréquentes
+                Questions frÃ©quentes
               </h2>
               <p className="text-gray-500 text-sm">
-                Tout ce que vous devez savoir pour démarrer avec SnapSchool.
+                Tout ce que vous devez savoir pour dÃ©marrer avec SnapSchool.
               </p>
             </div>
           </Section>
@@ -1785,15 +1785,15 @@ export default function Homepage() {
         </div>
       </section>
 
-      {/* ═══════════ CTA FINAL ═══════════ */}
+      {/* â•â•â•â•â•â•â•â•â•â•â• CTA FINAL â•â•â•â•â•â•â•â•â•â•â• */}
       <Section>
         <section className="py-16 sm:py-20 bg-blue-600 relative overflow-hidden text-white">
           <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
             <h2 className="text-2xl sm:text-4xl font-bold mb-3 tracking-tight">
-              Prêt à simplifier la gestion de votre école ?
+              PrÃªt Ã  simplifier la gestion de votre Ã©cole ?
             </h2>
             <p className="text-blue-100 text-base mb-8 max-w-xl mx-auto">
-              Rejoignez les écoles qui font confiance à SnapSchool. Essai gratuit de 14 jours, sans engagement.
+              Rejoignez les Ã©coles qui font confiance Ã  SnapSchool. Essai gratuit de 14 jours, sans engagement.
             </p>
             <div className="flex flex-col sm:flex-row justify-center gap-3">
               <button
@@ -1816,7 +1816,7 @@ export default function Homepage() {
         </section>
       </Section>
 
-      {/* ═══════════ FOOTER ═══════════ */}
+      {/* â•â•â•â•â•â•â•â•â•â•â• FOOTER â•â•â•â•â•â•â•â•â•â•â• */}
       <footer className="bg-gray-900 text-gray-400 text-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
@@ -1828,14 +1828,14 @@ export default function Homepage() {
                 <span className="text-lg font-bold text-white">SnapSchool</span>
               </div>
               <p className="text-gray-400 text-xs leading-relaxed">
-                Plateforme intégrée de gestion scolaire pour les écoles privées, collèges et lycées en Tunisie.
+                Plateforme intÃ©grÃ©e de gestion scolaire pour les Ã©coles privÃ©es, collÃ¨ges et lycÃ©es en Tunisie.
               </p>
             </div>
             <div>
               <h4 className="font-semibold text-white mb-3 text-xs uppercase tracking-wider">Navigation</h4>
               <ul className="space-y-2">
-                <li><a href="#apercu" className="hover:text-white transition-colors">Aperçu du système</a></li>
-                <li><a href="#tunisie" className="hover:text-white transition-colors">Système Tunisien</a></li>
+                <li><a href="#apercu" className="hover:text-white transition-colors">AperÃ§u du systÃ¨me</a></li>
+                <li><a href="#tunisie" className="hover:text-white transition-colors">SystÃ¨me Tunisien</a></li>
                 <li><a href="#finances-flexibles" className="hover:text-white transition-colors">Paiements Flexibles</a></li>
                 <li><a href="#hnia-ia" className="hover:text-white transition-colors">Assistant Hnia IA</a></li>
                 <li><a href="#modules" className="hover:text-white transition-colors">Modules</a></li>
@@ -1846,8 +1846,8 @@ export default function Homepage() {
             <div>
               <h4 className="font-semibold text-white mb-3 text-xs uppercase tracking-wider">Espaces</h4>
               <ul className="space-y-2">
-                <li><Link href="/sign-in" className="hover:text-white transition-colors">Connexion Établissement</Link></li>
-                <li><Link href="/sign-up" className="hover:text-white transition-colors">Créer un compte</Link></li>
+                <li><Link href="/sign-in" className="hover:text-white transition-colors">Connexion Ã‰tablissement</Link></li>
+                <li><Link href="/sign-up" className="hover:text-white transition-colors">CrÃ©er un compte</Link></li>
                 <li><a href="#faq" className="hover:text-white transition-colors">FAQ</a></li>
               </ul>
             </div>
@@ -1870,8 +1870,8 @@ export default function Homepage() {
         </div>
         <div className="border-t border-gray-800">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-gray-500">
-            <span>© {new Date().getFullYear()} SnapSchool. Conçu pour l&apos;éducation privée en Tunisie.</span>
-            <span>Tous droits réservés.</span>
+            <span>Â© {new Date().getFullYear()} SnapSchool. ConÃ§u pour l&apos;Ã©ducation privÃ©e en Tunisie.</span>
+            <span>Tous droits rÃ©servÃ©s.</span>
           </div>
         </div>
       </footer>

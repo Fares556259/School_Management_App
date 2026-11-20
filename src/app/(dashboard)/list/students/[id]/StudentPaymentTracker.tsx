@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { receiveStudentPayment } from "../actions";
+import { receiveStudentPayment } from "@actions/students";
 import { MONTHS } from "@/lib/dateUtils";
 import { useLanguage } from "@/lib/translations/LanguageContext";
 import { toast } from "react-toastify";

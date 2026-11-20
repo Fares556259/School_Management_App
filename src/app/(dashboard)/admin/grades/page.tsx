@@ -1,10 +1,10 @@
-import prisma from "../../../../lib/prisma";
+import prisma from "@/lib/prisma";
 import { getRole } from "@/lib/role";
 import { getSchoolId } from "@/lib/school";
 import { getCachedTenantData } from "@/lib/cache";
 import GradeEntryForm from "./GradeEntryForm";
 import GradeFilter from "./GradeFilter";
-import { getAllGradeSheets } from "./actions";
+import { getAllGradeSheets } from "@actions/grades";
 import Link from "next/link";
 import { LEVEL_CONFIGS } from "@/lib/report-cards/level-config";
 import { GraduationCap } from "lucide-react";

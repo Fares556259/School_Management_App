@@ -1,9 +1,9 @@
-"use client";
+﻿"use client";
 
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import { useState, useTransition } from "react";
-import { deleteNotice, deleteAssignment, deleteResource } from "@/lib/crudActions";
+import { deleteNotice, deleteAssignment, deleteResource } from "@actions/lib-crud";
 import { useLanguage } from "@/lib/translations/LanguageContext";
 import { AnimatePresence, motion } from "framer-motion";
 import { toast } from "react-toastify";
@@ -192,3 +192,4 @@ const FormModal = ({
 };
 
 export default FormModal;
+

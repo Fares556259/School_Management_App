@@ -1,10 +1,10 @@
-"use client";
+﻿"use client";
 
 import { motion } from "framer-motion";
 import { Clock, ShieldCheck, LogOut, Mail, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/utils/supabase/client";
+import { createClient } from "@lib/supabase/client";
 
 export default function WaitingApprovalPage() {
   const [user, setUser] = useState<any>(null);
@@ -32,7 +32,7 @@ export default function WaitingApprovalPage() {
   };
 
   useEffect(() => {
-    // 🚀 AUTO-REDIRECT IF ACTIVE
+    // ðŸš€ AUTO-REDIRECT IF ACTIVE
     if (isLoaded && user) {
       const status = user.user_metadata?.status as string | undefined;
       const role = user.user_metadata?.role as string | undefined;
@@ -42,7 +42,7 @@ export default function WaitingApprovalPage() {
       }
     }
 
-    // 🔄 REFRESH USER DATA PERIODICALLY 
+    // ðŸ”„ REFRESH USER DATA PERIODICALLY 
     // This catches the moment the superadmin approves the account
     const interval = setInterval(async () => {
       if (user) {
@@ -118,7 +118,7 @@ export default function WaitingApprovalPage() {
             </button>
             
             <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] mt-4">
-              © 2025 SnapSchool Platform
+              Â© 2025 SnapSchool Platform
             </p>
         </div>
       </motion.div>
@@ -131,3 +131,4 @@ export default function WaitingApprovalPage() {
     </div>
   );
 }
+

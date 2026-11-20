@@ -1,7 +1,7 @@
 "use server";
 
 import prisma from "@/lib/prisma";
-import { callGeminiDirect } from "./actions/aiActions";
+import { callGeminiDirect } from "@actions/aiActions";
 
 export type Anomaly = {
   type: "DUPLICATE" | "MISMATCH" | "UNPAID";

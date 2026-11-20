@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { addFinanceEntry } from "./actions";
+import { addFinanceEntry } from "@actions/finance";
 import { useLanguage } from "@/lib/translations/LanguageContext";
 import { toast } from "react-toastify";
 

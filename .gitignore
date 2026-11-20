@@ -41,3 +41,9 @@ next-env.d.ts
 # temporary browser sessions, downloads, artifacts
 tmp/
 voice-agent
+
+# scripts data (gitignored spreadsheets/data)
+scripts/data/
+*.xlsx
+*.xls
+!scripts/data/.gitkeep

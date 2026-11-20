@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getFinancialInsights } from "@/app/(dashboard)/admin/actions/aiActions";
+﻿import { NextRequest, NextResponse } from "next/server";
+import { getFinancialInsights } from "@actions/aiActions";
 import { Locale } from "@/lib/translations";
 
 export const dynamic = "force-dynamic";
@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing data payload" }, { status: 400 });
     }
 
-    console.log("🛰️ [API_AI] Triggering background insight generation...");
+    console.log("ðŸ›°ï¸ [API_AI] Triggering background insight generation...");
     
     // Call the existing server action logic (internally handles caching)
     const insights = await getFinancialInsights(data, locale);
@@ -28,7 +28,8 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(insights);
   } catch (error: any) {
-    console.error("❌ [API_AI_ERROR] Global failure in background insights:", error.message);
+    console.error("âŒ [API_AI_ERROR] Global failure in background insights:", error.message);
     return NextResponse.json({ error: "Internal AI process failed", details: error.message }, { status: 500 });
   }
 }
+

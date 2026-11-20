@@ -1,8 +1,8 @@
-import { getRole } from "@/lib/role";
+﻿import { getRole } from "@/lib/role";
 import { getCachedTenantData } from "@/lib/cache";
 import FormModal from "@/components/FormModal";
 import Pagination from "@/components/Pagination";
-import { createClient } from "@/utils/supabase/server";
+import { createClient } from "@lib/supabase/server";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import { Notice, Class, Prisma } from "@prisma/client";
@@ -217,3 +217,4 @@ const AnnouncementListPage = async ({ searchParams }: { searchParams?: { [key: s
   );
 };
 export default AnnouncementListPage;
+

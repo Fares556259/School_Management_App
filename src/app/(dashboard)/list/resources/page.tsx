@@ -1,9 +1,9 @@
-import { getRole } from "@/lib/role";
+﻿import { getRole } from "@/lib/role";
 import FormModal from "@/components/FormModal";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
-import { createClient } from "@/utils/supabase/server";
+import { createClient } from "@lib/supabase/server";
 import Image from "next/image";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
@@ -226,3 +226,4 @@ const ResourceListPage = async ({
 };
 
 export default ResourceListPage;
+

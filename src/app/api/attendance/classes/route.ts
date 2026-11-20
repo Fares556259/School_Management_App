@@ -1,7 +1,7 @@
-import prisma from "@/lib/prisma";
+﻿import prisma from "@/lib/prisma";
 import { getSchoolId } from "@/lib/school";
 import { getRole } from "@/lib/role";
-import { createClient } from "@/utils/supabase/server";
+import { createClient } from "@lib/supabase/server";
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -42,3 +42,4 @@ export async function GET() {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+

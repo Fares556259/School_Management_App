@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useTransition, useEffect } from "react";
-import { payTeacherSalary, updateMissedHours } from "./actions";
+import { payTeacherSalary, updateMissedHours } from "@actions/teachers";
 import { getSchoolYearMonths, isMonthBefore, MONTHS } from "@/lib/dateUtils";
 import { Banknote } from "lucide-react";
 import { useLanguage } from "@/lib/translations/LanguageContext";

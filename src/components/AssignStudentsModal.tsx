@@ -15,11 +15,11 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { assignStudentsToClass } from "@/lib/crudActions";
+import { assignStudentsToClass } from "@actions/lib-crud";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import { useLanguage } from "@/lib/translations/LanguageContext";
-import { fetchAllStudentsOptionAction } from "@/app/(dashboard)/list/classes/actions";
+import { fetchAllStudentsOptionAction } from "@actions/classes";
 
 interface StudentOption {
   id: string;
@@ -84,7 +84,7 @@ export default function AssignStudentsModal({
       }
     } catch (err) {
       console.error(err);
-      setError("Erreur lors du chargement des élèves.");
+      setError("Erreur lors du chargement des Ã©lÃ¨ves.");
     } finally {
       setLoading(false);
     }
@@ -169,13 +169,13 @@ export default function AssignStudentsModal({
       const result = await assignStudentsToClass(classId, selectedIds);
       if (result.success) {
         toast.success(
-          t.toasts?.assignmentsUpdated || `Affectation des élèves à ${className} enregistrée !`
+          t.toasts?.assignmentsUpdated || `Affectation des Ã©lÃ¨ves Ã  ${className} enregistrÃ©e !`
         );
         setOpen(false);
         router.refresh();
       } else {
         const errMsg =
-          result.error || t.toasts?.assignmentsUpdateFailed || "Échec de l'affectation des élèves.";
+          result.error || t.toasts?.assignmentsUpdateFailed || "Ã‰chec de l'affectation des Ã©lÃ¨ves.";
         toast.error(errMsg);
         setError(errMsg);
       }
@@ -187,10 +187,10 @@ export default function AssignStudentsModal({
       <button
         onClick={handleOpen}
         className="flex items-center gap-2 border border-purple-600 text-purple-600 bg-white hover:bg-purple-50 px-4 py-2 rounded-[10px] text-[14px] font-medium transition-colors shadow-sm shrink-0"
-        title="Affecter des élèves à cette classe"
+        title="Affecter des Ã©lÃ¨ves Ã  cette classe"
       >
         {loading ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} strokeWidth={2.5} />}
-        <span>{t.classStudents?.addStudents || "Ajouter des élèves"}</span>
+        <span>{t.classStudents?.addStudents || "Ajouter des Ã©lÃ¨ves"}</span>
       </button>
 
       <AnimatePresence>
@@ -217,7 +217,7 @@ export default function AssignStudentsModal({
                 <div>
                   <div className="flex items-center gap-2.5">
                     <h3 className="text-[20px] font-bold text-[#181d26] tracking-tight">
-                      Affecter des élèves à {className}
+                      Affecter des Ã©lÃ¨ves Ã  {className}
                     </h3>
                     {levelNumber !== undefined && (
                       <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-100 text-indigo-800 border border-indigo-200">
@@ -226,7 +226,7 @@ export default function AssignStudentsModal({
                     )}
                   </div>
                   <p className="text-slate-500 text-[13px] font-medium mt-1">
-                    Répartissez et inscrivez les élèves du{" "}
+                    RÃ©partissez et inscrivez les Ã©lÃ¨ves du{" "}
                     <b>Niveau {levelNumber ?? ""}</b> dans la classe <b>{className}</b>
                   </p>
                 </div>
@@ -253,7 +253,7 @@ export default function AssignStudentsModal({
                       }`}
                     >
                       <UserPlus size={15} />
-                      <span>Non classés</span>
+                      <span>Non classÃ©s</span>
                       <span
                         className={`text-[11px] px-1.5 py-0.2 rounded-full font-bold ${
                           activeTab === "unassigned"
@@ -302,7 +302,7 @@ export default function AssignStudentsModal({
                   {/* LEVEL FILTER TOGGLE */}
                   {levelNumber !== undefined && (
                     <div className="flex items-center gap-2 text-xs">
-                      <span className="text-slate-500 font-medium">Portée :</span>
+                      <span className="text-slate-500 font-medium">PortÃ©e :</span>
                       <button
                         onClick={() => handleToggleLevelFilter(true)}
                         className={`px-2.5 py-1 rounded-md font-semibold border transition-all ${
@@ -336,7 +336,7 @@ export default function AssignStudentsModal({
                     />
                     <input
                       type="text"
-                      placeholder="Rechercher par nom, prénom ou المعرف التربوي..."
+                      placeholder="Rechercher par nom, prÃ©nom ou Ø§Ù„Ù…Ø¹Ø±Ù Ø§Ù„ØªØ±Ø¨ÙˆÙŠ..."
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
                       className="w-full bg-slate-50 border border-slate-200 rounded-[8px] pl-10 pr-9 py-2 text-[13.5px] font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:bg-white focus:ring-1 focus:ring-indigo-500 transition-colors"
@@ -359,12 +359,12 @@ export default function AssignStudentsModal({
                     {areAllVisibleSelected ? (
                       <>
                         <Square size={14} className="text-slate-400" />
-                        <span>Tout désélectionner</span>
+                        <span>Tout dÃ©sÃ©lectionner</span>
                       </>
                     ) : (
                       <>
                         <CheckSquare size={14} className="text-indigo-600" />
-                        <span>Tout sélectionner ({visibleStudents.length})</span>
+                        <span>Tout sÃ©lectionner ({visibleStudents.length})</span>
                       </>
                     )}
                   </button>
@@ -376,7 +376,7 @@ export default function AssignStudentsModal({
                 {loading ? (
                   <div className="flex flex-col items-center justify-center py-20 gap-3 text-slate-500">
                     <Loader2 size={28} className="animate-spin text-indigo-600" />
-                    <p className="text-sm font-medium">Chargement des élèves du niveau...</p>
+                    <p className="text-sm font-medium">Chargement des Ã©lÃ¨ves du niveau...</p>
                   </div>
                 ) : visibleStudents.length > 0 ? (
                   visibleStudents.map((student) => {
@@ -430,7 +430,7 @@ export default function AssignStudentsModal({
                               </span>
                               {student.nationalId && (
                                 <span className="bg-blue-50 text-blue-700 border border-blue-200 text-[11px] font-mono px-1.5 py-0.2 rounded font-semibold">
-                                  🆔 {student.nationalId}
+                                  ðŸ†” {student.nationalId}
                                 </span>
                               )}
                             </div>
@@ -439,26 +439,26 @@ export default function AssignStudentsModal({
                             <span className="text-[12px] font-medium mt-0.5">
                               {isSelected ? (
                                 isOriginallyInThisClass ? (
-                                  <span className="text-indigo-600">✓ Reste dans {className}</span>
+                                  <span className="text-indigo-600">âœ“ Reste dans {className}</span>
                                 ) : isOriginallyUnassigned ? (
                                   <span className="text-emerald-600 font-semibold">
-                                    ✓ Sera affecté à {className}
+                                    âœ“ Sera affectÃ© Ã  {className}
                                   </span>
                                 ) : (
                                   <span className="text-amber-700 font-semibold">
-                                    ⇄ Sera transféré de {student.class?.name} vers {className}
+                                    â‡„ Sera transfÃ©rÃ© de {student.class?.name} vers {className}
                                   </span>
                                 )
                               ) : (
                                 isOriginallyInThisClass ? (
                                   <span className="text-rose-600 font-semibold">
-                                    ✗ Retiré de {className} (deviendra non classé)
+                                    âœ— RetirÃ© de {className} (deviendra non classÃ©)
                                   </span>
                                 ) : isOriginallyUnassigned ? (
-                                  <span className="text-slate-500">Non classé (disponible)</span>
+                                  <span className="text-slate-500">Non classÃ© (disponible)</span>
                                 ) : (
                                   <span className="text-slate-500">
-                                    Déjà inscrit en {student.class?.name}
+                                    DÃ©jÃ  inscrit en {student.class?.name}
                                   </span>
                                 )
                               )}
@@ -470,7 +470,7 @@ export default function AssignStudentsModal({
                         <div className="flex items-center gap-2">
                           {isOriginallyUnassigned ? (
                             <span className="text-[11px] font-bold text-emerald-800 bg-emerald-100/80 border border-emerald-200 px-2 py-0.5 rounded-full">
-                              Non classé
+                              Non classÃ©
                             </span>
                           ) : isOriginallyInThisClass ? (
                             <span className="text-[11px] font-bold text-indigo-800 bg-indigo-100/80 border border-indigo-200 px-2 py-0.5 rounded-full">
@@ -491,14 +491,14 @@ export default function AssignStudentsModal({
                       <Users size={22} />
                     </div>
                     <h5 className="text-[14.5px] font-bold text-slate-800 mb-1">
-                      {search ? "Aucun élève trouvé" : "Aucun élève dans cette catégorie"}
+                      {search ? "Aucun Ã©lÃ¨ve trouvÃ©" : "Aucun Ã©lÃ¨ve dans cette catÃ©gorie"}
                     </h5>
                     <p className="text-[12.5px] text-slate-500 max-w-sm">
                       {search
-                        ? "Essayez de modifier votre recherche par nom ou المعرف التربوي."
+                        ? "Essayez de modifier votre recherche par nom ou Ø§Ù„Ù…Ø¹Ø±Ù Ø§Ù„ØªØ±Ø¨ÙˆÙŠ."
                         : activeTab === "unassigned"
-                        ? "Tous les élèves de ce niveau ont déjà été répartis dans des classes !"
-                        : "Consultez l'onglet « Tous » pour visualiser l'ensemble des élèves du niveau."}
+                        ? "Tous les Ã©lÃ¨ves de ce niveau ont dÃ©jÃ  Ã©tÃ© rÃ©partis dans des classes !"
+                        : "Consultez l'onglet Â« Tous Â» pour visualiser l'ensemble des Ã©lÃ¨ves du niveau."}
                     </p>
                   </div>
                 )}
@@ -516,9 +516,9 @@ export default function AssignStudentsModal({
                 <div className="flex items-center justify-between flex-wrap gap-3">
                   <div className="flex items-center gap-2">
                     <span className="text-[13.5px] font-bold text-slate-800">
-                      {selectedIds.length} élève(s) sélectionné(s)
+                      {selectedIds.length} Ã©lÃ¨ve(s) sÃ©lectionnÃ©(s)
                     </span>
-                    <span className="text-slate-400 text-xs">•</span>
+                    <span className="text-slate-400 text-xs">â€¢</span>
                     <span
                       className={`text-xs font-semibold px-2 py-0.5 rounded-md ${
                         selectedIds.length > capacity
@@ -526,7 +526,7 @@ export default function AssignStudentsModal({
                           : "bg-slate-100 text-slate-600"
                       }`}
                     >
-                      Capacité : {selectedIds.length} / {capacity}
+                      CapacitÃ© : {selectedIds.length} / {capacity}
                     </span>
                   </div>
 
@@ -567,4 +567,5 @@ export default function AssignStudentsModal({
     </>
   );
 }
+
 

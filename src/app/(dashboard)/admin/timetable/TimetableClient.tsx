@@ -8,7 +8,7 @@ import { useReactToPrint } from "react-to-print";
 import ScheduleGrid from "./components/ScheduleGrid";
 import AiScheduleModal from "./components/AiScheduleModal";
 import { toast } from "react-toastify";
-import { isAIQuotaReached } from "../actions/aiActions";
+import { isAIQuotaReached } from "@actions/aiActions";
 import { 
   getTimetableByClass, 
   moveTimetableSlot, 
@@ -17,8 +17,8 @@ import {
   bulkUpdateTimetableSlots,
   publishDraftTimetable,
   discardDraftTimetable
-} from "../actions/timetableActions";
-import { generateTimetableFromPrompt } from "../actions/timetableAiActions";
+} from "@actions/timetableActions";
+import { generateTimetableFromPrompt } from "@actions/timetableAiActions";
 
 const TimetablePage = ({
   classes,

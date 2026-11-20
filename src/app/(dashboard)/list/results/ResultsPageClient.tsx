@@ -1,12 +1,12 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import Image from "next/image";
 import GradeSheetRecorder from "../../admin/grades/GradeSheetRecorder";
-import { getGradeSheet, createGradeSheet } from "../../admin/grades/actions";
+import { getGradeSheet, createGradeSheet } from "@actions/grades";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Sparkles, Upload, Pencil, Eye, Loader2, UploadCloud, Smartphone, ChevronLeft, ChevronRight, Download } from "lucide-react";
-import { initializeClassSheets } from "../../admin/grades/initializeAction";
+import { initializeClassSheets } from "@actions/grades-initialize";
 import BulkAIUploadModal from "./BulkAIUploadModal";
 import { useRouter } from "next/navigation";
 import { useLanguage } from "@/lib/translations/LanguageContext";
@@ -17,7 +17,7 @@ import SubjectProofsGrid from "@/components/SubjectProofsGrid";
 import { compressImage } from "@/lib/imageCompression";
 
 /** Parse first segment of pipe-separated trilingual name to get localized string.
- * e.g. "الرياضيات | Mathématiques | Mathematics"
+ * e.g. "Ø§Ù„Ø±ÙŠØ§Ø¶ÙŠØ§Øª | MathÃ©matiques | Mathematics"
  */
 const parseLocalizedName = (name: string, locale: string): string => {
   if (!name) return "";
@@ -122,7 +122,7 @@ export default function ResultsPageClient({
       });
 
       // 1. Upload to Supabase Storage bucket 'uploads'
-      const { createClient } = await import('@/utils/supabase/client');
+      const { createClient } = await import('@lib/supabase/client');
       const supabase = createClient();
       const fileName = `${Date.now()}-${optimizedFile.name}`;
       const filePath = `grades/${fileName}`;
@@ -299,7 +299,7 @@ export default function ResultsPageClient({
 
   return (
     <div className="p-4 md:p-6 flex flex-col gap-6 bg-slate-50 min-h-screen">
-      {/* ─── COMPACT HEADER ─── */}
+      {/* â”€â”€â”€ COMPACT HEADER â”€â”€â”€ */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex flex-col">
           <h1 className="text-[22px] font-semibold text-[#181d26] tracking-tight">{t.resultsPage.pageTitle}</h1>
@@ -314,7 +314,7 @@ export default function ResultsPageClient({
         </button>
       </div>
 
-      {/* ─── FILTERS BAR ─── */}
+      {/* â”€â”€â”€ FILTERS BAR â”€â”€â”€ */}
       <div className="flex flex-wrap items-center gap-3 bg-white p-3 rounded-[10px] border border-[#e5e7eb] shadow-sm">
         <select 
           value={selectedClassId} 
@@ -349,7 +349,7 @@ export default function ResultsPageClient({
         </div>
       </div>
 
-      {/* ─── LOADING OVERLAY ─── */}
+      {/* â”€â”€â”€ LOADING OVERLAY â”€â”€â”€ */}
       {(loadingSheet || isInitializing) && (
         <div className="fixed inset-0 bg-white/60 backdrop-blur-sm z-[100] flex items-center justify-center">
           <div className="flex flex-col items-center gap-3">
@@ -361,11 +361,11 @@ export default function ResultsPageClient({
         </div>
       )}
 
-      {/* ─── GRID ─── */}
+      {/* â”€â”€â”€ GRID â”€â”€â”€ */}
       <div className="space-y-8">
         {displayItems.length === 0 && (
           <div className="col-span-full bg-white p-16 rounded-[12px] border border-[#e5e7eb] flex flex-col items-center gap-3">
-            <div className="text-5xl opacity-30">📄</div>
+            <div className="text-5xl opacity-30">ðŸ“„</div>
             <p className="font-medium text-[#9297a0] text-[13px]">{t.resultsPage.noSubjectsMatch}</p>
           </div>
         )}
@@ -386,7 +386,7 @@ export default function ResultsPageClient({
         )}
  </div>
 
-      {/* ─── GRADE DETAILS MODAL ─── */}
+      {/* â”€â”€â”€ GRADE DETAILS MODAL â”€â”€â”€ */}
       {detailsModalData && (
         <GradeDetailsModal
           isOpen={detailsModalData.isOpen}
@@ -403,7 +403,7 @@ export default function ResultsPageClient({
         />
       )}
 
-      {/* ─── FULLSCREEN PREVIEW MODAL (LIGHTBOX) ─── */}
+      {/* â”€â”€â”€ FULLSCREEN PREVIEW MODAL (LIGHTBOX) â”€â”€â”€ */}
       <AnimatePresence>
         {isPreviewOpen && previewUrl && (
           <motion.div 
@@ -505,7 +505,7 @@ export default function ResultsPageClient({
         )}
       </AnimatePresence>
 
-      {/* ─── BULK AI SCAN MODAL ─── */}
+      {/* â”€â”€â”€ BULK AI SCAN MODAL â”€â”€â”€ */}
       <BulkAIUploadModal 
         isOpen={isBulkUploadOpen} 
         onClose={() => setIsBulkUploadOpen(false)} 
@@ -514,3 +514,4 @@ export default function ResultsPageClient({
     </div>
   );
 }
+

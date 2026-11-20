@@ -1,5 +1,5 @@
-import { createClient } from "@/utils/supabase/server";
-import { supabaseAdmin } from "@/utils/supabase/admin";
+﻿import { createClient } from "@lib/supabase/server";
+import { supabaseAdmin } from "@lib/supabase/admin";
 
 import { NextRequest, NextResponse } from "next/server";
 
@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
     await supabaseAdmin.auth.admin.updateUserById(userId, { user_metadata: { role } });
 
     return new NextResponse(
-      `✅ Successfully set your role to "${role}"! Sign out and sign back in, then go to /${role} to see your dashboard.`,
+      `âœ… Successfully set your role to "${role}"! Sign out and sign back in, then go to /${role} to see your dashboard.`,
       { status: 200 }
     );
   } catch (err) {
@@ -39,3 +39,4 @@ export async function GET(req: NextRequest) {
     return new NextResponse("Error updating user role", { status: 500 });
   }
 }
+
