@@ -2,6 +2,8 @@
 
 This folder is the living handoff for SnapSchool Web. The repository-root `AGENTS.md` contains the mandatory workflow; do not replace it with a chat summary or rely on a previous agent's memory.
 
+For a broader product and whole-project introduction, read the [cofounder and engineering handbook](../handbook/README.md).
+
 ## Reading order
 
 1. [Current state](current-state.md): behavior, verification boundaries and unfinished work.

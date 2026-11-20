@@ -19,3 +19,11 @@ Append one entry per logical change. Update the root `AGENTS.md` Latest handoff 
 - Verification: checked documentation links and referenced feature entry-point paths. Documentation-only; no runtime tests required.
 - Operations: no database operations, account activations, code generation, application changes or deployments performed as part of this update. Commit/push status is available in Git history.
 - Remaining work: future agents must maintain these files with implementation commits. Known schema gaps and unverified mobile/print flows are listed in current-state.md; investigate within the next user's requested scope.
+
+## 2026-11-20 — Add cofounder and technical partner handbook
+
+- Request/reason: explain the whole project in detail for a cofounder, partner and future agents.
+- Changes: added `docs/handbook/README.md`, `product-and-operations.md` and `engineering.md`; linked the handbook from root README, AGENTS.md and the agent index. Documented product areas, onboarding, shared-parent access, project boundaries, code navigation, configuration, release evidence and suggested responsibilities.
+- Verification: inspected existing web architecture/setup/handoff notes, Prisma models, route inventory, deployment configuration and sibling mobile/voice manifests; checked local Markdown links and diff whitespace. No runtime tests run for this documentation-only change.
+- Operations: no application, database, account or deployment changes. Sibling projects were read for context, not modified or fully audited.
+- Remaining work: maintain these guides with behavior changes; current-state remains the source for unresolved production gaps. Named owners, commercial terms and sibling release readiness are not established by this guide.

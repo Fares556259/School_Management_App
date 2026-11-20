@@ -2,7 +2,7 @@
 
 ## Start here
 
-Read `README.md`, `docs/architecture.md` and `CONTRIBUTING.md`. For local setup, use `docs/getting-started.md`. These describe the current repository; `docs/archive/` contains historical material.
+Read the [partner and engineering handbook](docs/handbook/README.md) for whole-project context. Read `README.md`, `docs/architecture.md` and `CONTRIBUTING.md`. For local setup, use `docs/getting-started.md`. These describe the current repository; `docs/archive/` contains historical material.
 
 This repository is the Next.js web app and mobile API backend. The sibling `SnapSchool_Mobile` and `voice-agent` directories are separate projects. Check their own instructions before working there.
 
@@ -77,4 +77,4 @@ These instructions govern this web repository. They do not automatically update 
 
 ## Latest handoff
 
-2026-11-20 — Expanded agent onboarding into `docs/agents/` with feature navigation, current state, known production schema gaps and a required per-change maintenance workflow. Read the [handoff index](docs/agents/README.md) next. No runtime or database changes in this documentation update.
+2026-11-20 — Added the detailed [cofounder, partner and engineering handbook](docs/handbook/README.md): product workflows, three-project boundaries, domain relationships, code navigation, setup, release responsibilities and verification limits. Linked from README and the agent index. Documentation only; no runtime or database changes. Continue with the [handoff index](docs/agents/README.md) for current issues.

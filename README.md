@@ -2,6 +2,8 @@
 
 School administration web app and backend for the SnapSchool mobile client. It manages students, parent accounts, classes, attendance, billing and school communications, with optional Hnia AI and Telegram integrations.
 
+**Cofounder or partner?** Start with the [project handbook](docs/handbook/README.md), covering the product, operations, architecture and delivery priorities.
+
 **New here?** Read [Getting started](docs/getting-started.md), then [Architecture and feature map](docs/architecture.md). See [Contributing](CONTRIBUTING.md) before making changes.
 
 ## Stack
