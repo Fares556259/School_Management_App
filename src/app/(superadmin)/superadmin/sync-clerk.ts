@@ -5,7 +5,7 @@ import { createClient } from "@lib/supabase/server";
 import { supabaseAdmin } from "@lib/supabase/admin";
 import { getRole } from "@/lib/role";
 import { revalidatePath } from "next/cache";
-import { provisionSchool } from "./actions";
+import { provisionSchool } from "@actions/superadmin";
 
 async function ensureSuperAdmin() {
   const role = await getRole();

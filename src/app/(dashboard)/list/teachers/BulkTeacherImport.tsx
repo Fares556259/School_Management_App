@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { useState, useTransition } from "react";
-import { parseTeachersFromText, parseTeachersFromImage } from "../../admin/actions/teacherAiActions";
+import { parseTeachersFromText, parseTeachersFromImage } from "@actions/teacherAiActions";
 import { bulkCreateTeachers } from "@actions/lib-crud";
 import { X, Check, Loader2, AlertCircle, Sparkles, FileText, UserPlus, Image as ImageIcon, Type, UploadCloud } from "lucide-react";
 import Image from "next/image";

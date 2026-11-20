@@ -1,6 +1,6 @@
 import { getRole } from "@/lib/role";
 import { redirect } from "next/navigation";
-import { getUnifiedApplications } from "./actions";
+import { getUnifiedApplications } from "@actions/superadmin";
 import ApplicationsTable from "./ApplicationsTable";
 import { Building2, Clock, CheckCheck, Inbox } from "lucide-react";
 

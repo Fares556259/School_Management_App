@@ -1,6 +1,6 @@
 import { getRole } from "@/lib/role";
 import { redirect } from "next/navigation";
-import { getSubscriptions } from "../actions";
+import { getSubscriptions } from "@actions/superadmin";
 import SubscriptionsTable from "./SubscriptionsTable";
 
 export default async function SubscriptionsPage() {

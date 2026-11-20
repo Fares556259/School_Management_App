@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition, useMemo } from "react";
-import { payTeacherSalary } from "../actions";
+import { payTeacherSalary } from "@/actions/teachers";
 import { MONTHS } from "@/lib/dateUtils";
 import { computeTeacherPaymentStatus } from "@/lib/payrollUtils";
 import { useLanguage } from "@/lib/translations/LanguageContext";

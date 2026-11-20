@@ -1,7 +1,7 @@
 "use client";
 
 import { Admin } from "@prisma/client";
-import { approveAdmin, rejectAdmin } from "./actions";
+import { approveAdmin, rejectAdmin } from "@actions/superadmin";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 import { useState } from "react";

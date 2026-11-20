@@ -7,7 +7,7 @@ import FormModal from "@/components/FormModal";
 import TeacherFinanceHub from "./TeacherFinanceHub";
 import TeacherSchedule, { ScheduleItem } from "./TeacherSchedule";
 import { getUserAvatar } from "@/lib/avatar";
-import { getTeacherProfileBundle } from "../actions";
+import { getTeacherProfileBundle } from "@/actions/teachers";
 import { 
   TeacherBreadcrumbNav, 
   TeacherSideDrawer, 

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { updateAdminProfile, getAdminProfile } from "../admin/actions/profileActions";
+import { updateAdminProfile, getAdminProfile } from "@/actions/profileActions";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { User, Mail, Phone, Camera, Check, AlertCircle, UploadCloud } from "lucide-react";
 import { useLanguage } from "@/lib/translations/LanguageContext";

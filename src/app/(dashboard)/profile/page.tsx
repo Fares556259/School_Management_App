@@ -1,4 +1,4 @@
-import { getAdminProfile } from "../admin/actions/profileActions";
+import { getAdminProfile } from "@/actions/profileActions";
 import ProfileClient from "./ProfileClient";
 import { redirect } from "next/navigation";
 import { getRole } from "@/lib/role";

@@ -33,13 +33,13 @@ import {
   addLevel,
   deleteClass,
   syncLevelVariations
-} from "../admin/actions/schoolActions";
+} from "@/actions/schoolActions";
 import { 
   getRooms, 
   addRoom, 
   deleteRoom, 
   updateRoom 
-} from "../admin/actions/infrastructureActions";
+} from "@/actions/infrastructureActions";
 import { useLanguage } from "@/lib/translations/LanguageContext";
 import TelegramLinkCard from "@/components/telegram/TelegramLinkCard";
 

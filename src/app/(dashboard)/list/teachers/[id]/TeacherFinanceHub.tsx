@@ -22,7 +22,7 @@ import {
   ArrowRight,
   ShieldCheck
 } from "lucide-react";
-import { payTeacherSalary, updateMissedHours, carryOverMissedHours } from "../actions";
+import { payTeacherSalary, updateMissedHours, carryOverMissedHours } from "@/actions/teachers";
 import { MONTHS } from "@/lib/dateUtils";
 import { useLanguage } from "@/lib/translations/LanguageContext";
 import { toast } from "react-toastify";

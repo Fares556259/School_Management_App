@@ -12,9 +12,9 @@ import {
   Inbox,
   ChevronDown,
 } from "lucide-react";
-import { approveAdmin, rejectAdmin, deleteSetupRequest, updateSetupRequestStatus } from "./actions";
+import { approveAdmin, rejectAdmin, deleteSetupRequest, updateSetupRequestStatus } from "@actions/superadmin";
 import SyncClerkBtn from "./SyncClerkBtn";
-import type { UnifiedApplication, ApplicationDisplayType } from "./actions";
+import type { UnifiedApplication, ApplicationDisplayType } from "@actions/superadmin";
 import { toast } from "react-toastify";
 
 // ─── Status pills ─────────────────────────────────────────────────────────────

@@ -1,7 +1,7 @@
 "use client";
 
 import { useFormState } from "react-dom";
-import { submitSetupRequest } from "./actions";
+import { submitSetupRequest } from "@actions/request-setup";
 import InputField from "@/components/InputField";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";

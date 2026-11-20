@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { ShieldCheck, ShieldAlert, Power, Clock } from "lucide-react";
-import { toggleSchoolStatus } from "../actions";
+import { toggleSchoolStatus } from "@actions/superadmin";
 
 type Subscription = {
   id: string;
