@@ -1,6 +1,6 @@
 # Current implementation and unfinished work
 
-Last reconciled: 2026-11-20. This is a point-in-time handoff, not a substitute for inspecting the current checkout, schema or deployment.
+Last reconciled: 2026-11-22. This is a point-in-time handoff, not a substitute for inspecting the current checkout, schema or deployment.
 
 ## Before editing
 
@@ -49,15 +49,21 @@ Applied and verified in Supabase during this session:
 - Student.tuitionOverrides exists as nullable JSONB.
 - MobileRateLimit exists with key, count and resetAt; its migration enables RLS and revokes anon/authenticated access.
 
-Known missing-schema errors observed in logs before this handoff, with no confirmed repair recorded here:
+Schema findings and repair status (historical failures are not all still open):
 
-- StudentServiceAssignment: student list retries without this optional relation as a compatibility fallback.
+- StudentServiceAssignment: previously missing, restored with the 2026-11-22 billing repair. The student-list compatibility fallback remains in code.
 - ParentAccessRequest: child-link inbox displays a schema-required state until the corresponding schema is restored; the prepared repair is not confirmed applied.
-- StudentChargeCategory and Payment.overtimeHours: errors seen on finance/charges pages; not resolved by the import fixes.
+- StudentChargeCategory and Payment.overtimeHours: restored with the 2026-11-22 billing repair, together with StudentCharge, StudentChargePayment, StudentBillingReceipt and Payment.overtimeRate. See the billing section below.
 
 The student list must not show a query failure as a genuine zero-student result. Core fallback failures now throw an error instead.
 
 Database CLI connections were unreliable. Supabase dashboard SQL succeeded after an explicitly approved termination of a particular idle transaction blocking DDL. That approval was for that session only; do not terminate other sessions automatically. The dashboard session can expire and require user sign-in/MFA. No passwords or tokens belong in these notes.
+
+## Student billing repair — 2026-11-22
+
+Production metadata confirmed that all five newer billing tables were absent; Payment also lacked its overtime columns. Applied the additive repair `20261122080000_repair_missing_student_billing` through Supabase SQL Editor. Read-back confirmed the five tables with RLS, required payment/receipt columns, restricted direct grants, preserved 498 student/378 parent totals, unchanged payment totals and level-fee fingerprint, and no new charges or receipts.
+
+The billing API now returns a clear 503/BILLING_SCHEMA_REQUIRED for missing table/column errors instead of exposing raw Prisma errors. Static TypeScript/lint checks only; no live payment collected or test suite run. Direct SQL application does not reconcile Prisma history; review it before migration deployment. [Operational record](../student-billing-repair.md).
 
 ## Verification and deployment boundaries
 

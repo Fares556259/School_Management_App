@@ -77,4 +77,4 @@ These instructions govern this web repository. They do not automatically update 
 
 ## Latest handoff
 
-2026-11-20 — Updated the parent inbox to review links to existing students under the school-provisioned family-account approach. Shows existing siblings, preserves credentials and ACTIVE accounts on refusal, blocks suspended account activation, and renders missing request schema explicitly. Added an additive request/outbox repair migration; NOT applied to production. Read [parent link rollout](docs/parent-access-rollout.md) and [current state](docs/agents/current-state.md). TypeScript/static checks only; no test suites or live actions.
+2026-11-22 — Restored the missing production student billing schema using the additive repair `20261122080000_repair_missing_student_billing`: five billing tables, supporting columns and school-scoped indexes/constraints. SQL read-back confirmed RLS, preserved student/parent totals, unchanged fees/payments and no new charges/receipts. Added clear API schema-error handling. See [billing repair](docs/student-billing-repair.md). Direct SQL applied; Prisma history not reconciled. Static checks only; no live payment test.

@@ -20,6 +20,12 @@ async function actor(request: NextRequest) {
   return { schoolId, adminId: user.id };
 }
 const fail = (error: unknown) => {
+  const code = error && typeof error === "object" && "code" in error ? String(error.code) : "";
+  if (code === "P2021" || code === "P2022") {
+    console.error("[Student billing] Required database schema is missing", { code });
+    return NextResponse.json({ success: false, code: "BILLING_SCHEMA_REQUIRED",
+      error: "L’encaissement est temporairement indisponible : la base de données doit être mise à jour. Aucun paiement n’a été enregistré par cette tentative." }, { status: 503 });
+  }
   const message = error instanceof Error ? error.message : "Payment failed";
   return NextResponse.json(
     { success: false, error: message },

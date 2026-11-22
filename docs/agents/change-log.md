@@ -35,3 +35,11 @@ Append one entry per logical change. Update the root `AGENTS.md` Latest handoff 
 - Verification: TypeScript passed; targeted static lint/review and diff whitespace checks. No test suites or live browser/mobile tests run, respecting the user's testing preference.
 - Operations: code and migration prepared only; no production SQL, credential changes, imports, real linking or notification dispatch performed by the agent. Production schema repair remains unapplied in the recorded evidence.
 - Remaining work: reconcile/apply the request/outbox repair to the intended database and complete user-run acceptance. Scope is links to existing students, not new-student enrollment. Legacy self-signup remains separately implemented.
+
+## 2026-11-22 — Restore missing production billing schema
+
+- Request/reason: the payment collection modal failed because public.StudentCharge was missing despite visible saved level fees.
+- Changes: additive migration restores the five billing tables, composite student identity index, payment overtime columns and missing supporting settings without rewriting financial records. Billing API maps Prisma P2021/P2022 to a clear 503/BILLING_SCHEMA_REQUIRED response. Added docs/student-billing-repair.md and updated current-state/navigation.
+- Verification: production metadata inspected before SQL; transaction returned success; read-only post-repair checks confirmed tables/RLS/required columns, restricted direct grants, preserved 498 students and 378 parents, unchanged payment count/total and level-fee fingerprint, no new charges/receipts. Static TypeScript and targeted lint checks; no test suites or live payment tests.
+- Operations: applied the additive SQL through the existing production Supabase dashboard. No account changes, charges, receipts, collected payments, resets or seeds. Prisma migration history was not marked/reconciled; API error-message code still requires normal deployment.
+- Remaining work: user acceptance by reopening the payment form; reconcile older migration history before future deployment. Parent-access schema issues are separate.
