@@ -65,6 +65,12 @@ Production metadata confirmed that all five newer billing tables were absent; Pa
 
 The billing API now returns a clear 503/BILLING_SCHEMA_REQUIRED for missing table/column errors instead of exposing raw Prisma errors. Static TypeScript/lint checks only; no live payment collected or test suite run. Direct SQL application does not reconcile Prisma history; review it before migration deployment. [Operational record](../student-billing-repair.md).
 
+## Isolated demo account — 2026-11-22
+
+Created a separate, clearly labelled demo school tenant in the existing application database on explicit user request. It has one ACTIVE administrator/auth identity, twelve fictional students (two unassigned), eight parents with shared siblings, three classes and teachers, three subjects, thirty-six grades and twenty-four attendance records. Seven levels and demonstration institution/announcements are configured. No payments/receipts/charges were seeded and no invites/messages were sent.
+
+The create-only tool guards the project and duplicate email, writes transactionally, and verifies outside-tenant counts. Read-only post-creation checks confirmed the new admin/auth identity and hash, first-parent code/hash, siblings across classes, no demo payments and private credential-file permissions. No browser/mobile login or payment test was run. See [demo account notes](../demo-account.md). Credentials remain outside Git in a mode-0600 temporary file reported to the user. This is tenant isolation, not a separate staging database.
+
 ## Verification and deployment boundaries
 
 Known local checks: TypeScript, targeted lint, import/family/roster/code checks passed for their respective changes. Legacy tools were relocated, not executed or certified against the current schema. No production test import was run by the agent.

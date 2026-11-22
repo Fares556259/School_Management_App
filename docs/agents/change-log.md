@@ -44,3 +44,11 @@ Append one entry per logical change. Update the root `AGENTS.md` Latest handoff 
 - Operations: applied the additive SQL through the existing production Supabase dashboard. No account changes, charges, receipts, collected payments, resets or seeds. Prisma migration history was not marked/reconciled; API error-message code still requires normal deployment.
 - Collaboration: integrated remote commit `be78a7e` (dependency-lock additions) with a normal merge before pushing; existing unrelated local assistant/payment files were left untouched.
 - Remaining work: user acceptance by reopening the payment form; reconcile older migration history before future deployment. Parent-access schema issues are separate.
+
+## 2026-11-22 — Create isolated fake-data account
+
+- Request/reason: user requested a test account with fake data.
+- Changes: added maintained scripts/createIsolatedDemoAccount.ts and docs/demo-account.md; updated scripts guide, agent handoff and state. Plan-only default, explicit create/project/email guards, transaction-only new records, private credential delivery, no existing password resets or tenant cleanup.
+- Verification: focused TypeScript compile and plan-only run; schema/auth triggers inspected. Creation succeeded with expected 12 students, 8 parents, 3 classes/teachers, 36 grades and 24 attendance records; outside-tenant counts unchanged. Read-back confirmed auth/app membership, hash matches, shared siblings across classes, no demo payments and credential-file mode 0600. No application UI tests or test suite run.
+- Operations: created only the requested synthetic school/auth/app records using the existing trusted database connection. No financial collections, email, push, invitations, destructive cleanup or updates to existing school records. Existing unrelated local seed script was preserved. Project guard was corrected to recognize the configured project URL's supabase.com suffix while still requiring the exact project match.
+- Remaining work: user-run functional acceptance; credentials supplied through a private file outside Git. Demo records persist until explicit cleanup. This is an isolated tenant in the existing database, not a separate staging deployment.

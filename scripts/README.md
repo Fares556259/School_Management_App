@@ -17,3 +17,7 @@ These tools run outside the application. Read the source and confirm environment
 [Legacy filename index](legacy/INDEX.md) maps each previous root-level utility to its new location. Historical scripts generally assume the repository root as their working directory. They have been retained for reference, not verified for use against today's schema.
 
 When adding a maintained script, document purpose, required variables, whether it reads or writes data, and an example command here. Do not store customer exports, passwords or debug dumps in the repository.
+
+## Create an isolated demo account
+
+`createIsolatedDemoAccount.ts` is a maintained, create-only tool for explicitly requested fake data. The default run prints a plan without connecting. Creation needs `--create --expected-project <ref>` and a reserved `--email ...@example.test`; it creates a new school, new auth/app admin and synthetic family/academic records in one transaction. It does not reset or replace accounts. Generated credentials go to a private file outside Git; only its path is printed. Read [demo account details](../docs/demo-account.md) before execution. This is an operational write, not a test or setup prerequisite.

@@ -16,6 +16,7 @@ Paths are relative to the web repository root. Follow actual imports before edit
 | Data authorization | `src/lib/studentProfile.ts`, `school.ts`, `role.ts` | Server-owned active admin + school membership |
 | Database evolution | `prisma/schema.prisma`, `prisma/migrations/` | Generate Client and apply migrations are separate operations |
 | Student billing / payment window | `src/lib/studentBilling.ts`, `src/app/api/admin/student-billing/route.ts`, student `StudentBillingModal.tsx` | Five billing tables restored in production 2026-11-22; see docs/student-billing-repair.md; Prisma history still needs reconciliation |
+| Isolated fake-data accounts | `scripts/createIsolatedDemoAccount.ts`, `docs/demo-account.md` | Plan-only default; create/project/email guards; private external credentials; no existing account resets |
 | Hnia and Telegram | `src/lib/agent/`, `src/lib/telegram/` | Existing unrelated local changes may be in these folders |
 
 Focused local checks:
