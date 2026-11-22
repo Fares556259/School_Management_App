@@ -2,7 +2,7 @@ import { getRole } from "@/lib/role";
 import CrudFormModal from "@/components/CrudFormModal";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
-import TableSearch from "@/components/TableSearch";
+import { schoolWorkspaceCopy } from "@/lib/schoolWorkspaceCopy";
 import { createClient } from "@/utils/supabase/server";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
@@ -10,7 +10,7 @@ import { Class, Teacher, Level, Prisma } from "@prisma/client";
 import { getSchoolId } from "@/lib/school";
 import { getCachedTenantData } from "@/lib/cache";
 import Link from "next/link";
-import { Users, Filter, ArrowUpDown, Plus, Edit2, Trash2, DoorOpen, GraduationCap } from "lucide-react";
+import { Users, Search, RotateCcw, Plus, Edit2, Trash2, GraduationCap } from "lucide-react";
 import { cookies } from "next/headers";
 import { translations, Locale } from "@/lib/translations";
 
@@ -29,6 +29,7 @@ const ClassListPage = async (
   const cookieLang = (await cookies()).get("NEXT_LOCALE")?.value || "en";
   const lang = (cookieLang.startsWith("ar") ? "ar" : cookieLang.startsWith("fr") ? "fr" : "en") as Locale;
   const t = translations[lang] || translations.fr || translations.en;
+  const copy = schoolWorkspaceCopy[lang];
 
   const columns = [
     {
@@ -64,7 +65,7 @@ const ClassListPage = async (
   const role = await getRole();
   const safeSearchParams = searchParams || {};
   const { page, ...queryParams } = safeSearchParams;
-  const p = page ? parseInt(page) : 1;
+  const p = Math.max(1, Number.parseInt(page || "1", 10) || 1);
 
   const schoolId = await getSchoolId();
 
@@ -81,7 +82,7 @@ const ClassListPage = async (
             query.supervisorId = value;
             break;
           case "levelId":
-            query.levelId = parseInt(value);
+            if (/^\d+$/.test(value)) query.levelId = parseInt(value);
             break;
           case "search":
             query.name = { contains: value, mode: "insensitive" };
@@ -155,7 +156,7 @@ const ClassListPage = async (
                 id={item.id} 
                 relatedData={classRelatedData} 
                 trigger={
-                  <button className="w-8 h-8 flex items-center justify-center rounded-full bg-white border border-[#dddddd] text-[#41454d] hover:bg-slate-50 transition-colors">
+                  <button aria-label={`${lang === "ar" ? "تعديل" : lang === "fr" ? "Modifier" : "Edit"} ${item.name}`} className="w-8 h-8 flex items-center justify-center rounded-full bg-white border border-[#dddddd] text-[#41454d] hover:bg-slate-50 transition-colors">
                     <Edit2 size={14} />
                   </button>
                 }
@@ -165,7 +166,7 @@ const ClassListPage = async (
                 mode="delete" 
                 id={item.id} 
                 trigger={
-                  <button className="w-8 h-8 flex items-center justify-center rounded-full bg-white border border-[#dddddd] text-rose-500 hover:bg-rose-50 hover:border-rose-200 transition-colors">
+                  <button aria-label={`${lang === "ar" ? "حذف" : lang === "fr" ? "Supprimer" : "Delete"} ${item.name}`} className="w-8 h-8 flex items-center justify-center rounded-full bg-white border border-[#dddddd] text-rose-500 hover:bg-rose-50 hover:border-rose-200 transition-colors">
                     <Trash2 size={14} />
                   </button>
                 }
@@ -310,47 +311,39 @@ const ClassListPage = async (
 
 
   return (
-  <div className="w-full bg-white p-6 md:p-8 rounded-[24px] border border-[#dddddd] shadow-sm selection:bg-[#1b61c9] selection:text-white">
-    {/* TOP */}
-    <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 gap-4 border-b border-[#e5e7eb] pb-6">
-      <div className="flex items-center gap-4">
-        <div className="w-12 h-12 rounded-xl bg-white border border-[#e5e7eb] shadow-[0_1px_2px_rgba(0,0,0,0.04)] flex items-center justify-center text-[#181d26]">
-          <DoorOpen size={20} strokeWidth={2.5} />
+  <div className="school-class-list">
+    <section className="school-panel school-search-panel" aria-labelledby="class-search-title">
+      <h2 id="class-search-title" className="school-panel-heading">{copy.searchOptions}</h2>
+      <form action="/list/classes" className="school-panel-body">
+        {queryParams.supervisorId && <input type="hidden" name="supervisorId" value={queryParams.supervisorId} />}
+        <div className="school-search-grid">
+          <label className="school-field">{copy.className}<input name="search" defaultValue={queryParams.search || ""} /></label>
+          <label className="school-field">{copy.level}
+            <select name="levelId" defaultValue={queryParams.levelId || ""}>
+              <option value="">{copy.allLevels}</option>
+              {safeLevels.map(level => <option key={level.id} value={level.id}>{level.level === 0 ? (lang === "ar" ? "تحضيري" : lang === "fr" ? "Préscolaire" : "Preschool") : `${copy.level} ${level.level}`}</option>)}
+            </select>
+          </label>
         </div>
-        <div className="flex flex-col leading-tight">
-          <span className="text-[11px] font-bold text-[#9297a0] tracking-widest uppercase mb-0.5">{t.classes.academics}</span>
-          <h1 className="text-[24px] font-semibold text-[#181d26] tracking-tight">{t.classes.pageTitle}</h1>
+        <div className="school-search-actions">
+          <button className="school-action" type="submit"><Search size={15} />{copy.search}</button>
+          <Link href="/list/classes" className="school-action school-action-secondary"><RotateCcw size={15} />{copy.reset}</Link>
         </div>
+      </form>
+    </section>
+    <p className="text-xs text-slate-500">{copy.levelHint}</p>
+    <nav aria-label={copy.level} className="school-levels">
+      <Link href="/list/classes" className="school-level-link" aria-current={!query.levelId ? "page" : undefined}>{copy.allLevels}</Link>
+      {safeLevels.map(level => <Link key={level.id} href={`/list/classes?levelId=${level.id}`} className="school-level-link" aria-current={query.levelId === level.id ? "page" : undefined}>{level.level === 0 ? (lang === "ar" ? "تحضيري" : lang === "fr" ? "Préscolaire" : "Preschool") : `${copy.level} ${level.level}`}</Link>)}
+    </nav>
+    <section className="school-panel" aria-labelledby="class-list-title">
+      <div className="school-panel-heading">
+        <h2 id="class-list-title">{copy.classList} · {safeCount}</h2>
+        {role === "admin" && <CrudFormModal entity="class" mode="create" relatedData={classRelatedData} trigger={<button className="inline-flex items-center gap-2 rounded border border-white/40 px-3 py-1 text-xs hover:bg-white/10"><Plus size={15}/>{t.classes.addClass}</button>} />}
       </div>
-      <div className="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto">
-        <TableSearch />
-        <div className="flex items-center gap-2 self-end">
-          <button className="w-9 h-9 flex items-center justify-center rounded-lg bg-white border border-[#e5e7eb] text-[#41454d] hover:bg-[#F9FAFB] hover:border-[#d1d5db] transition-all shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-            <Filter size={16} strokeWidth={2} />
-          </button>
-          <button className="w-9 h-9 flex items-center justify-center rounded-lg bg-white border border-[#e5e7eb] text-[#41454d] hover:bg-[#F9FAFB] hover:border-[#d1d5db] transition-all shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-            <ArrowUpDown size={16} strokeWidth={2} />
-          </button>
-          {role === "admin" && (
-            <CrudFormModal
-              entity="class"
-              mode="create"
-              relatedData={classRelatedData}
-              trigger={
-                <button className="flex items-center justify-center gap-2 bg-[#181d26] hover:bg-[#000000] text-white rounded-lg px-4 h-9 transition-all shadow-[0_1px_2px_rgba(0,0,0,0.04)] ml-1 active:scale-95">
-                  <Plus size={16} strokeWidth={2.5} />
-                  <span className="font-medium text-[13px]">{t.classes.addClass}</span>
-                </button>
-              }
-            />
-          )}
-        </div>
-      </div>
-    </div>
-    {/* LIST */}
-    <Table columns={columns} renderRow={renderRow} data={safeData} />
-    {/* PAGINATION */}
-    <Pagination page={p} count={safeCount} />
+      <Table columns={columns} renderRow={renderRow} data={safeData} emptyState={lang === "ar" ? "لا توجد أقسام مطابقة" : lang === "fr" ? "Aucune classe trouvée" : "No classes found"} />
+      <div className="px-4 pb-3"><Pagination page={p} count={safeCount} /></div>
+    </section>
   </div>
 );
 };

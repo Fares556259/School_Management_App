@@ -82,7 +82,7 @@ export default async function DashboardLayout({
 
   return (
     <QueryProvider>
-      <div className="ss-app flex h-screen bg-paper text-ink-900 print:block print:h-auto">
+      <div className={`ss-app ${role === "admin" ? "ss-school-workspace" : ""} flex h-screen bg-paper text-ink-900 print:block print:h-auto`}>
         {/* LEFT SIDEBAR — hidden on mobile, visible md+ */}
         <aside className="ss-sidebar sticky top-0 z-30 hidden h-screen w-20 shrink-0 flex-col border-e border-ink-200 bg-white p-3.5 text-ink-800 transition-all duration-300 md:flex lg:w-[260px] lg:p-4 xl:w-[275px] print:hidden">
           <div className="flex items-center justify-center lg:justify-between mb-6 px-1 shrink-0">

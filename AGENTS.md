@@ -77,4 +77,4 @@ These instructions govern this web repository. They do not automatically update 
 
 ## Latest handoff
 
-2026-11-22 — Created a user-requested isolated demo tenant with one admin, twelve students, eight parents, three classes/teachers, grades and attendance. Other tenants' counts were preserved. Added the guarded, create-only `scripts/createIsolatedDemoAccount.ts`; existing seed tools and unrelated local files were not used/changed. Credentials are in a private external file, not Git. Read [demo account notes](docs/demo-account.md). Account/hash/sibling read-back verified; no UI login, payment collection or test suite run.
+2026-11-22 — Implemented the first LaVieScolaire-familiar admin design pass: compact navy/pale-blue shell, labeled navigation, Classes level/search/results layout and Students explicit search/reset filters. Preserved existing feature actions; corrected unassigned/identifier summary counts. Read [design and rollout notes](docs/admin-workspace-design.md). TypeScript and targeted lint passed with one existing avatar warning; no live/browser tests, database changes or deployment. Unrelated Hnia/payment work remains untouched.

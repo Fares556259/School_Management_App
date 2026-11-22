@@ -272,7 +272,7 @@ const StudentListPage = async (
   };
 
   return (
-    <div className="bg-white p-6 rounded-[8px] border border-[#dddddd] shadow-sm flex-1 m-4 mt-0">
+    <div className="school-student-list bg-white p-6 rounded-[8px] border border-[#dddddd] shadow-sm flex-1 m-4 mt-0">
       <StudentListClient
         key={selectedMonthKey}
         initialData={safeData}

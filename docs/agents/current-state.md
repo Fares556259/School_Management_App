@@ -76,3 +76,9 @@ The create-only tool guards the project and duplicate email, writes transactiona
 Known local checks: TypeScript, targeted lint, import/family/roster/code checks passed for their respective changes. Legacy tools were relocated, not executed or certified against the current schema. No production test import was run by the agent.
 
 For any next task, inspect fresh logs/schema and verify only within the user's authorized scope. A missing migration is a deployment task, not a reason to invent data, drop relations, reset the database or broadly push the schema.
+
+## Compact administrative workspace — first design pass
+
+The administrator shell now has compact navy/pale-blue styling, labeled desktop navigation at tablet width, and class/student breadcrumbs. Classes has explicit search/reset, level quick filters and a counted results section. Students has explicit draft/search/reset controls for name/identifier, level, class, month and payment status; parent-slip actions use the applied class. Payment summaries share the search/level/class predicate with table rows, fixing unassigned and identifier count mismatches.
+
+See [design and rollout notes](../admin-workspace-design.md). This is local implementation of the first pages, not an all-page redesign or deployed/visually verified release. No test suites or live/browser flows run per user preference. TypeScript and targeted lint passed; existing Classes avatar warning remains. No data/schema/account changes.

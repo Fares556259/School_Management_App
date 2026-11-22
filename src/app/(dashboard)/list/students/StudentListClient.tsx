@@ -7,13 +7,13 @@ import Pagination from "@/components/Pagination";
 import StudentBillingModal from "./StudentBillingModal";
 import PaymentTimeline from "@/components/PaymentTimeline";
 import CrudFormModal from "@/components/CrudFormModal";
-import TableSearch from "@/components/TableSearch";
+import { schoolWorkspaceCopy } from "@/lib/schoolWorkspaceCopy";
 import StudentDetailsModal from "@/components/StudentDetailsModal";
 import AttendanceCertificateModal from "@/components/AttendanceCertificateModal";
 
 import MonthPaymentSummary from "@/components/MonthPaymentSummary";
 import { useLanguage } from "@/lib/translations/LanguageContext";
-import { Sparkles, Users, Eye, ExternalLink, Printer } from "lucide-react";
+import { Sparkles, Users, Eye, ExternalLink, Printer, Search, RotateCcw } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { MONTHS, getSchoolYearMonths } from "@/lib/dateUtils";
@@ -60,8 +60,9 @@ export default function StudentListClient({
   const isPending = isFilterPending || isSearchPending;
   const currentClassId = searchParams.get("classId") || "";
   const [optimisticData, setOptimisticData] = useState<any[]>(initialData || []);
-  const [clientSearch, setClientSearch] = useState("");
+  const [clientSearch, setClientSearch] = useState(searchParams.get("search") || "");
   const [clientClassId, setClientClassId] = useState(searchParams.get("classId") || "");
+  const [clientLevelId, setClientLevelId] = useState(searchParams.get("levelId") || "");
   const [clientStatus, setClientStatus] = useState(searchParams.get("status") || "");
   const [clientMonthKey, setClientMonthKey] = useState(selectedMonthKey);
   const [isBulkImportOpen, setIsBulkImportOpen] = useState(false);
@@ -114,9 +115,21 @@ export default function StudentListClient({
     }))
   ];
 
+  const copy = schoolWorkspaceCopy[locale];
+  const [draft, setDraft] = useState({ search: clientSearch, classId: clientClassId, status: clientStatus, month: clientMonthKey, levelId: clientLevelId });
+  const applyFilters = (next: typeof draft) => {
+    setClientLevelId(next.levelId);
+    setClientSearch(next.search);
+    setClientClassId(next.classId);
+    setClientStatus(next.status);
+    setClientMonthKey(next.month);
+    handleFilterResetPage();
+    updateUrl({ search: next.search, classId: next.classId, status: next.status, levelId: next.levelId, month: next.month });
+  };
   const schoolYearMonths = getSchoolYearMonths();
 
-  const filteredData = optimisticData.filter(item => {
+  const matchesStudentScope = (item: any) => {
+    if (clientLevelId && String(item.levelId) !== clientLevelId) return false;
     if (clientSearch) {
       const q = clientSearch.toLowerCase().trim();
       const fullName = `${item.name} ${item.surname}`.toLowerCase();
@@ -134,6 +147,11 @@ export default function StudentListClient({
         return false;
       }
     }
+    return true;
+  };
+
+  const filteredData = optimisticData.filter(item => {
+    if (!matchesStudentScope(item)) return false;
     if (clientStatus) {
       const [mName, yStr] = (clientMonthKey || "").trim().split(/\s+/);
       const monthIdx = MONTHS.indexOf(mName) !== -1 ? MONTHS.indexOf(mName) + 1 : (new Date().getMonth() + 1);
@@ -158,18 +176,7 @@ export default function StudentListClient({
   const displayedData = filteredData;
 
   // Month payment summary is based on the class/search filter, NOT restricted by the status filter itself
-  const summaryBaseData = optimisticData.filter(item => {
-    if (clientSearch) {
-      const match = item.name.toLowerCase().includes(clientSearch.toLowerCase()) || 
-                    item.surname.toLowerCase().includes(clientSearch.toLowerCase()) ||
-                    `${item.name} ${item.surname}`.toLowerCase().includes(clientSearch.toLowerCase());
-      if (!match) return false;
-    }
-    if (clientClassId && String(item.classId) !== clientClassId) {
-      return false;
-    }
-    return true;
-  });
+  const summaryBaseData = optimisticData.filter(matchesStudentScope);
 
   const [sumMName, sumYStr] = (clientMonthKey || "").trim().split(/\s+/);
   const sumMonthIdx = MONTHS.indexOf(sumMName) !== -1 ? MONTHS.indexOf(sumMName) + 1 : (new Date().getMonth() + 1);
@@ -389,71 +396,44 @@ export default function StudentListClient({
         />
       </div>
 
-      {/* 2. TOP ACTIONS HEADER */}
-      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 mb-6">
-        <div className="flex flex-col md:flex-row items-center gap-3 w-full lg:w-auto">
-          {/* SEARCH AND FILTER */}
-          <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
-            <TableSearch clientSideOnly={true} onChangeImmediate={(val) => {
-              setClientSearch(val);
-              handleFilterResetPage();
-            }} />
-            <select
-              className="bg-white border border-ink-200 rounded-control px-3 py-2 text-[13px] font-medium text-ink-900 focus:outline-none focus:border-brand-600 focus:ring-1 focus:ring-brand-100 transition-all shadow-sm min-w-[120px]"
-              value={clientClassId}
-              onChange={(e) => {
-                const val = e.target.value;
-                setClientClassId(val);
-                handleFilterResetPage();
-                updateUrl({ classId: val || undefined });
-              }}
-            >
-              <option value="">{locale === 'ar' ? 'جميع الأقسام' : locale === 'fr' ? 'Toutes les classes' : 'All Classes'}</option>
-              {classList.map((c: any) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
-
-            {/* MONTH FILTER */}
-            <select
-              className="bg-white border border-ink-200 rounded-control px-3 py-2 text-[13px] font-medium text-ink-900 focus:outline-none focus:border-brand-600 focus:ring-1 focus:ring-brand-100 transition-all shadow-sm min-w-[120px]"
-              value={clientMonthKey}
-              onChange={(e) => {
-                const val = e.target.value;
-                setClientMonthKey(val);
-                handleFilterResetPage();
-              }}
-            >
-              {schoolYearMonths.map(m => {
-                const [mName, yStr] = m.split(" ");
-                const mIdx = MONTHS.indexOf(mName);
-                const translatedMonth = t.months?.[mIdx] || mName;
-                return (
-                  <option key={m} value={m}>{translatedMonth} {yStr}</option>
-                );
-              })}
-            </select>
-
-            {/* STATUS FILTER */}
-            <select
-              className="bg-white border border-ink-200 rounded-control px-3 py-2 text-[13px] font-medium text-ink-900 focus:outline-none focus:border-brand-600 focus:ring-1 focus:ring-brand-100 transition-all shadow-sm min-w-[120px]"
-              value={clientStatus}
-              onChange={(e) => {
-                const val = e.target.value;
-                setClientStatus(val);
-                handleFilterResetPage();
-                updateUrl({ status: val || undefined });
-              }}
-            >
-              <option value="">{locale === 'ar' ? 'جميع الحالات' : locale === 'fr' ? 'Tous les statuts' : 'All Statuses'}</option>
-              <option value="PAID">{locale === 'ar' ? 'مدفوع' : locale === 'fr' ? 'Payé' : 'Paid'}</option>
-              <option value="PARTIAL">{locale === 'ar' ? 'تسبيق' : locale === 'fr' ? 'Avance' : 'Advance'}</option>
-              <option value="UNPAID">{locale === 'ar' ? 'غير مدفوع' : locale === 'fr' ? 'Non payé' : 'Unpaid'}</option>
-            </select>
+      <section className="school-panel school-search-panel" aria-labelledby="student-search-title">
+        <h2 id="student-search-title" className="school-panel-heading">{copy.searchOptions}</h2>
+        <form className="school-panel-body" onSubmit={event => { event.preventDefault(); applyFilters(draft); }}>
+          <div className="school-search-grid">
+            <label className="school-field">{copy.name}<input value={draft.search} onChange={event => setDraft({ ...draft, search: event.target.value })} /></label>
+            <label className="school-field">{copy.level}
+              <select value={draft.levelId} onChange={event => setDraft({ ...draft, levelId: event.target.value, classId: "" })}>
+                <option value="">{copy.allLevels}</option>
+                {(relatedData?.levelId || []).map((level: { value: string; label: string }) => <option key={level.value} value={level.value}>{level.label}</option>)}
+              </select>
+            </label>
+            <label className="school-field">{copy.className}
+              <select value={draft.classId} onChange={event => setDraft({ ...draft, classId: event.target.value })}>
+                <option value="">{locale === "ar" ? "جميع الأقسام" : locale === "fr" ? "Toutes les classes" : "All classes"}</option>
+                {classList.filter(c => c.id !== "null").map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            </label>
+            <label className="school-field">{copy.month}
+              <select value={draft.month} onChange={event => setDraft({ ...draft, month: event.target.value })}>
+                {schoolYearMonths.map(month => { const [name, year] = month.split(" "); return <option key={month} value={month}>{t.months?.[MONTHS.indexOf(name)] || name} {year}</option>; })}
+              </select>
+            </label>
+            <label className="school-field">{copy.status}
+              <select value={draft.status} onChange={event => setDraft({ ...draft, status: event.target.value })}>
+                <option value="">{locale === "ar" ? "جميع الحالات" : locale === "fr" ? "Tous les statuts" : "All statuses"}</option>
+                <option value="PAID">{locale === "ar" ? "مدفوع" : locale === "fr" ? "Payé" : "Paid"}</option>
+                <option value="PARTIAL">{locale === "ar" ? "تسبيق" : locale === "fr" ? "Avance" : "Advance"}</option>
+                <option value="UNPAID">{locale === "ar" ? "غير مدفوع" : locale === "fr" ? "Non payé" : "Unpaid"}</option>
+              </select>
+            </label>
           </div>
-        </div>
-
-        <div className="flex items-center gap-2 self-end lg:self-auto shrink-0 mt-4 lg:mt-0 w-full lg:w-auto justify-end">
+          <div className="school-search-actions">
+            <button type="submit" className="school-action"><Search size={15}/>{copy.search}</button>
+            <button type="button" className="school-action school-action-secondary" onClick={() => { const cleared = { search: "", classId: "", status: "", month: selectedMonthKey, levelId: "" }; setDraft(cleared); applyFilters(cleared); }}><RotateCcw size={15}/>{copy.reset}</button>
+          </div>
+        </form>
+      </section>
+      <div className="school-student-actions">
           {role === "admin" && (
             <div className="flex items-center gap-2">
               {/^\d+$/.test(clientClassId) && (
@@ -483,10 +463,10 @@ export default function StudentListClient({
               <CrudFormModal entity="student" mode="create" relatedData={relatedData} />
             </div>
           )}
-        </div>
       </div>
 
       {/* 3. TABLE & PAGINATION */}
+      <h2 className="school-panel-heading rounded-t-md mb-0">{copy.studentList} · {displayCount}</h2>
       <div className={`transition-opacity duration-200 ${isPending ? "opacity-50 pointer-events-none" : "opacity-100"}`}>
         {displayedData.length === 0 ? (
           <div className="py-16 text-center text-slate-500 bg-slate-50/50 rounded-lg border border-dashed border-slate-200 mt-6">
