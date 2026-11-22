@@ -5,12 +5,11 @@ import LanguageSwitcher from "./LanguageSwitcher";
 import { useLanguage } from "@/lib/translations/LanguageContext";
 import { useEffect, useState } from "react";
 import { Menu as MenuIcon } from "lucide-react";
-import { schoolWorkspaceCopy } from "@/lib/schoolWorkspaceCopy";
 import { usePathname } from "next/navigation";
 import { getUserAvatar } from "@/lib/avatar";
 
 const Navbar = ({ adminData: initialAdminData, role = "User", onMobileMenuOpen }: { adminData?: any, role?: string, onMobileMenuOpen?: () => void }) => {
-  const { t, locale } = useLanguage();
+  const { t } = useLanguage();
   const [adminData, setAdminData] = useState<any>(initialAdminData);
 
   const pathname = usePathname();
@@ -43,7 +42,6 @@ const Navbar = ({ adminData: initialAdminData, role = "User", onMobileMenuOpen }
             const lastSegment = pathSegments[pathSegments.length - 1];
             const isId = /^[0-9a-fA-F-]{10,}$|^\d+$/.test(lastSegment) || lastSegment.length > 20;
             const targetSegment = isId && pathSegments.length > 1 ? pathSegments[pathSegments.length - 2] : lastSegment;
-            if (role === "admin" && targetSegment === "students") return schoolWorkspaceCopy[locale].students;
             if (targetSegment === "parent-requests") return t.menu.parentRequests;
             return (t.menu as any)?.[targetSegment] || targetSegment.charAt(0).toUpperCase() + targetSegment.slice(1);
           })()}

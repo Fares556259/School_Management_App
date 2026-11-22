@@ -3,7 +3,6 @@
 import { useState, useCallback, useEffect } from "react";
 import MobileNav from "@/components/MobileNav";
 import Navbar from "@/components/Navbar";
-import WorkspaceBreadcrumbs from "@/components/school-workspace/WorkspaceBreadcrumbs";
 
 interface DashboardShellClientProps {
   role?: string;
@@ -52,7 +51,6 @@ const DashboardShellClient = ({
         <Navbar adminData={adminData} role={role!} onMobileMenuOpen={openDrawer} />
       </div>
 
-      {role === "admin" && <WorkspaceBreadcrumbs />}
       {children}
     </>
   );

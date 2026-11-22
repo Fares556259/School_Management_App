@@ -11,7 +11,7 @@ const Table = ({
 }) => {
   return (
     <div className="w-full overflow-x-auto" tabIndex={0}>
-      <table className="ss-table min-w-[800px] w-full border-collapse text-start">
+      <table className="min-w-[800px] w-full border-collapse text-start">
         <thead>
           <tr className="border-y border-ink-200 bg-ink-50 text-xs font-semibold text-ink-600">
             {columns.map((col) => (

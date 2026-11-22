@@ -4,7 +4,6 @@ Paths are relative to the web repository root. Follow actual imports before edit
 
 | Task | Start with | Rules/dependencies |
 |---|---|---|
-| Admin workspace design | `src/app/globals.css`, `src/components/school-workspace/`, `src/lib/schoolWorkspaceCopy.ts`, dashboard layout/Menu/Navbar | Admin-scoped theme; see docs/admin-workspace-design.md; explicit Classes/Students search forms |
 | Student list and class filter | `src/app/(dashboard)/list/students/page.tsx`, `StudentListClient.tsx` | Tenant-scoped server query; optional service-relation fallback; client filters |
 | PDF import UI | `src/app/(dashboard)/list/students/StrictPdfImport.tsx` | `src/app/api/admin/student-pdf-import/route.ts` |
 | PDF source extraction | `src/lib/studentPdfImport/extract.ts`, `api/student_pdf.py` | `services/student-pdf-import/extract.py`, pinned `requirements.txt`; signed internal call |

@@ -4,7 +4,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
-import { schoolWorkspaceCopy } from "@/lib/schoolWorkspaceCopy";
 import { useLanguage } from "@/lib/translations/LanguageContext";
 import ShareParentLinkModal from "@/components/ShareParentLinkModal";
 import { 
@@ -160,7 +159,6 @@ const Menu = ({ role, adminData, schoolConfig, mobile = false }: { role?: string
   const [parentRequestCount, setParentRequestCount] = useState(0);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const { t, locale } = useLanguage();
-  const expandedLayout = mobile || role === "admin";
 
   useEffect(() => {
     if (role !== 'admin') return;
@@ -296,7 +294,7 @@ const Menu = ({ role, adminData, schoolConfig, mobile = false }: { role?: string
   };
 
   return (
-    <nav aria-label="Navigation principale" className="school-navigation flex h-full min-h-full flex-col pb-2 text-sm">
+    <nav aria-label="Navigation principale" className="flex h-full min-h-full flex-col pb-2 text-sm">
       {/* 1. TOP STANDALONE LINK (Accueil / Dashboard) */}
       <div className="flex flex-col gap-1 mb-2 px-1">
         {menuItems.find(s => s.title === "MAIN")?.items
@@ -313,7 +311,7 @@ const Menu = ({ role, adminData, schoolConfig, mobile = false }: { role?: string
                 onMouseEnter={() => router.prefetch(targetHref)}
                 key={item.label}
                 aria-current={isActive ? "page" : undefined}
-                className={`group relative flex items-center gap-3 rounded-control px-3 py-2.5 transition-colors duration-150 ${expandedLayout ? "justify-start" : "justify-center lg:justify-start"} ${
+                className={`group relative flex items-center gap-3 rounded-control px-3 py-2.5 transition-colors duration-150 ${mobile ? "justify-start" : "justify-center lg:justify-start"} ${
                   isActive
                     ? "bg-brand-600 font-semibold text-white"
                     : "font-medium text-ink-600 hover:bg-ink-50 hover:text-ink-900"
@@ -322,7 +320,7 @@ const Menu = ({ role, adminData, schoolConfig, mobile = false }: { role?: string
                 <div className="transition-transform duration-200 shrink-0">
                   <item.icon size={19} strokeWidth={1.75} className={isActive ? "text-white" : "text-ink-500 group-hover:text-ink-800"} />
                 </div>
-                <span className={`${expandedLayout ? "block" : "hidden lg:block"} text-[14px] tracking-tight`}>
+                <span className={`${mobile ? "block" : "hidden lg:block"} text-[14px] tracking-tight`}>
                   {(t.menu as any)[labelToKey[item.label]] || item.label}{item.label === 'Parent Requests' && parentRequestCount > 0 && <span className="ms-2 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-900">{parentRequestCount}</span>}
                 </span>
               </Link>
@@ -354,7 +352,7 @@ const Menu = ({ role, adminData, schoolConfig, mobile = false }: { role?: string
                   });
                 }}
                 aria-expanded={Boolean(isExpanded)}
-                className={`group flex w-full cursor-pointer select-none items-center rounded-control px-3 py-2 transition-colors duration-150 ${expandedLayout ? "justify-between" : "justify-center lg:justify-between"} ${
+                className={`group flex w-full cursor-pointer select-none items-center rounded-control px-3 py-2 transition-colors duration-150 ${mobile ? "justify-between" : "justify-center lg:justify-between"} ${
                   isExpanded
                     ? "bg-ink-100 font-semibold text-ink-900"
                     : "font-medium text-ink-600 hover:bg-ink-50 hover:text-ink-900"
@@ -368,26 +366,25 @@ const Menu = ({ role, adminData, schoolConfig, mobile = false }: { role?: string
                       className={`shrink-0 transition-colors ${isExpanded ? "text-brand-600" : "text-ink-500 group-hover:text-ink-800"}`}
                     />
                   )}
-                  <span className={`${expandedLayout ? "block" : "hidden lg:block"} truncate text-[13.5px] font-medium tracking-tight`}>
-                    {role === "admin" && section.title === "ACADEMICS" ? schoolWorkspaceCopy[locale].academics : role === "admin" && section.title === "PEOPLE" ? schoolWorkspaceCopy[locale].people : (t.menu as any)?.[section.title.toLowerCase()] || section.title}
+                  <span className={`${mobile ? "block" : "hidden lg:block"} truncate text-[13.5px] font-medium tracking-tight`}>
+                    {(t.menu as any)?.[section.title.toLowerCase()] || section.title}
                   </span>
                 </div>
                 <ChevronDown 
                   size={15} 
                   strokeWidth={1.75}
-                  className={`${expandedLayout ? "block" : "hidden lg:block"} shrink-0 text-ink-400 transition-transform duration-200 group-hover:text-ink-600 ${isExpanded ? 'rotate-180 text-brand-600' : ''}`}
+                  className={`${mobile ? "block" : "hidden lg:block"} shrink-0 text-ink-400 transition-transform duration-200 group-hover:text-ink-600 ${isExpanded ? 'rotate-180 text-brand-600' : ''}`}
                 />
               </button>
 
               {/* Sub-items list */}
               <div
                 aria-hidden={!isExpanded}
-                inert={!isExpanded}
                 className={`flex flex-col gap-0.5 overflow-hidden transition-all duration-200 ease-out ${
-                  isExpanded ? `max-h-[500px] opacity-100 mt-1 ${expandedLayout ? "ps-3" : "lg:ps-3"}` : 'max-h-0 opacity-0'
+                  isExpanded ? `max-h-[500px] opacity-100 mt-1 ${mobile ? "ps-3" : "lg:ps-3"}` : 'max-h-0 opacity-0'
                 }`}
               >
-                <div className={`flex flex-col gap-1 border-s border-ink-200 py-1 ps-2.5 ${!expandedLayout ? "max-lg:border-0 max-lg:ps-0" : ""}`}>
+                <div className={`flex flex-col gap-1 border-s border-ink-200 py-1 ps-2.5 ${!mobile ? "max-lg:border-0 max-lg:ps-0" : ""}`}>
                   {visibleItems.map((item) => {
                     const targetHref = item.href === "/" 
                       ? (isSuper ? "/superadmin" : `/${role}`) 
@@ -401,12 +398,12 @@ const Menu = ({ role, adminData, schoolConfig, mobile = false }: { role?: string
                         <form key={item.label} action="/api/auth/signout" method="POST" className="w-full">
                           <button
                             type="submit"
-                            className={`group relative flex w-full items-center gap-2.5 rounded-control px-2.5 py-2 font-normal text-ink-600 transition-colors hover:bg-ink-50 hover:text-ink-900 ${expandedLayout ? "justify-start" : "justify-center lg:justify-start"}`}
+                            className={`group relative flex w-full items-center gap-2.5 rounded-control px-2.5 py-2 font-normal text-ink-600 transition-colors hover:bg-ink-50 hover:text-ink-900 ${mobile ? "justify-start" : "justify-center lg:justify-start"}`}
                           >
                             <div className="shrink-0 text-ink-400 transition-colors group-hover:text-ink-600">
                               <item.icon size={17} strokeWidth={1.75} />
                             </div>
-                            <span className={`${expandedLayout ? "block" : "hidden lg:block"} truncate text-[13px] tracking-tight`}>
+                            <span className={`${mobile ? "block" : "hidden lg:block"} truncate text-[13px] tracking-tight`}>
                               {(t.menu as any)[labelToKey[item.label]] || item.label}{item.label === 'Parent Requests' && parentRequestCount > 0 && <span className="ms-2 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-900">{parentRequestCount}</span>}
                             </span>
                           </button>
@@ -422,7 +419,7 @@ const Menu = ({ role, adminData, schoolConfig, mobile = false }: { role?: string
                         onMouseEnter={() => router.prefetch(targetHref)}
                         key={item.label}
                         aria-current={isActive ? "page" : undefined}
-                        className={`group relative flex items-center gap-2.5 rounded-control px-2.5 py-2 transition-colors duration-150 ${expandedLayout ? "justify-start" : "justify-center lg:justify-start"} ${
+                        className={`group relative flex items-center gap-2.5 rounded-control px-2.5 py-2 transition-colors duration-150 ${mobile ? "justify-start" : "justify-center lg:justify-start"} ${
                           isActive
                             ? "bg-brand-50 font-semibold text-brand-700 ring-1 ring-inset ring-brand-100"
                             : "font-normal text-ink-600 hover:bg-ink-50 hover:text-ink-900"
@@ -446,7 +443,7 @@ const Menu = ({ role, adminData, schoolConfig, mobile = false }: { role?: string
                             <item.icon size={17} strokeWidth={1.75} />
                           )}
                         </div>
-                        <span className={`${expandedLayout ? "block" : "hidden lg:block"} truncate text-[13px] tracking-tight`}>
+                        <span className={`${mobile ? "block" : "hidden lg:block"} truncate text-[13px] tracking-tight`}>
                           {(t.menu as any)[labelToKey[item.label]] || item.label}{item.label === 'Parent Requests' && parentRequestCount > 0 && <span className="ms-2 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-900">{parentRequestCount}</span>}
                         </span>
                       </Link>
@@ -460,7 +457,7 @@ const Menu = ({ role, adminData, schoolConfig, mobile = false }: { role?: string
 
         {/* 3. SUBTLE UTILITY CARD (App Mobile & Parents) - Clean Outline Design */}
         {(role === "admin" || role === "superadmin" || role === "superuser" || role === "teacher") && (
-          <div className={`${expandedLayout ? "flex" : "hidden lg:flex"} mx-1 my-2 flex-col gap-2 rounded-panel border border-ink-200 bg-ink-50 p-3`}>
+          <div className={`${mobile ? "flex" : "hidden lg:flex"} mx-1 my-2 flex-col gap-2 rounded-panel border border-ink-200 bg-ink-50 p-3`}>
             <div className="flex items-center gap-2.5">
               <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-control bg-brand-100 text-brand-600">
                 <Smartphone size={15} strokeWidth={1.75} />
@@ -490,7 +487,7 @@ const Menu = ({ role, adminData, schoolConfig, mobile = false }: { role?: string
       {/* 4. BOTTOM FOOTER SECTION (Academic Status & Account) */}
       <div className="mt-auto flex flex-col gap-2 border-t border-ink-200 pt-3">
         {/* SCHOOL & ACADEMIC YEAR BADGE */}
-        <div className={`${expandedLayout ? "flex" : "hidden lg:flex"} mx-1 items-center gap-2.5 rounded-panel border border-ink-200 bg-ink-50 px-3 py-2`}>
+        <div className={`${mobile ? "flex" : "hidden lg:flex"} mx-1 items-center gap-2.5 rounded-panel border border-ink-200 bg-ink-50 px-3 py-2`}>
           <div className="w-7 h-7 rounded-lg bg-emerald-100/70 border border-emerald-200 flex items-center justify-center text-emerald-600 shrink-0">
             <Building2 size={14} />
           </div>
@@ -511,7 +508,7 @@ const Menu = ({ role, adminData, schoolConfig, mobile = false }: { role?: string
         </div>
 
         {/* USER PROFILE FOOTER */}
-        <div className={`${expandedLayout ? "flex" : "hidden lg:flex"} mx-1 items-center gap-2.5 rounded-control px-2.5 py-1.5 transition-colors hover:bg-ink-50`}>
+        <div className={`${mobile ? "flex" : "hidden lg:flex"} mx-1 items-center gap-2.5 rounded-control px-2.5 py-1.5 transition-colors hover:bg-ink-50`}>
           {adminData?.img ? (
             <Image src={adminData.img} alt="" width={32} height={32} className="rounded-full object-cover w-8 h-8 shrink-0 border border-slate-200" />
           ) : (

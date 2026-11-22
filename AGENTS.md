@@ -77,4 +77,4 @@ These instructions govern this web repository. They do not automatically update 
 
 ## Latest handoff
 
-2026-11-22 — Implemented the first LaVieScolaire-familiar admin design pass: compact navy/pale-blue shell, labeled navigation, Classes level/search/results layout and Students explicit search/reset filters. Preserved existing feature actions; corrected unassigned/identifier summary counts. Read [design and rollout notes](docs/admin-workspace-design.md). TypeScript and targeted lint passed with one existing avatar warning; no live/browser tests, database changes or deployment. Unrelated Hnia/payment work remains untouched.
+2026-11-22 — Reverted the first admin workspace redesign at the user's request, restoring the previous dashboard, Classes and Students UI. No database, account or deployment behavior changed. The unrelated local Hnia/payment work and demo script remain untouched.
