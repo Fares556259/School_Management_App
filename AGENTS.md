@@ -77,4 +77,4 @@ These instructions govern this web repository. They do not automatically update 
 
 ## Latest handoff
 
-2026-11-22 — Reverted the first admin workspace redesign at the user's request, restoring the previous dashboard, Classes and Students UI. No database, account or deployment behavior changed. The unrelated local Hnia/payment work and demo script remain untouched.
+2026-11-27 — Students search now matches Arabic names with or without diacritics and elongation marks, using a browser-side index. See [the change log](docs/agents/change-log.md#2026-11-27--enable-instant-arabic-student-search) for checks and deployment status.

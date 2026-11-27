@@ -60,3 +60,11 @@ Append one entry per logical change. Update the root `AGENTS.md` Latest handoff 
 - Verification: reviewed the staged revert. Git whitespace validation identified a pre-existing trailing space restored with the original Students implementation; it was left unchanged so the UI revert remains exact. No test suite or live/browser flow was run.
 - Operations: revert prepared and committed for the `completed` branch; no database, account, schema or deployment changes. Unrelated Hnia/payment files and the untracked demo script were preserved.
 - Remaining work: user acceptance of the restored interface after deployment.
+
+## 2026-11-27 — Enable instant Arabic student search
+
+- Request/reason: plain Arabic input did not find imported names with formatting marks.
+- Changes and affected paths: `StudentListClient.tsx` indexes normalized names using `src/lib/studentListSearch.ts` and shares search and class matches with the payment summary. Name normalization handles Arabic marks and common letter variants, French accents and full names in either order. Student identifiers stay strings.
+- Verification: TypeScript and targeted ESLint passed. Offline assertions covered Arabic marks and letter variants, French accents, empty normalized input and leading zeros.
+- Operations: code-only release through Git. See Git history for push status. Production deployment is unverified.
+- Remaining work: confirm with the school's roster after normal deployment.

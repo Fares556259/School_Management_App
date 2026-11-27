@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useEffect } from "react";
+import { useState, useTransition, useEffect, useMemo } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import Table from "@/components/Table";
 import Pagination from "@/components/Pagination";
@@ -19,6 +19,7 @@ import Link from "next/link";
 import { MONTHS, getSchoolYearMonths } from "@/lib/dateUtils";
 import { Student, Class, Level, Payment } from "@prisma/client";
 import { getUserAvatar } from "@/lib/avatar";
+import { studentListSearchKey } from "@/lib/studentListSearch";
 
 import ShareParentLinkModal from "@/components/ShareParentLinkModal";
 import { studentTuitionForMonth } from '@/lib/tuitionPolicy';
@@ -116,17 +117,24 @@ export default function StudentListClient({
 
   const schoolYearMonths = getSchoolYearMonths();
 
-  const filteredData = optimisticData.filter(item => {
-    if (clientSearch) {
-      const q = clientSearch.toLowerCase().trim();
-      const fullName = `${item.name} ${item.surname}`.toLowerCase();
-      const match = item.name.toLowerCase().includes(q) || 
-                    item.surname.toLowerCase().includes(q) ||
-                    fullName.includes(q) ||
-                    (item.nationalId && String(item.nationalId).includes(q)) ||
-                    (item.id && String(item.id).toLowerCase().includes(q));
-      if (!match) return false;
-    }
+  const searchIndex = useMemo(() => optimisticData.map(item => {
+    const name = studentListSearchKey(item.name ?? "");
+    const surname = studentListSearchKey(item.surname ?? "");
+    return {
+      item,
+      keys: [
+        `${name} ${surname}`,
+        `${surname} ${name}`,
+        String(item.nationalId ?? ""),
+        String(item.id ?? "").toLowerCase(),
+      ],
+    };
+  }), [optimisticData]);
+
+  const searchKey = studentListSearchKey(clientSearch);
+  // The payment summary and table use the same search and class filters.
+  const summaryBaseData = searchIndex.filter(({ item, keys }) => {
+    if (searchKey && !keys.some(key => key.includes(searchKey))) return false;
     if (clientClassId) {
       if (clientClassId === "unassigned") {
         if (item.classId !== null && item.classId !== undefined && item.classId !== 0) return false;
@@ -134,42 +142,28 @@ export default function StudentListClient({
         return false;
       }
     }
-    if (clientStatus) {
-      const [mName, yStr] = (clientMonthKey || "").trim().split(/\s+/);
-      const monthIdx = MONTHS.indexOf(mName) !== -1 ? MONTHS.indexOf(mName) + 1 : (new Date().getMonth() + 1);
-      const yearVal = parseInt(yStr) || new Date().getFullYear();
-      const currentPayment = item.payments?.find((p: any) => p.month === monthIdx && p.year === yearVal);
-      const statusUpper = currentPayment?.status ? String(currentPayment.status).toUpperCase() : "";
-
-      const tuition = studentTuitionForMonth(item, monthIdx, yearVal, halfBoundaryMonths);
-      const amountPaid = ['PAID', 'PARTIAL'].includes(statusUpper) ? currentPayment?.amount || 0 : 0;
-      const remaining = Math.max(0, tuition - amountPaid);
-      const isPaid = remaining <= 0;
-      const isPartial = !isPaid && (statusUpper === "PARTIAL" || (amountPaid > 0 && remaining > 0));
-      const isUnpaid = !isPaid && !isPartial;
-
-      if (clientStatus === "PAID" && !isPaid) return false;
-      if (clientStatus === "PARTIAL" && !isPartial) return false;
-      if (clientStatus === "UNPAID" && !isUnpaid) return false;
-    }
     return true;
-  });
+  }).map(({ item }) => item);
 
-  const displayedData = filteredData;
+  const displayedData = clientStatus ? summaryBaseData.filter(item => {
+    const [mName, yStr] = (clientMonthKey || "").trim().split(/\s+/);
+    const monthIdx = MONTHS.indexOf(mName) !== -1 ? MONTHS.indexOf(mName) + 1 : (new Date().getMonth() + 1);
+    const yearVal = parseInt(yStr) || new Date().getFullYear();
+    const currentPayment = item.payments?.find((p: any) => p.month === monthIdx && p.year === yearVal);
+    const statusUpper = currentPayment?.status ? String(currentPayment.status).toUpperCase() : "";
 
-  // Month payment summary is based on the class/search filter, NOT restricted by the status filter itself
-  const summaryBaseData = optimisticData.filter(item => {
-    if (clientSearch) {
-      const match = item.name.toLowerCase().includes(clientSearch.toLowerCase()) || 
-                    item.surname.toLowerCase().includes(clientSearch.toLowerCase()) ||
-                    `${item.name} ${item.surname}`.toLowerCase().includes(clientSearch.toLowerCase());
-      if (!match) return false;
-    }
-    if (clientClassId && String(item.classId) !== clientClassId) {
-      return false;
-    }
+    const tuition = studentTuitionForMonth(item, monthIdx, yearVal, halfBoundaryMonths);
+    const amountPaid = ['PAID', 'PARTIAL'].includes(statusUpper) ? currentPayment?.amount || 0 : 0;
+    const remaining = Math.max(0, tuition - amountPaid);
+    const isPaid = remaining <= 0;
+    const isPartial = !isPaid && (statusUpper === "PARTIAL" || (amountPaid > 0 && remaining > 0));
+    const isUnpaid = !isPaid && !isPartial;
+
+    if (clientStatus === "PAID" && !isPaid) return false;
+    if (clientStatus === "PARTIAL" && !isPartial) return false;
+    if (clientStatus === "UNPAID" && !isUnpaid) return false;
     return true;
-  });
+  }) : summaryBaseData;
 
   const [sumMName, sumYStr] = (clientMonthKey || "").trim().split(/\s+/);
   const sumMonthIdx = MONTHS.indexOf(sumMName) !== -1 ? MONTHS.indexOf(sumMName) + 1 : (new Date().getMonth() + 1);

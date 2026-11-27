@@ -16,6 +16,10 @@ Birthday is optional in the Student schema; absent values are NULL. No date file
 
 Historical evidence from this session: the source register and exported records matched on 498 students across 33 pages; 17 were preparatory students. The user later showed 498 existing students and 378 reused guardians. These counts describe that import only, not future school data or test fixtures.
 
+## Student search
+
+The Students directory filters as the user types across its loaded school roster. Search normalizes Arabic and French names for comparison while preserving their display and storage, accepts either full-name order, and still supports student IDs. The payment summary uses the same search and class filters.
+
 ## Class assignment
 
 The class assignment modal has a separate paste-list panel. It prioritizes 12-digit IDs, with exact normalized name matching only when no IDs are present. It rejects unknown/ambiguous students, duplicate entries, wrong levels and students assigned to another class. Expected count confirmation prevents a pasted multi-class document from being silently assigned to one class.
